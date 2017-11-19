@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#requires pillow and grequests
+#requires pillow
 
 import collection
 import hover
@@ -12,11 +12,10 @@ import concurrent.futures
 
 from constants import *
 
-def printgames(lis):
-    for l in lis:
-        print( l )
 
-# determine the luma of a 12-bit color
+# make up a picture, created early so we can use the image data
+window = Tk.Tk()
+
 
 game.Game._user = "jadthegerbil"
 root = collection.getcollection(game.Game._user)
@@ -32,16 +31,22 @@ def creategame(game):
     allgames.append( gamesbyid[newgame.id] )
     print(newgame.name,  len(allgames))
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
-    gamecreator = {executor.submit(game.Game, g): g for g in allver}
-    for future in concurrent.futures.as_completed(gamecreator):
-        gamexml = gamecreator[future]
-        try:
-            newgame = future.result()
-            gamesbyid[newgame.id] = newgame
-            allgames.append( gamesbyid[newgame.id] )
-        except Exception as ex:
-            print("GameId {} tossed exception, {}".format( gamexml.get("objectid"),  ex))
+if 1:
+    for g in allver:
+        newgame = game.Game(g)
+        gamesbyid[newgame.id] = newgame
+        allgames.append( gamesbyid[newgame.id] )
+else:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
+        gamecreator = {executor.submit(game.Game, g): g for g in allver}
+        for future in concurrent.futures.as_completed(gamecreator):
+            gamexml = gamecreator[future]
+            try:
+                newgame = future.result()
+                gamesbyid[newgame.id] = newgame
+                allgames.append( gamesbyid[newgame.id] )
+            except Exception as ex:
+                print("GameId {} tossed exception, {}".format( gamexml.get("objectid"),  ex))
 
 
 #for g in allver:
@@ -52,17 +57,19 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
 boxgames   = [ b for b in allgames if b.exists ]
 noboxgames = [ b for b in allgames if not b.exists ]
 
+
+# TODO: make this modular and customizable
 def sorts(box):
-    #return box.x * box.y * box.z
-    return game.colorbrightness( box.color )
+    return box.x * box.y * box.z
+    #return game.colorbrightness( box.color )
 
 
-shelf.Shelf.setStoreStyle(shelf.StoreStyle.PreferStack)
-
+shelf.Shelf.setStoreStyle(shelf.StoreStyle.PreferSide)
+game.Game.setSidePreference(game.SidePreference.Left)
 sgames = sorted(boxgames, key=sorts, reverse=True)
-#xgames = sorted(boxgames, key=lambda x:(max(x.x,x.y), min(x.x,x.y))
-#                , reverse=True)
+
 shelves = []
+# TODO: make this customizable and possibly with a UI
 with open("shelves.txt","r") as f:
     for line in f.read().splitlines():
         bits = line.split('\t')
@@ -103,14 +110,12 @@ for bc in shelves:
         totalarea = totalarea + s.totalarea
         totalshelves = totalshelves + 1
 
-# make up a picture
-window = Tk.Tk()
+
 SQIN_TO_SQFEET = (1/(12*12))
 window.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
       totalused*SQIN_TO_SQFEET
     , totalarea*SQIN_TO_SQFEET
     , (totalused/totalarea)*100.0))
-
 
 
 mf = Tk.Frame(window)

@@ -4,6 +4,7 @@ import unicodedata
 import re
 import tkinter as Tk
 import math
+from enum import Enum
 from PIL import Image
 from PIL import ImageTk
 
@@ -26,9 +27,18 @@ def colorbrightness(rgb):
     y = (2*r + 1*b + 3*g)/(255.0*6.0)
     return y
 
+class SidePreference(Enum):
+    Left = 1
+    Right = 2
+
 class Game:
     _user = None
     _hover = None
+    _sidepreference = SidePreference.Left
+
+    @staticmethod
+    def setSidePreference(side:SidePreference):
+        Game._sidepreference = side
 
     def __init__(self, hold):
         elt = hold.find("./version/item")
@@ -50,12 +60,17 @@ class Game:
 
         #gd = collection.getgame(Game._user, self.id)
         #self.averating = getvalue(gd, "./statistics/ratings/average")
+        self.hoverimgurl = collection.getimg(Game._user, self.id)
+        self.hoverimgraw = Image.open(self.hoverimgurl)
+        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         self.color = self.getavecolor()
 
         self.x = self.y = self.z = self.w = self.density = 0.0
         self.exists = False
+        self.versionid = 0
 
         if elt is not None:
+            self.versionid = int(elt.get("id"))
             self.x = sizevalue(elt, "width")
             self.y = sizevalue(elt, "length")
             self.z = sizevalue(elt, "depth")
@@ -70,9 +85,10 @@ class Game:
             #some of the data is confusing/wrong, so let's use the picture as the deciding factor
             if self.x != self.y: # unless it's the same, save the time
                 try:
-                    imgfile = collection.getimgspecific(elt.find("./thumbnail").text)
-                    with Image.open(imgfile) as imgraw:
-                        w,h = imgraw.size
+                    #imgfile = collection.getimgspecific(elt.find("./thumbnail").text)
+                    #with Image.open(imgfile) as imgraw:
+                    #    w,h = imgraw.size
+                    w, h = self.hoverimgraw.size
                     if (w>h) != (self.x>self.y):
                         #print("$$ {} {}<->{} ({} {})".format(self.name, self.x, self.y, w, h))
                         self.x, self.y = self.y, self.x
@@ -85,70 +101,68 @@ class Game:
                 self.exists = (self.x + self.y + self.z) > 0.0
                 self.density = self.w/(self.z * min(self.x,self.y))
             except ArithmeticError:
+                link = "https://boardgamegeek.com/boardgameversion/{}".format(self.versionid)
                 print("Zero size for",  self.name,  self.x,
-                self.y, self.z, "https://boardgamegeek.com/boardgame/{}".format(self.id))
+                self.y, self.z, link)
                 pass
         else: # no version data
             print("No version for",  self.name,  "https://boardgamegeek.com/boardgame/{}".format(self.id))
 
 
     def getavecolor(self, bPrint = False):
-        imgfile = collection.getimg(Game._user,self.id)
-        return averagecolor.calcfromfile(imgfile)
+        return averagecolor.calcfromdata(self.hoverimgraw)
 
     def getcolor(self,  bPrint = False):
         if bPrint:
             print("Starting", self.name, self.dir)
-        imgfile = collection.getimg(Game._user,self.id)
         try:
-            with Image.open(imgfile) as imgraw:
-                w,h = imgraw.size
-                # check the corners of the image, jumping in increments if white
+            w,h = self.hoverimgraw.size
+            # check the corners of the image, jumping in increments if white
 
-                # if box is stored zy or yz, then we want to check the left side
-                if "y" in self.dir:
-                    vals = range(0,h-1, h//SAMPLE_STRIDE)
-                    coords = [(0, y) for y in vals]
-                    walkvalue = (1,0)
-                else:
-                    vals = range(0, w-1, w//SAMPLE_STRIDE)
-                    coords = [(x,h-1) for x in vals]
-                    walkvalue = (0,1)
-                avergb = [255,255,255]
-                samples = []
+            # if box is stored zy or yz, then we want to check the left side
+            if "y" in self.dir:
+                vals = range(0,h-1, h//SAMPLE_STRIDE)
+                coords = [(0, y) for y in vals]
+                walkvalue = (1,0)
+            else:
+                vals = range(0, w-1, w//SAMPLE_STRIDE)
+                coords = [(x,h-1) for x in vals]
+                walkvalue = (0,1)
+            avergb = [255,255,255]
+            samples = []
 
-                # loop breaker
-                class ColorFound(Exception):pass
+            # loop breaker
+            class ColorFound(Exception):pass
 
-                try:
-                    for inset in range(0, min(w,h)//2, INSET_STRIDE):
-                        xinset = inset * walkvalue[0]
-                        yinset = inset * walkvalue[1]
-                        for x,y in coords:
-                            coord = (x+xinset, y-yinset)
-                            col = imgraw.getpixel(coord)
+            try:
+                for inset in range(0, min(w,h)//2, INSET_STRIDE):
+                    xinset = inset * walkvalue[0]
+                    yinset = inset * walkvalue[1]
+                    for x,y in coords:
+                        coord = (x+xinset, y-yinset)
+                        col = self.hoverimgraw.getpixel(coord)
 
-                            if len(col) > 3 and col[3] <= ALPHA_CUTOFF:
-                                if bPrint:
-                                    print(coord, col, "alpha failed")
-                            elif sum( col[:3] ) > COLOR_CUTOFF:
-                                if bPrint:
-                                    print(coord, col, "color failed")
-                            else:
-                                samples.append( col )
-                                if bPrint:
-                                    print(coord, col, "passed")
+                        if len(col) > 3 and col[3] <= ALPHA_CUTOFF:
+                            if bPrint:
+                                print(coord, col, "alpha failed")
+                        elif sum( col[:3] ) > COLOR_CUTOFF:
+                            if bPrint:
+                                print(coord, col, "color failed")
+                        else:
+                            samples.append( col )
+                            if bPrint:
+                                print(coord, col, "passed")
 
 
-                        if len(samples) < NEEDED_SAMPLES:
-                            continue
+                    if len(samples) < NEEDED_SAMPLES:
+                        continue
 
-                        avergb = [ int( (sum(col)/len(samples))+0.5) for col in zip(*samples)]
-                        if bPrint:
-                            print("Finished with {}/{}".format(len(samples),len(coords)), avergb)
-                        raise ColorFound
-                except ColorFound:
-                    pass
+                    avergb = [ int( (sum(col)/len(samples))+0.5) for col in zip(*samples)]
+                    if bPrint:
+                        print("Finished with {}/{}".format(len(samples),len(coords)), avergb)
+                    raise ColorFound
+            except ColorFound:
+                pass
 
 
             col = avergb[0]<<16 | avergb[1]<<8 | avergb[2]
@@ -182,41 +196,17 @@ class Game:
 
         #self.box.pack_propagate(False)
 
+        self.makeboxart()
+
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.gethumandir())
 
-        self.hoverimg = collection.getimg(Game._user, self.id)
-
         #fontcolor = "white" if colorbrightness(self.color) < BRIGHT_CUTOFF else "black"
-        img = Image.open(self.hoverimg)
-
-        #srcimg  = 178x150
-        #endsize = 144x40.5
-        #resized = 144x121
-        if self.rotated:
-            ratio = (self.shelfheight*SCALAR) / img.width
-        else:
-            ratio = (self.shelfwidth*SCALAR) / img.width
-        img = img.resize((int(ratio*img.width+1)
-                        , int(ratio*img.height+1))
-                        , Image.ANTIALIAS)
-        if self.rotated:
-            img = img.transpose(Image.ROTATE_270)
-            img = img.crop((img.width-self.shelfwidth*SCALAR
-                            , 0
-                            , img.width
-                            , img.height ))
-        else:
-            img = img.crop((0
-                            , 0
-                            , img.width
-                            , self.shelfheight*SCALAR ))
-        self.imgraw = ImageTk.PhotoImage(img)
 
         #self.label = Tk.Label(self.box
         self.label = Tk.Label(shelf, width=self.shelfwidth*SCALAR, height=self.shelfheight*SCALAR
                               #, text=self.name
-                              , image=self.imgraw
+                              , image=self.boximgraw
                               , relief=Tk.RAISED
                               #, wraplength=(self.shelfwidth * SCALAR)-2
                               , bg=color
@@ -236,6 +226,43 @@ class Game:
         else:
             self.label.pack(side=Tk.LEFT,anchor=Tk.S)
 
+    def makeboxart(self):
+        img = self.hoverimgraw.copy()
+
+        # determine the ratio of our deciding side (height or width)
+        if self.rotated:
+            ratio = (self.shelfheight*SCALAR) / img.width
+        else:
+            ratio = (self.shelfwidth*SCALAR) / img.width
+
+        # shrink our image to fit our new size
+        img = img.resize((int(ratio*img.width+1)
+                        , int(ratio*img.height+1))
+                        , Image.ANTIALIAS)
+
+        # crop/transpose the image to the "top" of the thumbnail
+        # luckily MOST games seem to put their name on the top.
+        # We COULD try and be smart (somehow?) and find the name elsewise, but...
+        if self.rotated:
+            if Game._sidepreference == SidePreference.Right:
+                img = img.transpose(Image.ROTATE_270)
+                img = img.crop((img.width-self.shelfwidth*SCALAR
+                                , 0
+                                , img.width
+                                , img.height ))
+            else:
+                img = img.transpose(Image.ROTATE_90)
+                img = img.crop((0
+                                , 0
+                                , self.shelfwidth*SCALAR
+                                , img.height ))
+
+        else:
+            img = img.crop((0
+                            , 0
+                            , img.width
+                            , self.shelfheight*SCALAR ))
+        self.boximgraw = ImageTk.PhotoImage(img)
 
     def onClick(self, event):
         self.getcolor(True)

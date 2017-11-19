@@ -25,9 +25,11 @@ class Hover:
     def setimage(self, imgfile):
         w = 0
         if imgfile != None:
-            imgraw = Image.open(imgfile)
-            self.label.img = ImageTk.PhotoImage(imgraw)
-            w = imgraw.size[0]
+            self.label.img = imgfile
+            if isinstance(imgfile, str):
+                imgfile = Image.open(imgfile)
+                self.label.img = ImageTk.PhotoImage(imgfile)
+            w = self.label.img.width()
         else:
             self.label.img = ""
 
@@ -43,9 +45,12 @@ class Hover:
             self.label.config(text=None)
 
         try:
-            self.setimage(caller.hoverimg)
+            self.setimage(caller.hoverimgTk)
         except AttributeError:
-            self.setimage(None)
+            try:
+                self.setimage(caller.hoverimgurl)
+            except AttributeError:
+                self.setimage(None)
 
         self.label.update()
 
