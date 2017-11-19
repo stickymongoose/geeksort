@@ -1,0 +1,4 @@
+pics/pic*
+collection_*.xml
+games_*.xml
+__pycache__/*
