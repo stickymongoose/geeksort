@@ -106,17 +106,17 @@ class Hover:
         EXTRA_X = 25 # a few extra pixels to eliminate some grossness
         #if xpos + textw + EXTRA_X >= win.winfo_width():
         if xpos > win.winfo_width() // 2:
-            xpos = xpos - textw - EXTRA_X
+            xpos -= textw + EXTRA_X
         else:
-            xpos = xpos + EXTRA_X
+            xpos += EXTRA_X
 
         EXTRA_Y = 5
         #print(ypos, texth, win.winfo_height())
         #if ypos + (texth) >= win.winfo_height():
         if ypos > win.winfo_height() // 2:
-            ypos = ypos - texth - EXTRA_Y
+            ypos -= texth + EXTRA_Y
         else:
-            ypos = ypos + EXTRA_Y
+            ypos += EXTRA_Y
 
 
         xpos = max(0, xpos)

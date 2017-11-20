@@ -43,12 +43,12 @@ class Bookcase:
         used = 0.0
         total = 0.0
         for s in self.shelves:
-            used = used + s.usedarea
-            total = total + s.totalarea
+            used += s.usedarea
+            total += s.totalarea
         return used, total
 
     def makewidgets(self, owner, index):
-        border=2
+        border=BOOKCASE_BORDER
         self.case = Tk.Frame(owner
                         #, width=(self.width*SCALAR)+(border*2)
                         , bg=CASE_COLOR, border=border
@@ -62,6 +62,11 @@ class Bookcase:
             s = self.shelves[si]
             s.makewidget(self.case,si+1)
 
+    def search(self, text):
+        sum = 0
+        for s in self.shelves:
+            sum += s.search(text)
+        return sum
 
 class GameStack:
     sortmethod = StackSort.Size
@@ -126,6 +131,12 @@ class GameStack:
         for g in self.games:
             g.makewidget(self.frame, center=True)
 
+    def search(self, text):
+        sum = 0
+        for g in self.games:
+            sum += g.search(text)
+
+        return sum
 
 class Shelf:
     sortlist = []
@@ -235,6 +246,24 @@ class Shelf:
         for s in self.stacks:
             s.finish()
 
+    def search(self, text):
+        sum = 0
+        for s in self.stacks:
+            sum += s.search(text)
+
+        for g in self.games:
+            sum += g.search(text)
+
+        if sum > 0:
+            self.shlf.configure(bg=FOUND_COLOR)
+            for st in self.stacks:
+                st.frame.configure(bg=FOUND_COLOR)
+        else:
+            self.shlf.configure(bg=SHELF_COLOR)
+            for st in self.stacks:
+                st.frame.configure(bg=SHELF_COLOR)
+        return sum
+
     def addstack(self,  box: game.Game,  dir ):
         box.setdir(dir)
         stackname = "{}-{}".format(self.name,  len(self.stacks)+1)
@@ -247,7 +276,7 @@ class Shelf:
 
 
     def makewidget(self, case, row):
-        border = 2
+        border = SHELF_BORDER
 
         height = (self.height   * SCALAR) + (border * 2.0)
         self.frmwidth = (self.maxwidth * SCALAR) + (border * 2.0)
@@ -290,14 +319,14 @@ class Shelf:
         sum = 0.0
         for st in self.stacks:
             print(st.name,  st.games[0].lblwidth)
-            sum = sum + st.games[0].lblwidth
+            sum += st.games[0].lblwidth
             for g in st.games:
                 print("\t",  g.name)
 
 
         for g in self.games:
             print(g.name,  g.lblwidth)
-            sum = sum + g.lblwidth
+            sum += g.lblwidth
 
         print(sum,  self.frmwidth)
 

@@ -56,6 +56,10 @@ class Game:
         self.id = int(hold.get("objectid"))
 
         self.longname = self.name
+        self.searchname = self.longname.lower()
+        self.searchname = self.searchname.replace(" ", "")
+        #should other ones go away...?
+
         #self.name = textwrap.shorten(self.longname,30)
         self.name = self.longname[:30]
 
@@ -181,7 +185,7 @@ class Game:
             self=self, humdir=self.gethumandir())
 
         #color = "#{:06x}".format( self.color )
-        border = 2
+        border = GAME_BORDER
 
         # scale the border down to accomodate for the fact that it happens on the OUTSIDE of the label
         # if we let it shrink, it'll make things bigger than they should be
@@ -278,7 +282,19 @@ class Game:
     def onLeave(self, event):
         hover.Hover.inst.onLeave(self, event, [self.label])
 
-    def sethighlighted(self, highlighted):
+    def search(self, text):
+        if len(text)==0:
+            self.sethighlighted(False)
+            return 0
+
+        matched = text in self.searchname
+        if matched:
+            self.label.config(state=Tk.ACTIVE, bg='yellow', relief=Tk.RAISED)
+        else:
+            self.label.config(state=Tk.DISABLED, bg='black', relief=Tk.FLAT)
+        return int(matched)
+
+    def sethighlighted(self, highlighted, bg='yellow'):
         self.highlighted = highlighted
         try:
             if highlighted:

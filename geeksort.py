@@ -22,7 +22,6 @@ allver = root.findall("./item")
 allgames = []
 gamesbyid = {}
 
-
 def creategame(game):
     newgame = game.Game(game)
     gamesbyid[newgame.id] = newgame
@@ -105,9 +104,9 @@ totalused = 0.0
 totalshelves = 0
 for bc in cases:
     used, total = bc.getused()
-    totalused = totalused + used
-    totalarea = totalarea + total
-    totalshelves = totalshelves + 1
+    totalused += used
+    totalarea += total
+    totalshelves += 1
 
 
 SQIN_TO_SQFEET = (1/(12*12))
@@ -118,9 +117,38 @@ window.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
 
 
 mf = Tk.Frame(window)
-mf.grid(column=0,row=0,sticky=(Tk.W,Tk.E,Tk.S,Tk.N))
+mf.grid(column=0,row=1,sticky=(Tk.W,Tk.E,Tk.S,Tk.N))
 #mf.columnconfigure(0,weight=1)
 #mf.rowconfigure(0,weight=1)
+
+searchframe = Tk.LabelFrame(window, text="Search Function")
+searchframe.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
+searchbox = Tk.Entry(searchframe,  width=100)
+searchbox.pack(side=Tk.LEFT,  anchor=Tk.NW, pady=5, padx=5)
+searchbox.request = 0
+
+searchresults = Tk.Label(searchframe, width=20)
+searchresults.pack(side=Tk.LEFT, anchor=Tk.NW, pady=5, padx=5)
+
+def search():
+    searchbox.request = 0
+    text = searchbox.get()
+    text = text.lower().replace(" ", "")
+    matchcount = 0
+    for b in cases:
+        matchcount += b.search(text)
+    matchcount +=  unplaced.search(text)
+    searchresults.configure(text="{} Result{}".format(matchcount, "" if matchcount==1 else "s"))
+
+
+
+def typed(event):
+    searchbox.after_cancel(searchbox.request)
+    searchbox.request = searchbox.after(250, search)
+
+searchbox.bind("<Key>", typed)
+searchbox.bind("<Return>", search)
+
 
 for shelfIndex in range(len(cases)):
     bc = cases[shelfIndex]
