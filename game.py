@@ -42,6 +42,7 @@ class Game:
 
     def __init__(self, hold):
         elt = hold.find("./version/item")
+        self.sethighlighted( False )
         # get the unicode name, convert it, re-encode it
         self.name = hold.find("name").text.strip()
         self.name = unicodedata.normalize('NFKD', self.name)
@@ -85,9 +86,6 @@ class Game:
             #some of the data is confusing/wrong, so let's use the picture as the deciding factor
             if self.x != self.y: # unless it's the same, save the time
                 try:
-                    #imgfile = collection.getimgspecific(elt.find("./thumbnail").text)
-                    #with Image.open(imgfile) as imgraw:
-                    #    w,h = imgraw.size
                     w, h = self.hoverimgraw.size
                     if (w>h) != (self.x>self.y):
                         #print("$$ {} {}<->{} ({} {})".format(self.name, self.x, self.y, w, h))
@@ -177,54 +175,59 @@ class Game:
 
 
     def makewidget(self, shelf,  center=False):
-        # use the id, guaranteed unique, apply some sauce, and you got a unique color
-        #self.rgb = (self.id * 161616) % 0xffffff
-
-        color = "#{:06x}".format( self.color )
-        #print(self.name, color)
-        #self.box = Tk.Frame(shelf, bg=color
-        #             , width=self.shelfwidth*SCALAR
-        #             , height=self.shelfheight*SCALAR)
-        #if center:
-        #    self.box.pack(side=Tk.BOTTOM,anchor=Tk.S)
-        #else:
-        #    self.box.pack(side=Tk.LEFT,anchor=Tk.S)
-
-        #self.box.bind("<Enter>",self.onEnter )
-        #self.box.bind("<Button-1>", self.onClick )
-
-
-        #self.box.pack_propagate(False)
-
         self.makeboxart()
 
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.gethumandir())
 
-        #fontcolor = "white" if colorbrightness(self.color) < BRIGHT_CUTOFF else "black"
+        #color = "#{:06x}".format( self.color )
+        border = 2
 
-        #self.label = Tk.Label(self.box
-        self.label = Tk.Label(shelf, width=self.shelfwidth*SCALAR, height=self.shelfheight*SCALAR
+        # scale the border down to accomodate for the fact that it happens on the OUTSIDE of the label
+        # if we let it shrink, it'll make things bigger than they should be
+        while True:
+            self.lblwidth = (self.shelfwidth *SCALAR) - (border*2.0)
+            self.lblheight= (self.shelfheight*SCALAR) - (border*2.0)
+
+            if min(self.lblwidth,  self.lblheight) > 0:
+                break # our border is fine, die
+
+            border = border - 1
+
+            if border == -1:
+                border = 0
+                self.lblwidth = max(1, self.lblwidth)
+                self.lblheight = max(1, self.lblheight)
+                break
+
+        self.label = Tk.Label(shelf
+                              , width =self.lblwidth
+                              , height=self.lblheight
                               #, text=self.name
-                              , image=self.boximgraw
+                              , image=self.boximgTk
                               , relief=Tk.RAISED
                               #, wraplength=(self.shelfwidth * SCALAR)-2
-                              , bg=color
+                              , borderwidth=border
+                              #, bg=color
+                              , compound="center"
                               #, fg=fontcolor
                               #, font=("Footlight MT","10", "bold")
+                              #, highlightcolor="red"
+                              #,  takefocus=1
                               )
-
-        #if self.rotated:
-        #    self.label.configure(anchor=Tk.E)
 
         self.label.bind("<Enter>",self.onEnter )
 
         self.label.bind("<Button-1>", self.onClick )
-        #self.label.place(anchor=Tk.N, relx=.5, rely=0)
+
         if center:
             self.label.pack(side=Tk.BOTTOM,anchor=Tk.S)
         else:
-            self.label.pack(side=Tk.LEFT,anchor=Tk.S)
+            self.label.pack(side=Tk.LEFT,  anchor=Tk.SW)
+
+        # reset this to adjust the things we've made
+        self.sethighlighted(self.highlighted)
+
 
     def makeboxart(self):
         img = self.hoverimgraw.copy()
@@ -262,16 +265,29 @@ class Game:
                             , 0
                             , img.width
                             , self.shelfheight*SCALAR ))
-        self.boximgraw = ImageTk.PhotoImage(img)
+        self.boximgTk = ImageTk.PhotoImage(img)
 
     def onClick(self, event):
-        self.getcolor(True)
+        #self.getcolor(True)
+        self.sethighlighted(not self.highlighted)
+        print(self.name, self.lblwidth,  self.lblheight)
 
     def onEnter(self, event):
         hover.Hover.inst.onEnter(self, event, [self.label])
 
     def onLeave(self, event):
         hover.Hover.inst.onLeave(self, event, [self.label])
+
+    def sethighlighted(self, highlighted):
+        self.highlighted = highlighted
+        try:
+            if highlighted:
+                self.label.config(state=Tk.DISABLED, bg='yellow')
+            else:
+                color = "#{:06x}".format( self.color )
+                self.label.config(state=Tk.NORMAL, bg=color)
+        except AttributeError:
+            pass
 
     def setdir(self, dir):
         self.dir = dir

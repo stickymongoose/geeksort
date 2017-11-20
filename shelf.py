@@ -8,14 +8,60 @@ import game
 _verbose = False
 
 class StoreStyle(Enum):
-    UprightOnly   = 1
-    PreferUpright = 2
+    SideOnly   = 1
+    PreferSide = 2
     PreferStack   = 3
     StackOnly     = 4
 
 class StackSort(Enum):
     Weight = 1
     Size   = 2
+
+class Bookcase:
+    def __init__(self, line):
+        bits = line.split('\t')
+        self.shelves = []
+        self.name = bits[0]
+        self.width = float(bits[1])
+        depth = bits[2]
+        heights = bits[3:]
+        for i in range(len(heights)):
+            name = "{}-{}".format(self.name,  i+1)
+            self.shelves.append( Shelf(  name, self.width, heights[i], depth ) )
+
+    def trybox(self,  box):
+        for shelf in self.shelves:
+            if shelf.trybox(box):
+                return True
+        return False
+
+    def finish(self):
+        for shelf in self.shelves:
+            shelf.finish()
+
+    def getused(self):
+        used = 0.0
+        total = 0.0
+        for s in self.shelves:
+            used = used + s.usedarea
+            total = total + s.totalarea
+        return used, total
+
+    def makewidgets(self, owner, index):
+        border=2
+        self.case = Tk.Frame(owner
+                        #, width=(self.width*SCALAR)+(border*2)
+                        , bg=CASE_COLOR, border=border
+                        , relief=Tk.RAISED)
+
+        self.case.grid(row=0, column=index, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
+
+        text = Tk.Label(self.case, text=self.name, bg=CASE_COLOR)
+        text.grid(row=0, pady=0)
+        for si in range(len(self.shelves)):
+            s = self.shelves[si]
+            s.makewidget(self.case,si+1)
+
 
 class GameStack:
     sortmethod = StackSort.Size
@@ -67,11 +113,15 @@ class GameStack:
             # sort by the size of the stack's dimensions
             self.games.sort(key=lambda s:s.shelfwidth, reverse=True)
 
-    def makewidgets(self,  owner, shelf):
+    def makewidgets(self,  owner, shelf = None,  index=None):
         self.frame = Tk.Frame(owner, bg=SHELF_COLOR)
-        self.frame.pack(side=Tk.LEFT,anchor=Tk.S)
-        self.frame.bind("<Enter>", shelf.onEnter )
-        self.frame.bind("<Button-1>", shelf.onClick )
+
+        if shelf != None:
+            self.frame.pack(side=Tk.LEFT,anchor=Tk.S)
+            self.frame.bind("<Enter>", shelf.onEnter )
+            self.frame.bind("<Button-1>", shelf.onClick )
+        else:
+            self.frame.grid(row=0, column=index, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
 
         for g in self.games:
             g.makewidget(self.frame, center=True)
@@ -118,11 +168,11 @@ class Shelf:
 
     @staticmethod
     def setStoreStyle(style:StoreStyle):
-        if style == StoreStyle.PreferUpright:
+        if style == StoreStyle.PreferSide:
             Shelf.sortlist = [Shelf.tryVertical, Shelf.tryStack]
         elif style == StoreStyle.PreferStack:
             Shelf.sortlist = [Shelf.tryStack, Shelf.tryVertical]
-        elif style == StoreStyle.UprightOnly:
+        elif style == StoreStyle.SideOnly:
             Shelf.sortlist = [Shelf.tryVertical]
         elif style == StoreStyle.StackOnly:
             Shelf.sortlist = [Shelf.tryStack]
@@ -196,18 +246,29 @@ class Shelf:
         self.addboxlite(box)
 
 
-    def addwidget(self, case, row):
+    def makewidget(self, case, row):
+        border = 2
+
+        height = (self.height   * SCALAR) + (border * 2.0)
+        self.frmwidth = (self.maxwidth * SCALAR) + (border * 2.0)
+        print(self.name, self.frmwidth, height)
         self.shlf = Tk.Frame(case
-                         , height=self.height*SCALAR
-                         , width=self.maxwidth*SCALAR
-                         , bg=SHELF_COLOR, border=3, relief=Tk.SUNKEN)
+                         , height=height
+                         , width =self.frmwidth
+                         , bg=SHELF_COLOR
+                         , border=border
+                         , relief=Tk.SUNKEN
+                         #, relief=Tk.FLAT
+                         )
         self.shlf.grid(row=row,pady=3,padx=5)
         self.shlf.pack_propagate(False)
         self.shlf.bind("<Enter>", self.onEnter)
         self.shlf.bind("<Button-1>", self.onClick)
-        self.hovertext="{name}-{row}\n{w} x {h} x {d}\n{weight}{plus} lbs, ({wcnt}/{total})\n{used:3.0f}% Used".format(
+
+        self.hovertext="{name}-{row}\n{w} x {h} x {d}\n{usedwidth}/{w}\n{weight}{plus} lbs, ({wcnt}/{total})\n{used:3.0f}% Used".format(
             name=self.name, row=row
             , w=self.maxwidth, h=self.height, d=self.depth
+            , usedwidth = self.maxwidth - self.widthleft
             , plus="+" if self.wreported < len(self.games) else ""
             , weight=self.weight, wcnt=self.wreported, total = len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
@@ -226,11 +287,17 @@ class Shelf:
 
     def onClick(self, event):
         print("###", self.name,"###")
+        sum = 0.0
         for st in self.stacks:
-            print(st.name)
+            print(st.name,  st.games[0].lblwidth)
+            sum = sum + st.games[0].lblwidth
             for g in st.games:
                 print("\t",  g.name)
 
+
         for g in self.games:
-            print(g.name)
+            print(g.name,  g.lblwidth)
+            sum = sum + g.lblwidth
+
+        print(sum,  self.frmwidth)
 

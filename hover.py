@@ -11,7 +11,7 @@ class Hover:
         self.label = Tk.Label(owner, anchor=Tk.NW, compound=Tk.BOTTOM)
         self.stack = []
         Hover.inst = self # singleton
-        self.dbglvl = Tk.Label(owner, anchor=Tk.NE)
+        self.dbglvl = Tk.Label(owner, anchor=Tk.NE )
         self.dbglvl.place(relx=1.0,  rely=0.0, anchor=Tk.NE)
         self.dbglvl.bind("<Button-1>", self.stackwipe)
 
@@ -36,9 +36,6 @@ class Hover:
         self.label.configure(image=self.label.img, wraplength=w)
 
     def onEnter(self, caller, event, afflicted):
-        self.label.after(200, self.onEnter_, caller, event, afflicted)
-
-    def onEnter_(self, caller, event, afflicted):
         try:
             self.label.config(text=caller.hovertext)
         except AttributeError:
