@@ -80,7 +80,6 @@ class Game:
         #self.averating = getvaluef(gd, "./statistics/ratings/average")
         self.hoverimgurl = collection.getimg(Game._user, self.id)
         self.hoverimgraw = Image.open(self.hoverimgurl)
-        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         self.color = self.getavecolor()
 
         # get if the user wants to exclude
@@ -218,6 +217,7 @@ class Game:
 
 
     def makewidget(self, shelf,  center=False):
+        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         self.makeboxart()
 
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
