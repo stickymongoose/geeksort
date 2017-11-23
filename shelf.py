@@ -25,9 +25,11 @@ class Bookcase:
         self.width = float(bits[1])
         depth = bits[2]
         heights = bits[3:]
+        self.height = 0
         for i in range(len(heights)):
             name = "{}-{}".format(self.name,  i+1)
             self.shelves.append( Shelf(  name, self.width, heights[i], depth ) )
+            self.height += float(heights[i])
 
     def trybox(self,  box):
         for shelf in self.shelves:
@@ -50,7 +52,7 @@ class Bookcase:
     def makewidgets(self, owner, index):
         border=BOOKCASE_BORDER
         self.case = Tk.Frame(owner
-                        #, width=(self.width*SCALAR)+(border*2)
+                        #, width=(self.width*IN_TO_PX)+(border*2)
                         , bg=CASE_COLOR, border=border
                         , relief=Tk.RAISED)
 
@@ -278,9 +280,9 @@ class Shelf:
     def makewidget(self, case, row):
         border = SHELF_BORDER
 
-        height = (self.height   * SCALAR) + (border * 2.0)
-        self.frmwidth = (self.maxwidth * SCALAR) + (border * 2.0)
-        print(self.name, self.frmwidth, height)
+        height = (self.height   * IN_TO_PX) + (border * 2.0)
+        self.frmwidth = (self.maxwidth * IN_TO_PX) + (border * 2.0)
+        #print(self.name, self.frmwidth, height)
         self.shlf = Tk.Frame(case
                          , height=height
                          , width =self.frmwidth

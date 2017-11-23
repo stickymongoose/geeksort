@@ -5,10 +5,8 @@ import fetch
 import os
 import errno
 import functools
+from constants import *
 #import concurrent.futures
-
-COLL_URL  = 'http://www.boardgamegeek.com/xmlapi2/collection?username={}&brief=1&own=1&version=1'
-GAME_URL  = 'http://www.boardgamegeek.com/xmlapi2/thing?id={}&stats=1&version=1'
 
 # return collection for any user, but wait 2 seconds and retry if error. 10 total attempts.
 
@@ -17,7 +15,7 @@ GAME_URL  = 'http://www.boardgamegeek.com/xmlapi2/thing?id={}&stats=1&version=1'
 @functools.lru_cache(maxsize=None)
 def getcollection(user):
     filename = "collection_{}.xml".format(user)
-    return fetch.get(filename, lambda: ET.parse(filename) , COLL_URL.format(user))
+    return fetch.get(filename, lambda: ET.parse(filename) , API_COLL_URL.format(id=user))
 
 @functools.lru_cache(maxsize=5)
 def gamefromdb(filename,  id):
@@ -33,7 +31,7 @@ def getgame(user, id):
 
 
     filename = "games_{}.xml".format(user)
-    gamedata = fetch.get(filename, lambda: gamefromdb(filename, id), GAME_URL.format(gameidstring))
+    gamedata = fetch.get(filename, lambda: gamefromdb(filename, id), API_GAME_URL.format(id=gameidstring))
     return gamedata
 
 def validatefile(file):

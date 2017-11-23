@@ -13,17 +13,30 @@ import collection
 import averagecolor
 import hover
 
-def getvalue(node, name):
-    return float(node.find(name).get("value"))
+def gettext(node, path, default):
+    try:
+        return node.find(path).text
+    except:
+        return default
 
-def sizevalue(node,name):
-    f = getvalue(node, name)
-    return math.ceil(f*4)/4.0
+def getvalue(node, path, default, attr="value"):
+    try:
+        return node.find(path).get(attr).strip()
+    except:
+        return default
+
+def getvaluef(node, path, default="0.0"):
+    return float(getvalue(node, path, default))
+
+def getvaluer(node, path, rounding=4):
+    f = getvaluef(node, path)
+    return math.ceil(f*rounding)/rounding
 
 def colorbrightness(rgb):
     r = (rgb>>16) & 0xff
     g = (rgb>>8 ) & 0xff
     b = (rgb>>0 ) & 0xff
+    # SUPER-approximate brightness (RGB->YUV) formula simplification
     y = (2*r + 1*b + 3*g)/(255.0*6.0)
     return y
 
@@ -40,11 +53,11 @@ class Game:
     def setSidePreference(side:SidePreference):
         Game._sidepreference = side
 
-    def __init__(self, hold):
-        elt = hold.find("./version/item")
+    def __init__(self, xmlfromcollection):
+
         self.sethighlighted( False )
         # get the unicode name, convert it, re-encode it
-        self.name = hold.find("name").text.strip()
+        self.name = xmlfromcollection.find("name").text.strip()
         self.name = unicodedata.normalize('NFKD', self.name)
         self.name = self.name.encode('ASCII','ignore').decode()
 
@@ -53,7 +66,7 @@ class Game:
         self.name = self.name.replace(u"–", "-")
         self.name = self.name.replace("&amp;","&")
         self.name = self.name.replace("&#039;","'")
-        self.id = int(hold.get("objectid"))
+        self.id = int(xmlfromcollection.get("objectid"))
 
         self.longname = self.name
         self.searchname = self.longname.lower()
@@ -64,22 +77,49 @@ class Game:
         self.name = self.longname[:30]
 
         #gd = collection.getgame(Game._user, self.id)
-        #self.averating = getvalue(gd, "./statistics/ratings/average")
+        #self.averating = getvaluef(gd, "./statistics/ratings/average")
         self.hoverimgurl = collection.getimg(Game._user, self.id)
         self.hoverimgraw = Image.open(self.hoverimgurl)
         self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         self.color = self.getavecolor()
 
+        # get if the user wants to exclude
+        self.excluded = EXCLUDE_COMMENT in gettext(xmlfromcollection,"comment", "").lower()
+
+        # ratings
+        self.rating = self.minplayers = self.maxplayers = self.minplaytime = self.maxplaytime = -1
+        try:
+            stats = xmlfromcollection.find("stats")
+
+            #while we could (ab)use reflection to just attach these to our class,
+            # I can't think of a good way to then have it default to good values if not found
+            self.minplayers = stats.get("minplayers", -1)
+            self.maxplayers = stats.get("maxplayers", -1)
+            self.minplaytime = stats.get("minplaytime", -1)
+            self.maxplaytime = stats.get("maxplaytime", -1)
+            rating = stats.find("rating")
+            try:
+                # rating may be returned as "N/A", so we cast it to a float to see if it's that
+                self.rating = getvaluef(rating, ".", "-1")
+            except ValueError:
+                self.rating = -1.0
+
+        except:
+            pass
+
+        # dimensions
         self.x = self.y = self.z = self.w = self.density = 0.0
-        self.exists = False
+        self.hasbox = False
         self.versionid = 0
 
-        if elt is not None:
-            self.versionid = int(elt.get("id"))
-            self.x = sizevalue(elt, "width")
-            self.y = sizevalue(elt, "length")
-            self.z = sizevalue(elt, "depth")
-            self.w = sizevalue(elt, "weight")
+        try:
+            versionitem = xmlfromcollection.find("version/item")
+
+            self.versionid = int(versionitem.get("id"))
+            self.x = getvaluer(versionitem, "width")
+            self.y = getvaluer(versionitem, "length")
+            self.z = getvaluer(versionitem, "depth")
+            self.w = getvaluer(versionitem, "weight")
 
 
             # if somebody goofed on the 'depth', switch it
@@ -98,17 +138,16 @@ class Game:
                 except (IOError,FileNotFoundError,AttributeError):
                     pass
 
-
             try:
-                self.exists = (self.x + self.y + self.z) > 0.0
+                self.hasbox = (self.x + self.y + self.z) > 0.0
                 self.density = self.w/(self.z * min(self.x,self.y))
             except ArithmeticError:
-                link = "https://boardgamegeek.com/boardgameversion/{}".format(self.versionid)
-                print("Zero size for",  self.name,  self.x,
-                self.y, self.z, link)
+                #link = VERSION_URL.format(id=self.versionid)
+                #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
                 pass
-        else: # no version data
-            print("No version for",  self.name,  "https://boardgamegeek.com/boardgame/{}".format(self.id))
+        except: # no version data
+            #print("No version for",  self.name,  GAME_URL.format(id=self.id))
+            pass
 
 
     def getavecolor(self, bPrint = False):
@@ -190,8 +229,8 @@ class Game:
         # scale the border down to accomodate for the fact that it happens on the OUTSIDE of the label
         # if we let it shrink, it'll make things bigger than they should be
         while True:
-            self.lblwidth = (self.shelfwidth *SCALAR) - (border*2.0)
-            self.lblheight= (self.shelfheight*SCALAR) - (border*2.0)
+            self.lblwidth = (self.shelfwidth *IN_TO_PX) - (border*2.0)
+            self.lblheight= (self.shelfheight*IN_TO_PX) - (border*2.0)
 
             if min(self.lblwidth,  self.lblheight) > 0:
                 break # our border is fine, die
@@ -210,7 +249,7 @@ class Game:
                               #, text=self.name
                               , image=self.boximgTk
                               , relief=Tk.RAISED
-                              #, wraplength=(self.shelfwidth * SCALAR)-2
+                              #, wraplength=(self.shelfwidth * IN_TO_PX)-2
                               , borderwidth=border
                               #, bg=color
                               , compound="center"
@@ -238,9 +277,9 @@ class Game:
 
         # determine the ratio of our deciding side (height or width)
         if self.rotated:
-            ratio = (self.shelfheight*SCALAR) / img.width
+            ratio = (self.shelfheight*IN_TO_PX) / img.width
         else:
-            ratio = (self.shelfwidth*SCALAR) / img.width
+            ratio = (self.shelfwidth*IN_TO_PX) / img.width
 
         # shrink our image to fit our new size
         img = img.resize((int(ratio*img.width+1)
@@ -253,7 +292,7 @@ class Game:
         if self.rotated:
             if Game._sidepreference == SidePreference.Right:
                 img = img.transpose(Image.ROTATE_270)
-                img = img.crop((img.width-self.shelfwidth*SCALAR
+                img = img.crop((img.width-self.shelfwidth*IN_TO_PX
                                 , 0
                                 , img.width
                                 , img.height ))
@@ -261,14 +300,14 @@ class Game:
                 img = img.transpose(Image.ROTATE_90)
                 img = img.crop((0
                                 , 0
-                                , self.shelfwidth*SCALAR
+                                , self.shelfwidth*IN_TO_PX
                                 , img.height ))
 
         else:
             img = img.crop((0
                             , 0
                             , img.width
-                            , self.shelfheight*SCALAR ))
+                            , self.shelfheight*IN_TO_PX ))
         self.boximgTk = ImageTk.PhotoImage(img)
 
     def onClick(self, event):
