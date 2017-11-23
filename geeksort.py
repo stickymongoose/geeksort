@@ -5,6 +5,7 @@
 
 import collection
 import hover
+import searchbox
 import tkinter as Tk
 from tkinter import ttk
 import game
@@ -15,6 +16,21 @@ from constants import *
 
 # make up a picture, created early so we can use the image data
 window = Tk.Tk()
+searchbox = searchbox.SearchBox(window)
+searchbox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
+
+
+cases = []
+# TODO: make this customizable and possibly with a UI
+
+print("Making shelves...")
+with open("shelves.txt","r") as f:
+    for line in f.read().splitlines():
+        bc = shelf.Bookcase(line)
+        cases.append(bc)
+        searchbox.register(bc)
+
+print("\bDone.")
 
 print("Fetching collection...")
 game.Game._user = "jadthegerbil"
@@ -69,13 +85,7 @@ game.Game.setSidePreference(game.SidePreference.Left)
 sgames = sorted(boxgames, key=sorts, reverse=True)
 sgames = sorted(sgames, key=lambda x:x.longname)
 
-cases = []
-# TODO: make this customizable and possibly with a UI
-print("Making shelves...")
-with open("shelves.txt","r") as f:
-    for line in f.read().splitlines():
-        cases.append(shelf.Bookcase(line))
-print("\bDone.")
+
 class GamePlaced(Exception):pass
 
 # do all the sorting
@@ -125,33 +135,6 @@ mf.grid(column=0,row=1,sticky=(Tk.W,Tk.E,Tk.S,Tk.N))
 #mf.columnconfigure(0,weight=1)
 #mf.rowconfigure(0,weight=1)
 
-searchframe = Tk.LabelFrame(window, text="Search Function")
-searchframe.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
-searchbox = Tk.Entry(searchframe,  width=100)
-searchbox.pack(side=Tk.LEFT,  anchor=Tk.NW, pady=5, padx=5)
-searchbox.request = 0
-
-searchresults = Tk.Label(searchframe, width=20)
-searchresults.pack(side=Tk.LEFT, anchor=Tk.NW, pady=5, padx=5)
-
-def search():
-    searchbox.request = 0
-    text = searchbox.get()
-    text = text.lower().replace(" ", "")
-    matchcount = 0
-    for b in cases:
-        matchcount += b.search(text)
-    matchcount +=  unplaced.search(text)
-    searchresults.configure(text="{} Result{}".format(matchcount, "" if matchcount==1 else "s"))
-
-
-
-def typed(event):
-    searchbox.after_cancel(searchbox.request)
-    searchbox.request = searchbox.after(250, search)
-
-searchbox.bind("<Key>", typed)
-searchbox.bind("<Return>", search)
 
 highestshelf = 0
 for shelfIndex in range(len(cases)):
@@ -164,6 +147,7 @@ casecount = len(cases)
 # only add an overflow shelf if we need it
 if len(unplaced) > 0:
     unplacedshelf = shelf.GameStack("Overflow", 300, 1000)
+    searchbox.register(unplacedshelf)
     for b in unplaced:
         unplacedshelf.addbox(b, "xz" if b.x > b.y else "yz")
     unplacedshelf.finish()
