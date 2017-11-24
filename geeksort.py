@@ -3,15 +3,20 @@
 
 #requires pillow
 
-import collection
-import hover
-import searchbox
+import math
 import tkinter as Tk
 from tkinter import ttk
+
+
+import collection
+import hover
+import webbrowser
+import searchbox
 import game
 import shelf
-import math
+import sizewindow
 from constants import *
+
 
 # TODO: make this customizable and possibly with a UI
 def makeshelves(sbox):
@@ -79,7 +84,7 @@ def sizesort(box):
     #return game.colorbrightness( box.color )
 
 
-def makescrollablelist(title, values, actionfunc, casecount):
+def makescrollablelist(nb, title, values, actionfunc, casecount):
     frm = Tk.Frame(nb,height=math.ceil(highestshelf*IN_TO_PX), width=200, border=2, relief=Tk.SUNKEN)
     frm.pack_propagate(False)
     nb.add(frm, text=title)
@@ -87,6 +92,7 @@ def makescrollablelist(title, values, actionfunc, casecount):
     list = Tk.Listbox(frm)
     for g in values:
         list.insert(Tk.END, g.longname)
+        g.makeimage()
     list.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
     list.values = values
     list.bind("<Double-Button-1>", lambda e:actionfunc(e.widget.values[e.widget.curselection()[0]]))
@@ -162,26 +168,35 @@ if len(unplaced) > 0:
     unplacedshelf.makewidgets(mf, index=casecount)
     casecount += 1
 
-nb = ttk.Notebook(mf)
-nb.grid(row=0, column=casecount, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
-
-
 
 # add a bunch of widgets for leftover things
-if len(excluded) > 0:
-    def unexclude(game):
-        print("Unexcluded", game.longname )
-    excluded.sort(key=lambda b:b.longname)
-    makescrollablelist("Excluded",  excluded, unexclude, casecount)
+def unexclude(game):
+    print("Unexcluded", game.longname )
 
-# only add versionless shelf if we need it
-if len(noboxgames) > 0:
-    noboxgames.sort(key=lambda b:b.longname)
-    noversions = [g for g in noboxgames if g.versionid == 0]
-    nodata     = [g for g in noboxgames if g.versionid != 0 and not g.hasbox ] # assumption being, it has a version, but might not have a box
+def openversion(game):
+    s = sizewindow.Popup(window, game)
+    window.wait_window(s.top)
 
-    makescrollablelist("No Dimensions", noversions, lambda:None, casecount)
-    makescrollablelist("No Versions", nodata, lambda:None, casecount)
+def openversionpicker(game):
+    print(game.longname)
+    webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
+
+if len(excluded) + len(noboxgames) > 0:
+    nb = ttk.Notebook(mf)
+    nb.grid(row=0, column=casecount, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
+
+    if len(excluded) > 0:
+        excluded.sort(key=lambda b:b.longname)
+        makescrollablelist(nb, "Excluded",  excluded, unexclude, casecount)
+
+    # only add versionless shelf if we need it
+    if len(noboxgames) > 0:
+        noboxgames.sort(key=lambda b:b.longname)
+        noversions = [g for g in noboxgames if g.versionid == 0]
+        nodata     = [g for g in noboxgames if g.versionid != 0 and not g.hasbox ] # assumption being, it has a version, but might not have a box
+
+        makescrollablelist(nb, "No Versions", noversions, openversionpicker, casecount)
+        makescrollablelist(nb, "No Dimensions", nodata, openversion, casecount)
 
 
 

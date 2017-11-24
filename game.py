@@ -3,7 +3,6 @@
 import unicodedata
 import re
 import tkinter as Tk
-import math
 from enum import Enum
 from PIL import Image
 from PIL import ImageTk
@@ -28,9 +27,9 @@ def getvalue(node, path, default, attr="value"):
 def getvaluef(node, path, default="0.0"):
     return float(getvalue(node, path, default))
 
-def getvaluer(node, path, rounding=4):
+def getvaluer(node, path, rounding=BOX_PRECISION):
     f = getvaluef(node, path)
-    return math.ceil(f*rounding)/rounding
+    return ceilFraction(f, rounding)
 
 def colorbrightness(rgb):
     r = (rgb>>16) & 0xff
@@ -107,7 +106,10 @@ class Game:
             pass
 
         # dimensions
-        self.x = self.y = self.z = self.w = self.density = 0.0
+        self.xraw = self.x = 0.0
+        self.yraw = self.y = 0.0
+        self.zraw = self.z = 0.0
+        self.wraw = self.w = self.density = 0.0
         self.hasbox = False
         self.versionid = 0
 
@@ -115,39 +117,49 @@ class Game:
             versionitem = xmlfromcollection.find("version/item")
 
             self.versionid = int(versionitem.get("id"))
-            self.x = getvaluer(versionitem, "width")
-            self.y = getvaluer(versionitem, "length")
-            self.z = getvaluer(versionitem, "depth")
-            self.w = getvaluer(versionitem, "weight")
 
+            self.setsize(getvaluer(versionitem, "width")
+                , getvaluer(versionitem, "length")
+                , getvaluer(versionitem, "depth")
+                , getvaluef(versionitem, "weight")
+                )
 
-            # if somebody goofed on the 'depth', switch it
-            if self.z > max(self.x,self.y):
-                #print("## {} {}<->{} ({})".format(self.longname, self.z, self.y, self.x))
-                self.y, self.z = self.z, self.y
-
-            #some of the data is confusing/wrong, so let's use the picture as the deciding factor
-            if self.x != self.y: # unless it's the same, save the time
-                try:
-                    w, h = self.hoverimgraw.size
-                    if (w>h) != (self.x>self.y):
-                        #print("$$ {} {}<->{} ({} {})".format(self.name, self.x, self.y, w, h))
-                        self.x, self.y = self.y, self.x
-
-                except (IOError,FileNotFoundError,AttributeError):
-                    pass
-
-            try:
-                self.hasbox = (self.x + self.y + self.z) > 0.0
-                self.density = self.w/(self.z * min(self.x,self.y))
-            except ArithmeticError:
-                #link = VERSION_URL.format(id=self.versionid)
-                #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
-                pass
-        except: # no version data
+        except Exception as e: # no version data
+            #print(e)
             #print("No version for",  self.name,  GAME_URL.format(id=self.id))
             pass
 
+    def setsize(self, x, y, z, w):
+        self.x = self.xraw = x
+        self.y = self.yraw = y
+        self.z = self.zraw = z
+        self.w = self.wraw = w
+        self.density = 0
+        # if somebody goofed on the 'depth', switch it
+        if self.z > max(self.x,self.y):
+            #print("## {} {}<->{} ({})".format(self.longname, self.z, self.y, self.x))
+            self.y, self.z = self.z, self.y
+
+        #some of the data is confusing/wrong, so let's use the picture as the deciding factor
+        if self.x != self.y: # unless it's the same, save the time
+            try:
+                w, h = self.hoverimgraw.size
+                if (w>h) != (self.x>self.y):
+                    #print("$$ {} {}<->{} ({} {})".format(self.name, self.x, self.y, w, h))
+                    self.x, self.y = self.y, self.x
+
+            except (IOError,FileNotFoundError,AttributeError) as e:
+                print(self.name, e)
+                pass
+
+        try:
+            self.hasbox = (self.x + self.y + self.z) > 0.0
+            self.density = self.w/(self.z * min(self.x,self.y))
+        except ArithmeticError as e:
+            #print(self.name, e)
+            #link = VERSION_URL.format(id=self.versionid)
+            #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
+            pass
 
     def getavecolor(self, bPrint = False):
         return averagecolor.calcfromdata(self.hoverimgraw)
@@ -215,9 +227,11 @@ class Game:
         return col
 
 
+    def makeimage(self):
+        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
 
     def makewidget(self, shelf,  center=False):
-        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
+        self.makeimage()
         self.makeboxart()
 
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
@@ -235,7 +249,7 @@ class Game:
             if min(self.lblwidth,  self.lblheight) > 0:
                 break # our border is fine, die
 
-            border = border - 1
+            border -= 1
 
             if border == -1:
                 border = 0
