@@ -185,18 +185,19 @@ if len(excluded) + len(noboxgames) > 0:
     nb = ttk.Notebook(mf)
     nb.grid(row=0, column=casecount, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
 
-    if len(excluded) > 0:
-        excluded.sort(key=lambda b:b.longname)
-        makescrollablelist(nb, "Excluded",  excluded, unexclude, casecount)
-
     # only add versionless shelf if we need it
     if len(noboxgames) > 0:
         noboxgames.sort(key=lambda b:b.longname)
         noversions = [g for g in noboxgames if g.versionid == 0]
         nodata     = [g for g in noboxgames if g.versionid != 0 and not g.hasbox ] # assumption being, it has a version, but might not have a box
 
-        makescrollablelist(nb, "No Versions", noversions, openversionpicker, casecount)
         makescrollablelist(nb, "No Dimensions", nodata, openversion, casecount)
+        makescrollablelist(nb, "No Versions", noversions, openversionpicker, casecount)
+
+    if len(excluded) > 0:
+        excluded.sort(key=lambda b:b.longname)
+        makescrollablelist(nb, "Excluded",  excluded, unexclude, casecount)
+
 
 
 

@@ -296,12 +296,16 @@ class Shelf:
         self.shlf.bind("<Enter>", self.onEnter)
         self.shlf.bind("<Button-1>", self.onClick)
 
-        self.hovertext="{name}-{row}\n{w} x {h} x {d}\n{usedwidth}/{w}\n{weight}{plus} lbs, ({wcnt}/{total})\n{used:3.0f}% Used".format(
+        self.hovertext="""{name}-{row}
+{w} x {h} x {d}
+{usedwidth}/{w}
+{weight}{plus} lbs, ({wcnt}/{total})
+{used:3.0f}% Used""".format(
             name=self.name, row=row
             , w=self.maxwidth, h=self.height, d=self.depth
             , usedwidth = self.maxwidth - self.widthleft
             , plus="+" if self.wreported < len(self.games) else ""
-            , weight=self.weight, wcnt=self.wreported, total = len(self.games)
+            , weight=round(self.weight, ROUND_PRECISION), wcnt=round(self.wreported, ROUND_PRECISION), total = len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
 
         for st in self.stacks:

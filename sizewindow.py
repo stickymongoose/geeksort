@@ -11,6 +11,10 @@ class Units(enum.IntEnum):
     US_DECIMAL = 1
     METRIC = 2
 
+UNIT_DATA = { Units.US_FRACTION:{"title":"Imperial, Fractions", "len":"in", "weight":"lb"}
+            , Units.US_DECIMAL: {"title":"Imperial, Decimal",   "len":"in", "weight":"lb"}
+            , Units.METRIC:     {"title":"Metric",              "len":"cm", "weight":"kg"}
+            }
 
 class Popup:
 
@@ -19,7 +23,9 @@ class Popup:
         self.top.title( "Editing Dimensions")
         self.target = game
 
-        self.unit = Tk.IntVar()
+        self.unitstr = Tk.StringVar()
+        self.lenunit = Tk.StringVar()
+        self.weightunit = Tk.StringVar()
         CHUNK_PAD = 10
 
         insetframe = Tk.Frame(self.top)
@@ -44,20 +50,19 @@ class Popup:
         Tk.Label(headerframe, image=self.imgdepth).grid(row=1, column=0, sticky=Tk.N)
 
 
-
-
-
         # data entry
         midframe = Tk.Frame(insetframe, padx=10)
         midframe.pack(pady=0)
 
-        # using a labelframe keeps the offset nice-looking next to the Unit's frame
-        entryframe = Tk.LabelFrame(midframe, text=" ", pady=2, border=0)
-        entryframe.pack(side=Tk.LEFT, padx=4)
-        Tk.Label(entryframe, text="Length").grid(row=0, column=0, pady=0, sticky=Tk.E, padx=0)
-        Tk.Label(entryframe, text="Width").grid(row=1, column=0, pady=3, sticky=Tk.E, padx=0)
-        Tk.Label(entryframe, text="Depth").grid(row=2, column=0, pady=3, sticky=Tk.E, padx=0)
-        Tk.Label(entryframe, text="Weight").grid(row=3, column=0, pady=0, sticky=Tk.E, padx=0)
+        Tk.Label(midframe, text="Length").grid(row=0, column=0, pady=0, sticky=Tk.E, padx=0)
+        Tk.Label(midframe, text="Width" ).grid(row=1, column=0, pady=3, sticky=Tk.E, padx=0)
+        Tk.Label(midframe, text="Depth" ).grid(row=2, column=0, pady=3, sticky=Tk.E, padx=0)
+        Tk.Label(midframe, text="Weight").grid(row=3, column=0, pady=0, sticky=Tk.E, padx=0)
+
+        Tk.Label(midframe, width=2, justify=Tk.LEFT, textvariable=self.lenunit).grid(row=0, column=2, pady=0, sticky=Tk.W, padx=0)
+        Tk.Label(midframe, width=2, justify=Tk.LEFT, textvariable=self.lenunit).grid(row=1, column=2, pady=3, sticky=Tk.W, padx=0)
+        Tk.Label(midframe, width=2, justify=Tk.LEFT, textvariable=self.lenunit).grid(row=2, column=2, pady=3, sticky=Tk.W, padx=0)
+        Tk.Label(midframe, width=2, justify=Tk.LEFT, textvariable=self.weightunit).grid(row=3, column=2, pady=0, sticky=Tk.W, padx=0)
 
         # data entry widgets
         fields = ["x", "y", "z", "w"]
@@ -67,36 +72,25 @@ class Popup:
             setattr(self, val+"var", var)
             var.set(getattr(game, val+"raw")) # pull the raw data off the game
 
-            widget = Tk.Entry(entryframe,  textvariable=var, width=12, justify=Tk.RIGHT
+            widget = Tk.Entry(midframe,  textvariable=var, width=18, justify=Tk.RIGHT
                     , validate="focusout", highlightthickness=1, highlightbackground="white")
 
             widget.config(validatecommand=(widget.register(self.validateentry), "%P", "%W"))
-            widget.grid(row=i, column=1, padx=3, pady=2)
+            widget.grid(row=i, column=1, padx=0, pady=2)
             widget.var = var # so we can access it later
             widget.isweight = 'w' in val
             setattr(self, val, widget)
 
         # unit selection
-        UNITS = [
-            ("US/BGG, Fraction", Units.US_FRACTION),
-            ("US/BGG, Decimal",  Units.US_DECIMAL),
-            ("Rest of World",    Units.METRIC )
-            ]
-        self.unit.set(UNITS[0][1].value)
+
+        unitdata = UNIT_DATA[Units.US_FRACTION]
+        self.unitstr.set(unitdata['title'])
         self.oldunit =  -1
-        self.unitchange()
+        self.unitchange(unitdata['title'])
 
-        unitframe = Tk.LabelFrame(midframe, text="Units", padx=10)
-        unitframe.pack(side=Tk.RIGHT, padx=4)
-
-        for i in range(len(UNITS)):
-            text, unit = UNITS[i]
-
-            b = Tk.Radiobutton(unitframe, text=text, variable=self.unit
-                , value=unit.value, command=self.unitchange)
-            b.grid(column=0, row=i, sticky=Tk.W, pady=0)
-            if i == 0:
-                b.select()
+        cb = Tk.OptionMenu(midframe,  self.unitstr,  *[u['title'] for u in UNIT_DATA.values()],  command=self.unitchange)
+        cb.config(justify=Tk.LEFT, width=15)
+        cb.grid(row=4, column=1)
 
         # divider
         d = Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="black")
@@ -122,13 +116,13 @@ class Popup:
         except:
             pass
 
-        if scale and self.unit.get() == Units.METRIC:
+        if scale and self.unit == Units.METRIC:
             multi = CM_TO_IN if islen else KG_TO_LB
         else:
             multi = 1.0
 
         v = float(Mixed(val))*multi
-        if self.unit.get() == Units.US_FRACTION:
+        if self.unit == Units.US_FRACTION:
             return roundFraction(v, DENOM_LIMIT)
         return v
 
@@ -145,7 +139,8 @@ class Popup:
             self.formatwidget(widget, v)
 
             return True
-        except:
+        except Exception as e:
+            print(e)
             widget.config(highlightbackground="red")
             return False
 
@@ -158,7 +153,7 @@ class Popup:
         #else:
         #    num = roundFraction(float(Mixed(val)), DENOM_LIMIT)
 
-        if self.unit.get() == Units.US_FRACTION:
+        if self.unit == Units.US_FRACTION:
             res = str( Mixed(num).limit_denominator(DENOM_LIMIT) )
             widget.var.set(res)
         else:
@@ -185,18 +180,27 @@ class Popup:
             self.close()
             self.target.setsize(*temp.values())
 
-    def unitchange(self):
+    def unitchange(self, newtitle):
+
+        self.unit = [k for k, v in UNIT_DATA.items() if v['title'] == newtitle][0]
+
         # gotta use the get()s, as if we just do != it checks the pointers
 
-        if self.oldunit == self.unit.get():
+        if self.oldunit == self.unit:
             return # do nothing
+
+        unitdata = UNIT_DATA[self.unit]
+
+        self.lenunit.set(    unitdata['len'] )
+        self.weightunit.set( unitdata['weight'] )
+
 
         multi_len = multi_weight = 1.0
 
         if self.oldunit == Units.METRIC: # switching FROM Metric
             multi_len, multi_weight = CM_TO_IN,  KG_TO_LB
 
-        elif self.unit.get() == Units.METRIC: # switching TO Metric
+        elif self.unit == Units.METRIC: # switching TO Metric
             multi_len, multi_weight = IN_TO_CM,  LB_TO_KG
 
         #convert the fields
@@ -206,7 +210,7 @@ class Popup:
             v = float(Mixed(entry.get())) * multi
             self.formatwidget(entry, v)
 
-        self.oldunit = self.unit.get()
+        self.oldunit = self.unit
 
     def close(self):
         self.top.destroy()
@@ -237,7 +241,6 @@ if __name__=="__main__":
     s = Popup(root, fakegame)
     #s.top.lift()
     root.wait_window(s.top)
-    print("done")
 
     root.mainloop()
 
