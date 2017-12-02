@@ -1,4 +1,2 @@
-pics/pic*
-collection_*.xml
-games_*.xml
+cache/*
 __pycache__/*
