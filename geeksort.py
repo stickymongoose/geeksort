@@ -3,11 +3,10 @@
 
 #requires pillow
 
-import math
 import tkinter as Tk
 from tkinter import ttk
 
-
+import os
 import collection
 import hover
 import webbrowser
@@ -15,198 +14,224 @@ import searchbox
 import game
 import shelf
 import sizewindow
+import scrollable
 from constants import *
 
 
-# TODO: make this customizable and possibly with a UI
-def makeshelves(sbox):
-    cases = []
-    print("Making shelves...")
-    with open("shelves.txt","r") as f:
-        for line in f.read().splitlines():
-            bc = shelf.Bookcase(line)
-            cases.append(bc)
-            sbox.register(bc)
-    print("\bDone.")
-    return cases
+class GameFilters:
+    def __init__(self, gameNodes):
+        self.all = []
+        self.unplaced = []
+        print("Making games...\r")
+        for g in gameNodes:
+            newgame = game.Game(g)
+            self.all.append( newgame )
+        print("\bDone")
 
-def collectionfetch(username):
-    print("Fetching collection for {}...".format(username))
-    game.Game._user = username
-    root = collection.getcollection(game.Game._user)
-    print("\bDone.")
-    return root.findall("./item") # get all items
+        self.excluded = [b for b in self.all if b.excluded]
+        self.sorted   = [b for b in self.all if not b.excluded]
 
-def makegames(collectionodes):
-    print("Making games...\r")
-    allgames = []
-    for g in collectionodes:
-        newgame = game.Game(g)
-        allgames.append( newgame )
-    print("\bDone")
-    return allgames
+        self.inBoxes   = [b for b in self.sorted if b.hasbox]
+        self.noBoxes  = [b for b in self.sorted if not b.hasbox]
 
+        self.noVersions = [g for g in self.noBoxes if g.versionid == 0]
+        # assumption being, it has a version, but might not have a box
+        self.noData = [g for g in self.noBoxes if g.versionid != 0 and not g.hasbox]
 
-def sortgames(games, funcs, cases):
-    for f in funcs[::-1]:
-        games = sorted(games, key=f)
+        self.noVersions.sort(key=Sort.byName)
+        self.noData.sort(key=Sort.byName)
+
+    def getSortedBoxes(self, sortfuncs):
+        sortedboxes = self.inBoxes
+
+        for f in sortfuncs[::-1]:
+            sortedboxes.sort(key=f)
+        return sortedboxes
 
 
-    class GamePlaced(Exception):pass
+class Sort:
+    @staticmethod
+    def byName(box):
+        return box.longname
 
-    # do all the sorting
-    unplaced = []
-    print("Organizing shelves...")
-    for g in games:
-        try:
-            #shelf._verbose = True
-            for bc in cases:
-                if bc.trybox(g):
-                    #print(b.name, "on",  s.name,  "-", bc.index(s))
-                    raise GamePlaced()
+    @staticmethod
+    def bySize(box):
+        return -(box.x * box.y * box.z)
 
-            #shelf._verbose = False
-            unplaced.append(g)
-        except GamePlaced:
-            continue
-    print("\bDone")
-
-    #do post-sort fixing
-    print("Finishing up...")
-    for bc in cases:
-        bc.finish()
-    print("\bDone")
-    return unplaced
-
-# TODO: make this modular and customizable
-def sizesort(box):
-    return -(box.x * box.y * box.z)
-    #return game.colorbrightness( box.color )
+    @staticmethod
+    def byColor(box):
+        return game.color_brightness(box.color)
 
 
-def makescrollablelist(nb, title, values, actionfunc, casecount):
-    frm = Tk.Frame(nb,height=math.ceil(highestshelf*IN_TO_PX), width=200, border=2, relief=Tk.SUNKEN)
-    frm.pack_propagate(False)
-    nb.add(frm, text=title)
+class App:
 
-    list = Tk.Listbox(frm)
-    for g in values:
-        list.insert(Tk.END, g.longname)
-        g.makeimage()
-    list.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
-    list.values = values
-    list.bind("<Double-Button-1>", lambda e:actionfunc(e.widget.values[e.widget.curselection()[0]]))
+    def __init__(self):
+        self.tkWindow = Tk.Tk()
+
+        self.tkFrame = Tk.Frame(self.tkWindow,border=15)
+        self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N))
+        self.tkSideNotebook = None
+
+        # make it last so it's on top of everything
+        self.hover = hover.Hover(self.tkWindow)
+
+        self.tkFrame.bind("<Motion>", self.hover.onClear)
+
+        # mf.columnconfigure(0,weight=1)
+        # mf.rowconfigure(0,weight=1)
+        self.stackUnplaced = shelf.GameStack("Overflow", 300, 1000)
+        self.scrollNoVers = None
+        self.scrollNoDims = None
+        self.scrollExclude = None
+
+        self.games = None
+
+        self.searchBox = searchbox.SearchBox(self.tkWindow)
+        self.searchBox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
+
+        self.make_shelves()
+        # TODO: Cache off
+        self.sortFuncs = [Sort.byName, Sort.bySize]
+        self.collection_fetch("jadthegerbil")
+
+    def clear_games(self):
+        for b in self.cases:
+            b.clear_games()
+
+        self.stackUnplaced.clear_games()
 
 
-    scroll = Tk.Scrollbar(frm)
-    scroll.pack(side=Tk.RIGHT, fill=Tk.Y)
+    # TODO: make this customizable and possibly with a UI
+    def make_shelves(self):
+        self.cases = []
+        with open("shelves.txt","r") as f:
+            for line in f.read().splitlines():
+                bc = shelf.Bookcase(line)
+                self.cases.append(bc)
+                self.searchBox.register(bc)
 
-    list.config(yscrollcommand=scroll.set)
-    scroll.config(command=list.yview)
+    def collection_fetch(self, username):
+        print("Fetching collection for {}...".format(username))
+        game.Game._user = username
+        root = collection.get_collection(game.Game._user)
+        print("\bDone.")
 
-    casecount += 1
-    return frm, list, scroll
+        collectionNodes = root.findall("./item") # get all items
+
+        self.games = GameFilters(collectionNodes)
+        self.sort_games()
+
+    def sort_games(self):
+        self.clear_games()
+        sgames = self.games.getSortedBoxes(self.sortFuncs)
+
+        class GamePlaced(Exception):pass
+
+        # do all the sorting
+        self.games.unplaced = []
+        print("Organizing shelves...")
+        for g in sgames:
+            try:
+                #shelf._verbose = True
+                for bc in self.cases:
+                    if bc.try_box(g):
+                        #print(b.name, "on",  s.name,  "-", bc.index(s))
+                        raise GamePlaced()
+
+                #shelf._verbose = False
+                self.games.unplaced.append(g)
+            except GamePlaced:
+                continue
+        print("\bDone")
+
+        #do post-sort fixing
+        for bc in self.cases:
+            bc.finish()
+
+        self.post_sort()
+
+    def post_sort(self):
+        totalarea = 0.0
+        totalused = 0.0
+        for bc in self.cases:
+            used, total = bc.get_used()
+            totalused += used
+            totalarea += total
+
+        self.tkWindow.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
+              totalused*SQIN_TO_SQFEET
+            , totalarea*SQIN_TO_SQFEET
+            , (totalused/totalarea)*100.0))
+
+        highestshelf = 0
+        for shelfIndex in range(len(self.cases)):
+            bc = self.cases[shelfIndex]
+            bc.make_shelf_widgets(self.tkFrame, shelfIndex)
+            bc.make_game_widgets()
+            highestshelf = max(bc.height, highestshelf)
+
+        casecount = len(self.cases)
+
+        # only add an overflow shelf if we need it
+        if len(self.games.unplaced) > 0:
+            self.searchBox.register(self.stackUnplaced)
+            for b in self.games.unplaced:
+                self.stackUnplaced.add_box(b, "xz" if b.x > b.y else "yz")
+
+            self.stackUnplaced.finish()
+            self.stackUnplaced.make_widgets(self.tkFrame, index=casecount)
+            casecount += 1
+
+        # only add versionless shelf if we need it
+        if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) > 0:
+            self.tkSideNotebook = ttk.Notebook(self.tkFrame)
+            self.tkSideNotebook.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+
+            if len(self.games.noData) > 0:
+                self.scrollNoDims = scrollable.ScrollableList(self.tkSideNotebook, "No Dimensions"
+                                                              , highestshelf, self.games.noData, self.open_version, casecount)
+                self.searchBox.register(self.scrollNoDims)
+
+            if len(self.games.noVersions) > 0:
+                self.scrollNoVers = scrollable.ScrollableList(self.tkSideNotebook, "No Versions"
+                                                              , highestshelf, self.games.noVersions, self.open_version_picker, casecount)
+                self.searchBox.register(self.scrollNoVers)
+
+            if len(self.games.excluded) > 0:
+                exc = scrollable.ScrollableList(self.tkSideNotebook, "Excluded"
+                                                , highestshelf, self.games.excluded, self.unexclude, casecount)
+                self.searchBox.register(exc)
+
+
+    # add a bunch of widgets for leftover things
+    def unexclude(self, game):
+        print("Unexcluded", game.longname )
+
+    def open_version(self, game):
+        s = sizewindow.Popup(self.tkWindow, game)
+        self.tkWindow.wait_window(s.top)
+
+    def open_version_picker(self, game):
+        print(game.longname)
+        webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
+
+
+# TODO: Cache off from preferences
+shelf.Shelf.set_store_style(shelf.StoreStyle.PreferSide)
+game.Game.set_side_preference(game.SidePreference.Left)
+
+try: os.mkdir(CACHE_DIR)
+except OSError:
+    pass
+
+
+a = App()
 
 # make up a picture, created early so we can use the image data
-allgamesxml = collectionfetch("jadthegerbil")
-allgames = makegames(allgamesxml)
+#a.collection_fetch("jadthegerbil")
 
 
-window = Tk.Tk()
-searchbox = searchbox.SearchBox(window)
-searchbox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
-cases = makeshelves(searchbox)
+a.tkWindow.mainloop()
 
-excluded   = [ b for b in allgames if b.excluded ]
-sortedgames= [ b for b in allgames if not b.excluded ]
-boxgames   = [ b for b in sortedgames if b.hasbox ]
-noboxgames = [ b for b in sortedgames if not b.hasbox ]
-
-
-shelf.Shelf.setStoreStyle(shelf.StoreStyle.PreferSide)
-game.Game.setSidePreference(game.SidePreference.Left)
-unplaced = sortgames(boxgames, [lambda x:x.longname, sizesort],  cases)
-
-
-totalarea = 0.0
-totalused = 0.0
-print("Summing used amounts...")
-for bc in cases:
-    used, total = bc.getused()
-    totalused += used
-    totalarea += total
-print("\bDone")
-
-
-window.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
-      totalused*SQIN_TO_SQFEET
-    , totalarea*SQIN_TO_SQFEET
-    , (totalused/totalarea)*100.0))
-
-
-mf = Tk.Frame(window)
-mf.grid(column=0,row=1,sticky=(Tk.W,Tk.E,Tk.S,Tk.N))
-#mf.columnconfigure(0,weight=1)
-#mf.rowconfigure(0,weight=1)
-
-
-highestshelf = 0
-for shelfIndex in range(len(cases)):
-    bc = cases[shelfIndex]
-    bc.makewidgets(mf, shelfIndex)
-    highestshelf = max(bc.height, highestshelf)
-
-casecount = len(cases)
-
-# only add an overflow shelf if we need it
-if len(unplaced) > 0:
-    unplacedshelf = shelf.GameStack("Overflow", 300, 1000)
-    searchbox.register(unplacedshelf)
-    for b in unplaced:
-        unplacedshelf.addbox(b, "xz" if b.x > b.y else "yz")
-    unplacedshelf.finish()
-    unplacedshelf.makewidgets(mf, index=casecount)
-    casecount += 1
-
-
-# add a bunch of widgets for leftover things
-def unexclude(game):
-    print("Unexcluded", game.longname )
-
-def openversion(game):
-    s = sizewindow.Popup(window, game)
-    window.wait_window(s.top)
-
-def openversionpicker(game):
-    print(game.longname)
-    webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
-
-if len(excluded) + len(noboxgames) > 0:
-    nb = ttk.Notebook(mf)
-    nb.grid(row=0, column=casecount, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
-
-    # only add versionless shelf if we need it
-    if len(noboxgames) > 0:
-        noboxgames.sort(key=lambda b:b.longname)
-        noversions = [g for g in noboxgames if g.versionid == 0]
-        nodata     = [g for g in noboxgames if g.versionid != 0 and not g.hasbox ] # assumption being, it has a version, but might not have a box
-
-        makescrollablelist(nb, "No Dimensions", nodata, openversion, casecount)
-        makescrollablelist(nb, "No Versions", noversions, openversionpicker, casecount)
-
-    if len(excluded) > 0:
-        excluded.sort(key=lambda b:b.longname)
-        makescrollablelist(nb, "Excluded",  excluded, unexclude, casecount)
-
-
-
-
-# make it last so it's on top of everything
-hover.Hover(window)
-
-window.mainloop()
-
-#for g in s.games:
-#    print("%-30s%s\t%.2f\t%.2f\t%.2f" % (g.name, g.dir, g.x, g.y, g.z))
 
 

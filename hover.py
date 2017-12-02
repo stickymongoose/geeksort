@@ -4,104 +4,75 @@ from PIL import ImageTk
 from constants import *
 import shelf
 
+HOVER_WIDTH=200
+HOVER_HEIGHT=220
+
 class Hover:
     inst = None
 
     def __init__(self, owner):
-        self.label = Tk.Label(owner, anchor=Tk.NW, compound=Tk.BOTTOM)
-        self.stack = []
+        self.tkFrame = Tk.Frame(owner, width=HOVER_WIDTH, height=HOVER_HEIGHT)
+        #self.frame.pack_propagate(False)
+        self.tkLabel = Tk.Label(self.tkFrame, anchor=Tk.N, compound=Tk.BOTTOM)
+        self.tkLabel.pack()
         Hover.inst = self # singleton
-        self.dbglvl = Tk.Label(owner, anchor=Tk.NE )
-        self.dbglvl.place(relx=1.0,  rely=0.0, anchor=Tk.NE)
-        self.dbglvl.bind("<Button-1>", self.stackwipe)
 
-    def setdbg(self):
-        self.dbglvl.configure(text=str(len(self.stack))+"\n"+"\n".join(e.name for e in self.stack))
+        self.lastSet = None
 
-    def stackwipe(self, event):
-        self.stack = []
-        self.setdbg()
-
-    def setimage(self, imgfile):
+    def set_image(self, imgfile):
         w = 0
-        if imgfile != None:
-            self.label.img = imgfile
+        if imgfile is not None:
+            self.tkLabel.img = imgfile
             if isinstance(imgfile, str):
                 imgfile = Image.open(imgfile)
-                self.label.img = ImageTk.PhotoImage(imgfile)
-            w = self.label.img.width()
+                self.tkLabel.img = ImageTk.PhotoImage(imgfile)
+            w = self.tkLabel.img.width()
         else:
-            self.label.img = ""
+            self.tkLabel.img = ""
 
-        self.label.configure(image=self.label.img, wraplength=w)
+        self.tkLabel.configure(image=self.tkLabel.img, wraplength=w)
 
-    def onEnter(self, caller, event, afflicted):
+    def set(self, caller):
+        if self.lastSet is caller:
+            return
+
+        self.lastSet = caller
+
         try:
-            self.label.config(text=caller.hovertext)
+            self.tkLabel.config(text=caller.hovertext)
         except AttributeError:
-            self.label.config(text=None)
+            self.tkLabel.config(text=None)
 
         try:
-            self.setimage(caller.hoverimgTk)
+            self.set_image(caller.hoverimgTk)
         except AttributeError:
             try:
-                self.setimage(caller.hoverimgurl)
+                self.set_image(caller.hoverimgurl)
             except AttributeError:
-                self.setimage(None)
+                self.set_image(None)
 
-        self.label.update()
-
-        self.onMove(event)
-
-        if isinstance(caller, shelf.Shelf):
-            self.stack = [caller]
-        elif len(self.stack)!=0:
-            self.stack = [self.stack[0],  caller]
-        else:
-            self.stack = [caller]
-
-        for a in afflicted:
-            a.bind("<Motion>", self.onMove)
-
-        afflicted[0].bind("<Leave>", caller.onLeave)
-        self.setdbg()
+        self.tkLabel.update()
         #print("Entered", caller.name, len(self.stack))
 
-    def onLeave(self, leaver, event, afflicted):
+    def onClear(self, event):
+        self.tkFrame.place_forget()
 
-        for a in afflicted:
-            a.unbind("<Motion>")
-        #    a.unbind("<Leave>")
+    def onMove(self, caller, event):
+        self.set(caller)
 
-        #print("Left", leaver.name)
-        # if we've left the topmost item, pop it and show the next
-        try:
-            self.stack.remove(leaver)
-           # print("onLeave",  leaver.name,   len(self.stack))
-
-            if len(self.stack) != 0:
-                top(self.stack).onEnter(event)
-            else:
-                self.label.place_forget()
-        except ValueError:
-            #print("onLeave#",  leaver.name,   len(self.stack))
-            pass
-
-
-        self.setdbg()
-
-
-    def onMove(self,event):
         # get the mouse's location on the current window
-        win = self.label.winfo_toplevel()
+        win = self.tkFrame.winfo_toplevel()
         winx = win.winfo_rootx()
         winy = win.winfo_rooty()
         xpos = event.x_root - winx
         ypos = event.y_root - winy
 
         # determine if the text would run off the edge
-        texth = self.label.winfo_height()
-        textw = self.label.winfo_width()
+        #texth = HOVER_HEIGHT
+        #textw = HOVER_WIDTH
+        texth = self.tkLabel.winfo_height()
+        textw = self.tkLabel.winfo_width()
+
         #print("onMove", textw, texth)
         EXTRA_X = 25 # a few extra pixels to eliminate some grossness
         #if xpos + textw + EXTRA_X >= win.winfo_width():
@@ -125,7 +96,7 @@ class Hover:
         ypos = max(0, ypos)
         ypos = min(ypos, win.winfo_height()-texth)
 
-        self.label.place(anchor=Tk.NW, x=xpos, y=ypos)
+        self.tkFrame.place(anchor=Tk.NW, x=xpos, y=ypos)
 
 
 

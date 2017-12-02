@@ -12,26 +12,26 @@ import collection
 import averagecolor
 import hover
 
-def gettext(node, path, default):
+def get_text(node, path, default):
     try:
         return node.find(path).text
     except:
         return default
 
-def getvalue(node, path, default, attr="value"):
+def get_value(node, path, default, attr="value"):
     try:
         return node.find(path).get(attr).strip()
     except:
         return default
 
-def getvaluef(node, path, default="0.0"):
-    return float(getvalue(node, path, default))
+def get_valuef(node, path, default="0.0"):
+    return float(get_value(node, path, default))
 
-def getvaluer(node, path, rounding=BOX_PRECISION):
-    f = getvaluef(node, path)
+def get_valuer(node, path, rounding=BOX_PRECISION):
+    f = get_valuef(node, path)
     return ceilFraction(f, rounding)
 
-def colorbrightness(rgb):
+def color_brightness(rgb):
     r = (rgb>>16) & 0xff
     g = (rgb>>8 ) & 0xff
     b = (rgb>>0 ) & 0xff
@@ -49,12 +49,12 @@ class Game:
     _sidepreference = SidePreference.Left
 
     @staticmethod
-    def setSidePreference(side:SidePreference):
+    def set_side_preference(side:SidePreference):
         Game._sidepreference = side
 
     def __init__(self, xmlfromcollection):
 
-        self.sethighlighted( False )
+        self.set_highlighted(False)
         # get the unicode name, convert it, re-encode it
         self.name = xmlfromcollection.find("name").text.strip()
         self.name = unicodedata.normalize('NFKD', self.name)
@@ -77,12 +77,12 @@ class Game:
 
         #gd = collection.getgame(Game._user, self.id)
         #self.averating = getvaluef(gd, "./statistics/ratings/average")
-        self.hoverimgurl = collection.getimg(Game._user, self.id)
+        self.hoverimgurl = collection.get_img(Game._user, self.id)
         self.hoverimgraw = Image.open(self.hoverimgurl)
-        self.color = self.getavecolor()
+        self.color = self.get_ave_color()
 
         # get if the user wants to exclude
-        self.excluded = EXCLUDE_COMMENT in gettext(xmlfromcollection,"comment", "").lower()
+        self.excluded = EXCLUDE_COMMENT in get_text(xmlfromcollection, "comment", "").lower()
 
         # ratings
         self.rating = self.minplayers = self.maxplayers = self.minplaytime = self.maxplaytime = -1
@@ -98,7 +98,7 @@ class Game:
             rating = stats.find("rating")
             try:
                 # rating may be returned as "N/A", so we cast it to a float to see if it's that
-                self.rating = getvaluef(rating, ".", "-1")
+                self.rating = get_valuef(rating, ".", "-1")
             except ValueError:
                 self.rating = -1.0
 
@@ -118,18 +118,18 @@ class Game:
 
             self.versionid = int(versionitem.get("id"))
 
-            self.setsize(getvaluer(versionitem, "width")
-                , getvaluer(versionitem, "length")
-                , getvaluer(versionitem, "depth")
-                , getvaluef(versionitem, "weight")
-                )
+            self.set_size(get_valuer(versionitem, "width")
+                          , get_valuer(versionitem, "length")
+                          , get_valuer(versionitem, "depth")
+                          , get_valuef(versionitem, "weight")
+                          )
 
         except Exception as e: # no version data
             #print(e)
             #print("No version for",  self.name,  GAME_URL.format(id=self.id))
             pass
 
-    def setsize(self, x, y, z, w):
+    def set_size(self, x, y, z, w):
         self.x = self.xraw = x
         self.y = self.yraw = y
         self.z = self.zraw = z
@@ -161,10 +161,10 @@ class Game:
             #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
             pass
 
-    def getavecolor(self, bPrint = False):
+    def get_ave_color(self, bPrint = False):
         return averagecolor.calcfromdata(self.hoverimgraw)
 
-    def getcolor(self,  bPrint = False):
+    def get_color(self, bPrint = False):
         if bPrint:
             print("Starting", self.name, self.dir)
         try:
@@ -227,15 +227,15 @@ class Game:
         return col
 
 
-    def makeimage(self):
+    def make_image(self):
         self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
 
-    def makewidget(self, shelf,  center=False):
-        self.makeimage()
-        self.makeboxart()
+    def make_widget(self, shelf, center=False):
+        self.make_image()
+        self._make_box_art()
 
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
-            self=self, humdir=self.gethumandir())
+            self=self, humdir=self.get_human_dir())
 
         #color = "#{:06x}".format( self.color )
         border = GAME_BORDER
@@ -273,7 +273,7 @@ class Game:
                               #,  takefocus=1
                               )
 
-        self.label.bind("<Enter>",self.onEnter )
+        self.label.bind("<Motion>",self.onMove)
 
         self.label.bind("<Button-1>", self.onClick )
 
@@ -283,10 +283,14 @@ class Game:
             self.label.pack(side=Tk.LEFT,  anchor=Tk.SW)
 
         # reset this to adjust the things we've made
-        self.sethighlighted(self.highlighted)
+        self.set_highlighted(self.highlighted)
 
+    def clear_widget(self):
+        self.label.destroy()
+        self.hoverimgTk = None # Does this release it?
+        self.boximgTk = None
 
-    def makeboxart(self):
+    def _make_box_art(self):
         img = self.hoverimgraw.copy()
 
         # determine the ratio of our deciding side (height or width)
@@ -326,28 +330,29 @@ class Game:
 
     def onClick(self, event):
         #self.getcolor(True)
-        self.sethighlighted(not self.highlighted)
+        self.set_highlighted(not self.highlighted)
         print(self.name, self.lblwidth,  self.lblheight)
 
-    def onEnter(self, event):
-        hover.Hover.inst.onEnter(self, event, [self.label])
-
-    def onLeave(self, event):
-        hover.Hover.inst.onLeave(self, event, [self.label])
+    def onMove(self, event):
+        hover.Hover.inst.onMove(self, event)
 
     def search(self, text):
         if len(text)==0:
-            self.sethighlighted(False)
+            self.set_highlighted(False)
             return 0
 
         matched = text in self.searchname
-        if matched:
-            self.label.config(state=Tk.ACTIVE, bg='yellow', relief=Tk.RAISED)
-        else:
-            self.label.config(state=Tk.DISABLED, bg='black', relief=Tk.FLAT)
+        try:
+            if matched:
+                self.label.config(state=Tk.ACTIVE, bg='yellow', relief=Tk.RAISED)
+            else:
+                self.label.config(state=Tk.DISABLED, bg='black', relief=Tk.FLAT)
+        except AttributeError:
+            pass # may not have self.label
+
         return int(matched)
 
-    def sethighlighted(self, highlighted, bg='yellow'):
+    def set_highlighted(self, highlighted, bg='yellow'):
         self.highlighted = highlighted
         try:
             if highlighted:
@@ -358,7 +363,7 @@ class Game:
         except AttributeError:
             pass
 
-    def setdir(self, dir):
+    def set_dir(self, dir):
         self.dir = dir
         self.shelfwidth  = getattr(self, dir[:1])
         self.shelfheight = getattr(self, dir[1:])
@@ -367,7 +372,7 @@ class Game:
         # depth is whatever direction is not the last one
         self.shelfdepth  = getattr(self, re.sub(dir[:1]+'?'+dir[1:]+'?', '', "xyz"))
 
-    def gethumandir(self):
+    def get_human_dir(self):
         dirs = {"zy":"Up", "zx":"Side", "xz":"Flat, Bottom", "yz":"Flat, Side"}
         return dirs[self.dir];
 

@@ -31,9 +31,9 @@ class Bookcase:
             self.shelves.append( Shelf(  name, self.width, heights[i], depth ) )
             self.height += float(heights[i])
 
-    def trybox(self,  box):
+    def try_box(self, box):
         for shelf in self.shelves:
-            if shelf.trybox(box):
+            if shelf.try_box(box):
                 return True
         return False
 
@@ -41,7 +41,7 @@ class Bookcase:
         for shelf in self.shelves:
             shelf.finish()
 
-    def getused(self):
+    def get_used(self):
         used = 0.0
         total = 0.0
         for s in self.shelves:
@@ -49,20 +49,26 @@ class Bookcase:
             total += s.totalarea
         return used, total
 
-    def makewidgets(self, owner, index):
+    def make_shelf_widgets(self, owner, index):
         border=BOOKCASE_BORDER
         self.case = Tk.Frame(owner
                         #, width=(self.width*IN_TO_PX)+(border*2)
                         , bg=CASE_COLOR, border=border
                         , relief=Tk.RAISED)
 
-        self.case.grid(row=0, column=index, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
+        self.case.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
 
         text = Tk.Label(self.case, text=self.name, bg=CASE_COLOR)
         text.grid(row=0, pady=0)
+
+    def make_game_widgets(self):
         for si in range(len(self.shelves)):
             s = self.shelves[si]
-            s.makewidget(self.case,si+1)
+            s.make_widget(self.case, si + 1)
+
+    def clear_games(self):
+        for s in self.shelves:
+            s.clear_games()
 
     def search(self, text):
         sum = 0
@@ -89,26 +95,26 @@ class GameStack:
         if _verbose:
             print(self.name,  ":", args,  **kwargs)
 
-    def trybox(self, box: game.Game):
+    def try_box(self, box: game.Game):
         if box.z > self.heightleft:
             self.vprint(box,  "failed stack height",  box.z,  self.heightleft)
             return False
 
         if box.x <= self.width:
-            self.addbox(box, "xz")
+            self.add_box(box, "xz")
             self.vprint(box,  "passed stack xz",   box.x,  self.width )
             return True
 
         if box.y <= self.width:
-            self.addbox(box, "yz")
+            self.add_box(box, "yz")
             self.vprint(box,  "passed stack yz",   box.y,  self.width )
             return True
 
         self.vprint(box.name, "didn't fit ",  self.name)
         return False
 
-    def addbox(self, box, dir):
-        box.setdir( dir )
+    def add_box(self, box, dir):
+        box.set_dir(dir)
         self.games.append(box)
         self.heightleft = self.heightleft - box.shelfheight
 
@@ -120,18 +126,24 @@ class GameStack:
             # sort by the size of the stack's dimensions
             self.games.sort(key=lambda s:s.shelfwidth, reverse=True)
 
-    def makewidgets(self,  owner, shelf = None,  index=None):
+    def make_widgets(self, owner, shelf=None, index=None):
         self.frame = Tk.Frame(owner, bg=SHELF_COLOR)
 
-        if shelf != None:
-            self.frame.pack(side=Tk.LEFT,anchor=Tk.S)
-            self.frame.bind("<Enter>", shelf.onEnter )
+        if shelf is not None:
+            self.frame.pack(side=Tk.LEFT, anchor=Tk.S)
+            self.frame.bind("<Motion>", shelf.onMove )
             self.frame.bind("<Button-1>", shelf.onClick )
         else:
-            self.frame.grid(row=0, column=index, sticky=(Tk.W, Tk.E, Tk.S), padx=5)
+            self.frame.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
 
         for g in self.games:
-            g.makewidget(self.frame, center=True)
+            g.make_widget(self.frame, center=True)
+
+    def clear_games(self):
+        for g in self.games:
+            g.clear_widget()
+
+        self.games = []
 
     def search(self, text):
         sum = 0
@@ -166,58 +178,58 @@ class Shelf:
     def __str__(self):
         return u"%s %.1f (%.1f) x %.1f x %.1f (%s)" % (self.name, self.maxwidth, self.widthleft, self.height, self.depth, ", ".join(map(str, self.games)))
 
-    def addboxlite(self, box):
+    def add_box_lite(self, box):
         self.usedarea = self.usedarea + (box.shelfwidth * box.shelfheight)
 
         if box.w > 0.0:
             self.weight = self.weight + box.w
             self.wreported = self.wreported + 1
 
-    def addbox(self, box, dir):
-        box.setdir( dir )
-        self.addboxlite(box)
+    def add_box(self, box, dir):
+        box.set_dir(dir)
+        self.add_box_lite(box)
         self.games.append(box)
         self.widthleft = self.widthleft - box.shelfwidth
 
     @staticmethod
-    def setStoreStyle(style:StoreStyle):
+    def set_store_style(style:StoreStyle):
         if style == StoreStyle.PreferSide:
-            Shelf.sortlist = [Shelf.tryVertical, Shelf.tryStack]
+            Shelf.sortlist = [Shelf.try_vertical, Shelf.try_stack]
         elif style == StoreStyle.PreferStack:
-            Shelf.sortlist = [Shelf.tryStack, Shelf.tryVertical]
+            Shelf.sortlist = [Shelf.try_stack, Shelf.try_vertical]
         elif style == StoreStyle.SideOnly:
-            Shelf.sortlist = [Shelf.tryVertical]
+            Shelf.sortlist = [Shelf.try_vertical]
         elif style == StoreStyle.StackOnly:
-            Shelf.sortlist = [Shelf.tryStack]
+            Shelf.sortlist = [Shelf.try_stack]
         else:
             raise ValueError("Invalid StoreStyle: " + style)
 
     @staticmethod
-    def tryVertical(self, box):
+    def try_vertical(self, box):
         if box.z <= self.widthleft:
             if box.y <= self.height:
                 self.vprint(box,  "passed zy {}<={}, {}<={}".format(
                     box.z,  self.widthleft,
                     box.y,  self.height))
-                self.addbox(box, "zy")
+                self.add_box(box, "zy")
                 return True
 
             if box.x <= self.height:
                 self.vprint(box,  "passed zx {}<={}, {}<={}".format(
                     box.z,  self.widthleft,
                     box.x,  self.height))
-                self.addbox(box, "zx")
+                self.add_box(box, "zx")
                 return True
         return False
 
     @staticmethod
-    def tryStack(self, box):
+    def try_stack(self, box):
         if box.z <= self.height:
             if box.x <= self.widthleft:
                 self.vprint(box,  "passed xz {}<={}, {}<={}".format(
                     box.z,  self.height,
                     box.x,  self.widthleft))
-                self.addstack(box,  "xz")
+                self.add_stack(box, "xz")
                 return True
 
         # or the other?
@@ -225,14 +237,14 @@ class Shelf:
             self.vprint(box,  "passed yz {}<={}, {}<={}".format(
                     box.z,  self.height,
                     box.y,  self.widthleft))
-            self.addstack(box,  "yz")
+            self.add_stack(box, "yz")
             return True
 
-    def trybox(self,box):
+    def try_box(self, box):
         # if there's already stacks, check 'em out
         for s in self.stacks:
-            if s.trybox(box):
-                self.addboxlite(box)
+            if s.try_box(box):
+                self.add_box_lite(box)
                 return True
 
         for sortfunc in Shelf.sortlist:
@@ -266,18 +278,18 @@ class Shelf:
                 st.frame.configure(bg=SHELF_COLOR)
         return sum
 
-    def addstack(self,  box: game.Game,  dir ):
-        box.setdir(dir)
+    def add_stack(self, box: game.Game, dir):
+        box.set_dir(dir)
         stackname = "{}-{}".format(self.name,  len(self.stacks)+1)
         self.vprint("made stack",  stackname,  box, dir, box.shelfwidth)
         stack = GameStack( stackname,  box.shelfwidth, self.height)
         self.stacks.append( stack )
         self.widthleft = self.widthleft - box.shelfwidth
-        stack.addbox(box,  dir)
-        self.addboxlite(box)
+        stack.add_box(box, dir)
+        self.add_box_lite(box)
 
 
-    def makewidget(self, case, row):
+    def make_widget(self, case, row):
         border = SHELF_BORDER
 
         height = (self.height   * IN_TO_PX) + (border * 2.0)
@@ -293,7 +305,7 @@ class Shelf:
                          )
         self.shlf.grid(row=row,pady=3,padx=5)
         self.shlf.pack_propagate(False)
-        self.shlf.bind("<Enter>", self.onEnter)
+        self.shlf.bind("<Motion>", self.onMove)
         self.shlf.bind("<Button-1>", self.onClick)
 
         self.hovertext="""{name}-{row}
@@ -309,16 +321,23 @@ class Shelf:
             , used=(self.usedarea / self.totalarea)*100.0)
 
         for st in self.stacks:
-            st.makewidgets(self.shlf, self)
+            st.make_widgets(self.shlf, self)
 
         for g in self.games:
-            g.makewidget(self.shlf)
+            g.make_widget(self.shlf)
 
-    def onEnter(self, event):
-        hover.Hover.inst.onEnter(self, event, [self.shlf]+[s.frame for s in self.stacks] )
+    def clear_games(self):
+        for st in self.stacks:
+            st.clear_games()
 
-    def onLeave(self, event):
-        hover.Hover.inst.onLeave(self, event, [self.shlf]+[s.frame for s in self.stacks] )
+        for g in self.games:
+            g.clear_widget()
+
+        self.stacks = []
+        self.games = []
+
+    def onMove(self, event):
+        hover.Hover.inst.onMove(self, event)
 
     def onClick(self, event):
         print("###", self.name,"###")

@@ -21,6 +21,7 @@ class Popup:
     def __init__(self, master, game):
         self.top = Tk.Toplevel(master)
         self.top.title( "Editing Dimensions")
+        self.top.focus_force()
         self.target = game
 
         self.unitstr = Tk.StringVar()
@@ -81,6 +82,7 @@ class Popup:
             widget.isweight = 'w' in val
             setattr(self, val, widget)
 
+        self.x.focus_force()
         # unit selection
 
         unitdata = UNIT_DATA[Units.US_FRACTION]
@@ -178,7 +180,7 @@ class Popup:
             self.top.bell()
         else:
             self.close()
-            self.target.setsize(*temp.values())
+            self.target.set_size(*temp.values())
 
     def unitchange(self, newtitle):
 
