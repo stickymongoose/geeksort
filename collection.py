@@ -11,6 +11,17 @@ from constants import *
 
 # return collection for any user, but wait 2 seconds and retry if error. 10 total attempts.
 
+def init():
+    try:
+        os.mkdir(pathlib.Path(CACHE_DIR))
+    except OSError:
+        pass
+
+    try:
+        os.mkdir(pathlib.Path(CACHE_DIR) / "pics")
+    except OSError:
+        pass
+
 
 @functools.lru_cache(maxsize=None)
 def get_collection(user):

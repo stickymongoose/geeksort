@@ -7,7 +7,6 @@ import tkinter as Tk
 from tkinter import ttk
 
 import threading
-import os
 import collection
 import hover
 import webbrowser
@@ -21,14 +20,14 @@ from constants import *
 
 
 class GameFilters:
-    def __init__(self, gameNodes):
+    def __init__(self, gameNodes, progressFunc):
         self.all = []
         self.unplaced = []
-        print("Making games...\r")
-        for g in gameNodes:
-            newgame = game.Game(g)
+        progressFunc( 0.0 )
+        for index in range(len(gameNodes)):
+            newgame = game.Game(gameNodes[index])
             self.all.append( newgame )
-        print("\bDone")
+            progressFunc( index / len(gameNodes) )
         self.make_lists()
 
     def make_lists(self):
@@ -105,12 +104,13 @@ class App:
         self.searchBox = searchbox.SearchBox(self.tkWindow)
         self.searchBox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
 
+        self.progressPct = Tk.DoubleVar(0.0)
         self.tkProgressFrm = ttk.Frame(self.tkWindow)
         self.tkProgressLabel = ttk.Label(self.tkProgressFrm)
         self.tkProgressLabel.pack()
-        self.tkProgress = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200)
-        self.tkProgress.pack()
-
+        self.tkProgressBar = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200
+                                             , variable=self.progressPct)
+        self.tkProgressBar.pack()
 
         self.make_shelves()
         # TODO: Cache off
@@ -153,18 +153,23 @@ class App:
 
             collectionNodes = root.findall("./item") # get all items
 
-            self.games = GameFilters(collectionNodes)
+            self.start_work("Fetching data for games...", True)
+            self.games = GameFilters(collectionNodes, self.set_progress)
             self.sort_games()
 
         threading.Thread(target=_realfetch, args=(self, username)).start()
 
+    def set_progress(self, pct):
+        print(pct)
+        self.progressPct.set( pct * 100.0 )
+
     def resort_games(self):
-        def _realresort(self):
+        def _real_resort(self):
             self.games.make_lists()
             self.clear_games()
             self.sort_games()
 
-        threading.Thread(target=_realresort, args=(self,)).start()
+        threading.Thread(target=_real_resort, args=(self,)).start()
 
     def sort_games(self):
         sgames = self.games.get_sorted_boxes(self.sortFuncs)
@@ -276,24 +281,27 @@ class App:
         print(game.longname)
         webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
 
-    def start_work(self, label: str):
+    def start_work(self, label: str, progress=False):
         self.tkProgressFrm.grid(column=1, row=0)
-        self.tkProgress.start()
+
+        if progress:
+            self.tkProgressBar.configure(mode="determinate")
+            self.tkProgressBar.stop()
+        else:
+            self.tkProgressBar.configure(mode="indeterminate")
+            self.tkProgressBar.start()
         self.tkProgressLabel.configure(text=label)
 
     def stop_work(self):
         self.tkProgressFrm.grid_forget()
-        self.tkProgress.stop()
+        self.tkProgressBar.stop()
 
 
 # TODO: Cache off from preferences
 shelf.Shelf.set_store_style(shelf.StoreStyle.PreferSide)
 game.Game.set_side_preference(game.SidePreference.Left)
 
-try: os.mkdir(CACHE_DIR)
-except OSError:
-    pass
-
+collection.init()
 
 #Tk.SimpleDialog
 
