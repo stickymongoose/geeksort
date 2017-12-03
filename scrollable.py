@@ -8,7 +8,7 @@ from constants import *
 class ScrollableList:
     starImage = None
 
-    def __init__(self, owner: ttk.Notebook, title, highestshelf, values, actionfunc, casecount):
+    def __init__(self, owner: ttk.Notebook, title, highestshelf, actionfunc):
         self.frm = Tk.Frame(owner, height=math.ceil(highestshelf*IN_TO_PX), width=200, border=2, relief=Tk.SUNKEN)
         self.frm.pack_propagate(False)
         owner.add(self.frm, text=title, compound=Tk.TOP)
@@ -16,23 +16,28 @@ class ScrollableList:
         self.title = title
         self.owner = owner
 
-        print(title, self.tabid)
-
         self.list = Tk.Listbox(self.frm)
-        for g in values:
-            self.list.insert(Tk.END, g.longname)
-            g.make_image()
-        self.list.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
-        self.list.values = values
         self.list.bind("<Double-Button-1>", lambda evnt:actionfunc(evnt.widget.values[evnt.widget.curselection()[0]]))
+        self.list.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
 
         scroll = Tk.Scrollbar(self.frm)
         scroll.pack(side=Tk.RIGHT, fill=Tk.Y)
 
+
         self.list.config(yscrollcommand=scroll.set)
         scroll.config(command=self.list.yview)
 
-        casecount += 1
+
+    def set_list(self, values):
+        self.list.delete(0,Tk.END)
+        for g in values:
+            self.list.insert(Tk.END, g.longname)
+            g.make_image()
+        self.list.values = values
+
+
+    def hide(self):
+        self.list.pack_forget()
 
     def search(self, text):
         matches = 0

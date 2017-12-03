@@ -18,6 +18,7 @@ import scrollable
 from constants import *
 
 
+
 class GameFilters:
     def __init__(self, gameNodes):
         self.all = []
@@ -27,6 +28,9 @@ class GameFilters:
             newgame = game.Game(g)
             self.all.append( newgame )
         print("\bDone")
+        self.make_lists()
+
+    def make_lists(self):
 
         self.excluded = [b for b in self.all if b.excluded]
         self.sorted   = [b for b in self.all if not b.excluded]
@@ -41,7 +45,7 @@ class GameFilters:
         self.noVersions.sort(key=Sort.byName)
         self.noData.sort(key=Sort.byName)
 
-    def getSortedBoxes(self, sortfuncs):
+    def get_sorted_boxes(self, sortfuncs):
         sortedboxes = self.inBoxes
 
         for f in sortfuncs[::-1]:
@@ -66,11 +70,20 @@ class Sort:
 class App:
 
     def __init__(self):
+
+        game.Game._app = self
         self.tkWindow = Tk.Tk()
 
         self.tkFrame = Tk.Frame(self.tkWindow,border=15)
         self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N))
         self.tkSideNotebook = None
+
+        # self.menu = Tk.Menu(self.tkFrame, tearoff=0)
+        # self.menu.add_command(label="Undo", command=lambda: print("Undo"))
+        # self.menu.add_command(label="Redo", command=lambda: print("Redo"))
+        # self.tkWindow.config(menu=self.menu)
+        #
+        # self.tkFrame.bind("<Button-3>", lambda e:self.menu.post(e.x_root, e.y_root))
 
         # make it last so it's on top of everything
         self.hover = hover.Hover(self.tkWindow)
@@ -109,6 +122,7 @@ class App:
                 bc = shelf.Bookcase(line)
                 self.cases.append(bc)
                 self.searchBox.register(bc)
+                bc.make_shelf_widgets(self.tkFrame)
 
     def collection_fetch(self, username):
         print("Fetching collection for {}...".format(username))
@@ -121,9 +135,13 @@ class App:
         self.games = GameFilters(collectionNodes)
         self.sort_games()
 
-    def sort_games(self):
+    def resort_games(self):
+        self.games.make_lists()
         self.clear_games()
-        sgames = self.games.getSortedBoxes(self.sortFuncs)
+        self.sort_games()
+
+    def sort_games(self):
+        sgames = self.games.get_sorted_boxes(self.sortFuncs)
 
         class GamePlaced(Exception):pass
 
@@ -148,9 +166,9 @@ class App:
         for bc in self.cases:
             bc.finish()
 
-        self.post_sort()
+        self._after_sort()
 
-    def post_sort(self):
+    def _after_sort(self):
         totalarea = 0.0
         totalused = 0.0
         for bc in self.cases:
@@ -164,52 +182,68 @@ class App:
             , (totalused/totalarea)*100.0))
 
         highestshelf = 0
-        for shelfIndex in range(len(self.cases)):
-            bc = self.cases[shelfIndex]
-            bc.make_shelf_widgets(self.tkFrame, shelfIndex)
+        for bc in self.cases:
             bc.make_game_widgets()
             highestshelf = max(bc.height, highestshelf)
 
-        casecount = len(self.cases)
+        highestshelf += 5 # pixel wiggle... or is this in text lines?
 
         # only add an overflow shelf if we need it
         if len(self.games.unplaced) > 0:
             self.searchBox.register(self.stackUnplaced)
             for b in self.games.unplaced:
-                self.stackUnplaced.add_box(b, "xz" if b.x > b.y else "yz")
+                if b.x >= b.y:
+                    self.stackUnplaced.add_box(b, game.HorizLong)
+                else:
+                    self.stackUnplaced.add_box(b, game.HorizShort)
 
             self.stackUnplaced.finish()
-            self.stackUnplaced.make_widgets(self.tkFrame, index=casecount)
-            casecount += 1
+            self.stackUnplaced.make_widgets(self.tkFrame)
+        else:
+            self.stackUnplaced.hide()
 
         # only add versionless shelf if we need it
         if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) > 0:
-            self.tkSideNotebook = ttk.Notebook(self.tkFrame)
-            self.tkSideNotebook.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+            if self.tkSideNotebook is None:
+                self.tkSideNotebook = ttk.Notebook(self.tkFrame)
+                self.tkSideNotebook.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
 
-            if len(self.games.noData) > 0:
-                self.scrollNoDims = scrollable.ScrollableList(self.tkSideNotebook, "No Dimensions"
-                                                              , highestshelf, self.games.noData, self.open_version, casecount)
-                self.searchBox.register(self.scrollNoDims)
+            self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
+                                                    self.open_version)
 
-            if len(self.games.noVersions) > 0:
-                self.scrollNoVers = scrollable.ScrollableList(self.tkSideNotebook, "No Versions"
-                                                              , highestshelf, self.games.noVersions, self.open_version_picker, casecount)
-                self.searchBox.register(self.scrollNoVers)
+            self.scrollNoVers = self._make_scroller(self.scrollNoVers, "No Versions", highestshelf,
+                                                    self.games.noVersions, self.open_version_picker)
 
-            if len(self.games.excluded) > 0:
-                exc = scrollable.ScrollableList(self.tkSideNotebook, "Excluded"
-                                                , highestshelf, self.games.excluded, self.unexclude, casecount)
-                self.searchBox.register(exc)
+            self.scrollExclude = self._make_scroller(self.scrollExclude, "Excluded", highestshelf, self.games.excluded,
+                                                     self.unexclude)
 
+        elif self.tkSideNotebook is not None:
+            self.tkSideNotebook.pack_forget()
+
+
+    def _make_scroller(self, scroller, name, height, list, func):
+        if len(list) > 0:
+            if scroller is None:
+                scroller = scrollable.ScrollableList(self.tkSideNotebook, name, height, func)
+            scroller.set_list(list)
+            self.searchBox.register(scroller)
+
+        elif scroller is not None:
+            scroller.hide()
+
+        return scroller
 
     # add a bunch of widgets for leftover things
     def unexclude(self, game):
         print("Unexcluded", game.longname )
+        game.excluded = False
+        self.resort_games()
 
     def open_version(self, game):
         s = sizewindow.Popup(self.tkWindow, game)
+        print("Window open")
         self.tkWindow.wait_window(s.top)
+        print("And we're back")
 
     def open_version_picker(self, game):
         print(game.longname)

@@ -33,9 +33,7 @@ DENOM_LIMIT = 16 # for the display of fractional inches, let's go with 16ths
 BOX_PRECISION = 4 # boxes we'll round up to nearest 4th of an inch
 ROUND_PRECISION=3 # show 3 degrees of precision
 
-NO_BOX_X = 3
-NO_BOX_Y = 3
-NO_BOX_Z = 10
+SHELF_SPACING = 5
 
 EXCLUDE_COMMENT = "#geeksort-exclude"
 

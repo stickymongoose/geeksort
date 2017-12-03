@@ -12,6 +12,12 @@ import collection
 import averagecolor
 import hover
 
+VerticalLong = "zy"
+VerticalShort = "zx"
+HorizLong = "xz"
+HorizShort = "yz"
+
+
 def get_text(node, path, default):
     try:
         return node.find(path).text
@@ -43,9 +49,11 @@ class SidePreference(Enum):
     Left = 1
     Right = 2
 
+
+
 class Game:
     _user = None
-    _hover = None
+    _app = None
     _sidepreference = SidePreference.Left
 
     @staticmethod
@@ -80,6 +88,8 @@ class Game:
         self.hoverimgurl = collection.get_img(Game._user, self.id)
         self.hoverimgraw = Image.open(self.hoverimgurl)
         self.color = self.get_ave_color()
+
+        self.tkLabel = None
 
         # get if the user wants to exclude
         self.excluded = EXCLUDE_COMMENT in get_text(xmlfromcollection, "comment", "").lower()
@@ -257,36 +267,38 @@ class Game:
                 self.lblheight = max(1, self.lblheight)
                 break
 
-        self.label = Tk.Label(shelf
-                              , width =self.lblwidth
-                              , height=self.lblheight
-                              #, text=self.name
-                              , image=self.boximgTk
-                              , relief=Tk.RAISED
-                              #, wraplength=(self.shelfwidth * IN_TO_PX)-2
-                              , borderwidth=border
-                              #, bg=color
-                              , compound="center"
-                              #, fg=fontcolor
-                              #, font=("Footlight MT","10", "bold")
-                              #, highlightcolor="red"
-                              #,  takefocus=1
-                              )
+        self.tkLabel = Tk.Label(shelf
+                                , width =self.lblwidth
+                                , height=self.lblheight
+                                #, text=self.name
+                                , image=self.boximgTk
+                                , relief=Tk.RAISED
+                                #, wraplength=(self.shelfwidth * IN_TO_PX)-2
+                                , borderwidth=border
+                                #, bg=color
+                                , compound="center"
+                                #, fg=fontcolor
+                                #, font=("Footlight MT","10", "bold")
+                                #, highlightcolor="red"
+                                #,  takefocus=1
+                                )
 
-        self.label.bind("<Motion>",self.onMove)
+        self.tkLabel.bind("<Motion>", self.onMove)
 
-        self.label.bind("<Button-1>", self.onClick )
+        self.tkLabel.bind("<Button-1>", self.onClick)
+        self.tkLabel.bind("<Double-Button-1>", self.onDblClick)
 
         if center:
-            self.label.pack(side=Tk.BOTTOM,anchor=Tk.S)
+            self.tkLabel.pack(side=Tk.BOTTOM, anchor=Tk.S)
         else:
-            self.label.pack(side=Tk.LEFT,  anchor=Tk.SW)
+            self.tkLabel.pack(side=Tk.LEFT, anchor=Tk.SW)
 
         # reset this to adjust the things we've made
         self.set_highlighted(self.highlighted)
 
     def clear_widget(self):
-        self.label.destroy()
+        self.tkLabel.destroy()
+        self.tkLabel = None
         self.hoverimgTk = None # Does this release it?
         self.boximgTk = None
 
@@ -333,6 +345,10 @@ class Game:
         self.set_highlighted(not self.highlighted)
         print(self.name, self.lblwidth,  self.lblheight)
 
+    def onDblClick(self, event):
+        self.excluded = True
+        Game._app.resort_games()
+
     def onMove(self, event):
         hover.Hover.inst.onMove(self, event)
 
@@ -344,9 +360,9 @@ class Game:
         matched = text in self.searchname
         try:
             if matched:
-                self.label.config(state=Tk.ACTIVE, bg='yellow', relief=Tk.RAISED)
+                self.tkLabel.config(state=Tk.ACTIVE, bg='yellow', relief=Tk.RAISED)
             else:
-                self.label.config(state=Tk.DISABLED, bg='black', relief=Tk.FLAT)
+                self.tkLabel.config(state=Tk.DISABLED, bg='black', relief=Tk.FLAT)
         except AttributeError:
             pass # may not have self.label
 
@@ -356,10 +372,10 @@ class Game:
         self.highlighted = highlighted
         try:
             if highlighted:
-                self.label.config(state=Tk.DISABLED, bg='yellow')
+                self.tkLabel.config(state=Tk.DISABLED, bg='yellow')
             else:
                 color = "#{:06x}".format( self.color )
-                self.label.config(state=Tk.NORMAL, bg=color)
+                self.tkLabel.config(state=Tk.NORMAL, bg=color)
         except AttributeError:
             pass
 
@@ -373,7 +389,7 @@ class Game:
         self.shelfdepth  = getattr(self, re.sub(dir[:1]+'?'+dir[1:]+'?', '', "xyz"))
 
     def get_human_dir(self):
-        dirs = {"zy":"Up", "zx":"Side", "xz":"Flat, Bottom", "yz":"Flat, Side"}
+        dirs = {VerticalLong: "Up", VerticalShort: "Side", HorizLong: "Flat, Bottom", HorizShort: "Flat, Side"}
         return dirs[self.dir];
 
     def __repr__(self):

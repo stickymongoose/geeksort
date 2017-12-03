@@ -49,7 +49,7 @@ class Bookcase:
             total += s.totalarea
         return used, total
 
-    def make_shelf_widgets(self, owner, index):
+    def make_shelf_widgets(self, owner):
         border=BOOKCASE_BORDER
         self.case = Tk.Frame(owner
                         #, width=(self.width*IN_TO_PX)+(border*2)
@@ -57,14 +57,18 @@ class Bookcase:
                         , relief=Tk.RAISED)
 
         self.case.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+        self.case.bind("<Motion>", hover.Hover.inst.onClear)
 
         text = Tk.Label(self.case, text=self.name, bg=CASE_COLOR)
         text.grid(row=0, pady=0)
-
-    def make_game_widgets(self):
         for si in range(len(self.shelves)):
             s = self.shelves[si]
             s.make_widget(self.case, si + 1)
+
+    def make_game_widgets(self):
+        for s in self.shelves:
+            s.make_game_widgets()
+
 
     def clear_games(self):
         for s in self.shelves:
@@ -101,12 +105,12 @@ class GameStack:
             return False
 
         if box.x <= self.width:
-            self.add_box(box, "xz")
+            self.add_box(box, game.HorizLong)
             self.vprint(box,  "passed stack xz",   box.x,  self.width )
             return True
 
         if box.y <= self.width:
-            self.add_box(box, "yz")
+            self.add_box(box, game.HorizShort)
             self.vprint(box,  "passed stack yz",   box.y,  self.width )
             return True
 
@@ -116,7 +120,7 @@ class GameStack:
     def add_box(self, box, dir):
         box.set_dir(dir)
         self.games.append(box)
-        self.heightleft = self.heightleft - box.shelfheight
+        self.heightleft -= box.shelfheight
 
     def finish(self):
         if GameStack.sortmethod == StackSort.Weight:
@@ -127,23 +131,35 @@ class GameStack:
             self.games.sort(key=lambda s:s.shelfwidth, reverse=True)
 
     def make_widgets(self, owner, shelf=None, index=None):
-        self.frame = Tk.Frame(owner, bg=SHELF_COLOR)
+        self.tkFrame = Tk.Frame(owner, bg=SHELF_COLOR)
 
         if shelf is not None:
-            self.frame.pack(side=Tk.LEFT, anchor=Tk.S)
-            self.frame.bind("<Motion>", shelf.onMove )
-            self.frame.bind("<Button-1>", shelf.onClick )
+            self.tkFrame.pack(side=Tk.LEFT, anchor=Tk.S)
+            self.tkFrame.bind("<Motion>", shelf.onMove)
+            self.tkFrame.bind("<Button-1>", shelf.onClick)
         else:
-            self.frame.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+            self.tkFrame.pack(side=Tk.LEFT, anchor=Tk.SW, padx=SHELF_SPACING)
 
         for g in self.games:
-            g.make_widget(self.frame, center=True)
+            g.make_widget(self.tkFrame, center=True)
+
+    def hide(self):
+        try:
+            self.tkFrame.pack_forget()
+        except AttributeError:
+            pass
 
     def clear_games(self):
         for g in self.games:
             g.clear_widget()
 
+        try:
+            self.tkFrame.pack_forget()
+            self.tkFrame.destroy()
+        except AttributeError: pass
+
         self.games = []
+        self.heightleft = self.maxheight
 
     def search(self, text):
         sum = 0
@@ -179,17 +195,17 @@ class Shelf:
         return u"%s %.1f (%.1f) x %.1f x %.1f (%s)" % (self.name, self.maxwidth, self.widthleft, self.height, self.depth, ", ".join(map(str, self.games)))
 
     def add_box_lite(self, box):
-        self.usedarea = self.usedarea + (box.shelfwidth * box.shelfheight)
+        self.usedarea += (box.shelfwidth * box.shelfheight)
 
         if box.w > 0.0:
-            self.weight = self.weight + box.w
-            self.wreported = self.wreported + 1
+            self.weight += box.w
+            self.wreported += 1
 
     def add_box(self, box, dir):
         box.set_dir(dir)
         self.add_box_lite(box)
         self.games.append(box)
-        self.widthleft = self.widthleft - box.shelfwidth
+        self.widthleft -= box.shelfwidth
 
     @staticmethod
     def set_store_style(style:StoreStyle):
@@ -211,14 +227,14 @@ class Shelf:
                 self.vprint(box,  "passed zy {}<={}, {}<={}".format(
                     box.z,  self.widthleft,
                     box.y,  self.height))
-                self.add_box(box, "zy")
+                self.add_box(box, game.VerticalLong)
                 return True
 
             if box.x <= self.height:
                 self.vprint(box,  "passed zx {}<={}, {}<={}".format(
                     box.z,  self.widthleft,
                     box.x,  self.height))
-                self.add_box(box, "zx")
+                self.add_box(box, game.VerticalShort)
                 return True
         return False
 
@@ -229,7 +245,7 @@ class Shelf:
                 self.vprint(box,  "passed xz {}<={}, {}<={}".format(
                     box.z,  self.height,
                     box.x,  self.widthleft))
-                self.add_stack(box, "xz")
+                self.add_stack(box, game.HorizShort)
                 return True
 
         # or the other?
@@ -237,7 +253,7 @@ class Shelf:
             self.vprint(box,  "passed yz {}<={}, {}<={}".format(
                     box.z,  self.height,
                     box.y,  self.widthleft))
-            self.add_stack(box, "yz")
+            self.add_stack(box, game.HorizLong)
             return True
 
     def try_box(self, box):
@@ -269,13 +285,13 @@ class Shelf:
             sum += g.search(text)
 
         if sum > 0:
-            self.shlf.configure(bg=FOUND_COLOR)
+            self.tkShelf.configure(bg=FOUND_COLOR)
             for st in self.stacks:
-                st.frame.configure(bg=FOUND_COLOR)
+                st.tkFrame.configure(bg=FOUND_COLOR)
         else:
-            self.shlf.configure(bg=SHELF_COLOR)
+            self.tkShelf.configure(bg=SHELF_COLOR)
             for st in self.stacks:
-                st.frame.configure(bg=SHELF_COLOR)
+                st.tkFrame.configure(bg=SHELF_COLOR)
         return sum
 
     def add_stack(self, box: game.Game, dir):
@@ -284,7 +300,7 @@ class Shelf:
         self.vprint("made stack",  stackname,  box, dir, box.shelfwidth)
         stack = GameStack( stackname,  box.shelfwidth, self.height)
         self.stacks.append( stack )
-        self.widthleft = self.widthleft - box.shelfwidth
+        self.widthleft -= box.shelfwidth
         stack.add_box(box, dir)
         self.add_box_lite(box)
 
@@ -295,18 +311,18 @@ class Shelf:
         height = (self.height   * IN_TO_PX) + (border * 2.0)
         self.frmwidth = (self.maxwidth * IN_TO_PX) + (border * 2.0)
         #print(self.name, self.frmwidth, height)
-        self.shlf = Tk.Frame(case
-                         , height=height
-                         , width =self.frmwidth
-                         , bg=SHELF_COLOR
-                         , border=border
-                         , relief=Tk.SUNKEN
-                         #, relief=Tk.FLAT
-                         )
-        self.shlf.grid(row=row,pady=3,padx=5)
-        self.shlf.pack_propagate(False)
-        self.shlf.bind("<Motion>", self.onMove)
-        self.shlf.bind("<Button-1>", self.onClick)
+        self.tkShelf = Tk.Frame(case
+                                , height=height
+                                , width =self.frmwidth
+                                , bg=SHELF_COLOR
+                                , border=border
+                                , relief=Tk.SUNKEN
+                                #, relief=Tk.FLAT
+                                )
+        self.tkShelf.grid(row=row, pady=3, padx=SHELF_SPACING)
+        self.tkShelf.pack_propagate(False)
+        self.tkShelf.bind("<Motion>", self.onMove)
+        self.tkShelf.bind("<Button-1>", self.onClick)
 
         self.hovertext="""{name}-{row}
 {w} x {h} x {d}
@@ -320,11 +336,12 @@ class Shelf:
             , weight=round(self.weight, ROUND_PRECISION), wcnt=round(self.wreported, ROUND_PRECISION), total = len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
 
+    def make_game_widgets(self):
         for st in self.stacks:
-            st.make_widgets(self.shlf, self)
+            st.make_widgets(self.tkShelf, self)
 
         for g in self.games:
-            g.make_widget(self.shlf)
+            g.make_widget(self.tkShelf)
 
     def clear_games(self):
         for st in self.stacks:
@@ -332,6 +349,11 @@ class Shelf:
 
         for g in self.games:
             g.clear_widget()
+
+        self.widthleft = self.maxwidth
+        self.usedarea = 0.0
+        self.weight = 0.0
+        self.wreported = 0
 
         self.stacks = []
         self.games = []

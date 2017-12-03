@@ -18,6 +18,10 @@ class Hover:
         Hover.inst = self # singleton
 
         self.lastSet = None
+        # In the event the user can mouse quickly enough, just hide this
+        # then it'll adjust for the ones underneath it and redraw it in the right place
+        self.tkFrame.bind("<Enter>", self.onClear)
+        self.tkLabel.bind("<Enter>", self.onClear)
 
     def set_image(self, imgfile):
         w = 0
