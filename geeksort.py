@@ -6,6 +6,7 @@
 import tkinter as Tk
 from tkinter import ttk
 
+import threading
 import os
 import collection
 import hover
@@ -75,8 +76,10 @@ class App:
         self.tkWindow = Tk.Tk()
 
         self.tkFrame = Tk.Frame(self.tkWindow,border=15)
-        self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N))
+        self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N),columnspan=20)
         self.tkSideNotebook = None
+
+
 
         # self.menu = Tk.Menu(self.tkFrame, tearoff=0)
         # self.menu.add_command(label="Undo", command=lambda: print("Undo"))
@@ -102,10 +105,29 @@ class App:
         self.searchBox = searchbox.SearchBox(self.tkWindow)
         self.searchBox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
 
+        self.tkProgressFrm = ttk.Frame(self.tkWindow)
+        self.tkProgressLabel = ttk.Label(self.tkProgressFrm)
+        self.tkProgressLabel.pack()
+        self.tkProgress = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200)
+        self.tkProgress.pack()
+
+
         self.make_shelves()
         # TODO: Cache off
         self.sortFuncs = [Sort.byName, Sort.bySize]
-        self.collection_fetch("jadthegerbil")
+
+        self.pause_loop = False
+        self.tkWindow.after(0, self.collection_fetch, "jadthegerbil")
+
+        #self.collection_fetch("jadthegerbil")
+
+
+    def mainloop(self):
+        self.tkWindow.mainloop()
+        #while True:
+        #    self.tkWindow.update_idletasks()
+        #   if not self.pause_loop:
+        #        self.tkWindow.update()
 
     def clear_games(self):
         for b in self.cases:
@@ -125,20 +147,25 @@ class App:
                 bc.make_shelf_widgets(self.tkFrame)
 
     def collection_fetch(self, username):
-        print("Fetching collection for {}...".format(username))
-        game.Game._user = username
-        root = collection.get_collection(game.Game._user)
-        print("\bDone.")
+        def _realfetch(self,username):
+            self.start_work("Fetching collection for {}...".format(username))
+            game.Game._user = username
+            root = collection.get_collection(game.Game._user)
 
-        collectionNodes = root.findall("./item") # get all items
+            collectionNodes = root.findall("./item") # get all items
 
-        self.games = GameFilters(collectionNodes)
-        self.sort_games()
+            self.games = GameFilters(collectionNodes)
+            self.sort_games()
+
+        threading.Thread(target=_realfetch, args=(self, username)).start()
 
     def resort_games(self):
-        self.games.make_lists()
-        self.clear_games()
-        self.sort_games()
+        def _realresort(self):
+            self.games.make_lists()
+            self.clear_games()
+            self.sort_games()
+
+        threading.Thread(target=_realresort, args=(self,)).start()
 
     def sort_games(self):
         sgames = self.games.get_sorted_boxes(self.sortFuncs)
@@ -147,7 +174,7 @@ class App:
 
         # do all the sorting
         self.games.unplaced = []
-        print("Organizing shelves...")
+        self.start_work("Organizing shelves...")
         for g in sgames:
             try:
                 #shelf._verbose = True
@@ -160,8 +187,8 @@ class App:
                 self.games.unplaced.append(g)
             except GamePlaced:
                 continue
-        print("\bDone")
 
+        self.start_work("Fixing up...")
         #do post-sort fixing
         for bc in self.cases:
             bc.finish()
@@ -177,15 +204,16 @@ class App:
             totalarea += total
 
         self.tkWindow.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
-              totalused*SQIN_TO_SQFEET
+            totalused*SQIN_TO_SQFEET
             , totalarea*SQIN_TO_SQFEET
             , (totalused/totalarea)*100.0))
 
         highestshelf = 0
+        self.pause_loop = True
         for bc in self.cases:
             bc.make_game_widgets()
             highestshelf = max(bc.height, highestshelf)
-
+        self.pause_loop = False
         highestshelf += 5 # pixel wiggle... or is this in text lines?
 
         # only add an overflow shelf if we need it
@@ -220,6 +248,8 @@ class App:
         elif self.tkSideNotebook is not None:
             self.tkSideNotebook.pack_forget()
 
+        self.stop_work()
+
 
     def _make_scroller(self, scroller, name, height, list, func):
         if len(list) > 0:
@@ -249,6 +279,15 @@ class App:
         print(game.longname)
         webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
 
+    def start_work(self, label: str):
+        self.tkProgressFrm.grid(column=1, row=0)
+        self.tkProgress.start()
+        self.tkProgressLabel.configure(text=label)
+
+    def stop_work(self):
+        self.tkProgressFrm.grid_forget()
+        self.tkProgress.stop()
+
 
 # TODO: Cache off from preferences
 shelf.Shelf.set_store_style(shelf.StoreStyle.PreferSide)
@@ -259,13 +298,14 @@ except OSError:
     pass
 
 
+#Tk.SimpleDialog
+
 a = App()
+a.mainloop()
 
 # make up a picture, created early so we can use the image data
 #a.collection_fetch("jadthegerbil")
 
-
-a.tkWindow.mainloop()
 
 
 
