@@ -116,7 +116,6 @@ class App:
         # TODO: Cache off
         self.sortFuncs = [Sort.byName, Sort.bySize]
 
-        self.pause_loop = False
         self.tkWindow.after(0, self.collection_fetch, "jadthegerbil")
 
         #self.collection_fetch("jadthegerbil")
@@ -209,11 +208,9 @@ class App:
             , (totalused/totalarea)*100.0))
 
         highestshelf = 0
-        self.pause_loop = True
         for bc in self.cases:
             bc.make_game_widgets()
             highestshelf = max(bc.height, highestshelf)
-        self.pause_loop = False
         highestshelf += 5 # pixel wiggle... or is this in text lines?
 
         # only add an overflow shelf if we need it
