@@ -1,5 +1,12 @@
-Shelf 1	33.875	11.5	13	12.625	13	13.25	11.5
-Shelf 2	33.875	11.5	13	12.625	13	13.25	11.5
-Shelf 3	33.875	11.5	13	12.625	13	13.25	11.5
-Shelf 4	33.875	11.5	13	12.625	13	13.25	11.5
-Short Shelf	33.875	11.5	12.75	10.375
+#unit = cm
+unit = in
+
+# Name  Width   Depth   Height(s)
+# Assumption is that shelves are like bookcases:
+# Fixed width and depth, adjustable shelf height
+
+Shelf 1	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
+Shelf 2	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
+Shelf 3	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
+Shelf 4	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
+Short Shelf	33 7/8	11 1/2	12 3/4	10 3/8

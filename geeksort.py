@@ -20,7 +20,7 @@ from constants import *
 
 
 class GameFilters:
-    def __init__(self, gameNodes, progressFunc):
+    def __init__(self, gameNodes, progressFunc, doneFunc):
         self.all = []
         self.unplaced = []
         progressFunc( 0.0 )
@@ -28,6 +28,7 @@ class GameFilters:
             newgame = game.Game(gameNodes[index])
             self.all.append( newgame )
             progressFunc( index / len(gameNodes) )
+        collection.done_adding(doneFunc)
         self.make_lists()
 
     def make_lists(self):
@@ -71,8 +72,9 @@ class App:
 
     def __init__(self):
 
-        game.Game._app = self
         self.tkWindow = Tk.Tk()
+        game.Game._app = self
+        game.Game.init()
 
         self.tkFrame = Tk.Frame(self.tkWindow,border=15)
         self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N),columnspan=20)
@@ -137,13 +139,11 @@ class App:
 
     # TODO: make this customizable and possibly with a UI
     def make_shelves(self):
-        self.cases = []
-        with open("shelves.txt","r") as f:
-            for line in f.read().splitlines():
-                bc = shelf.Bookcase(line)
-                self.cases.append(bc)
-                self.searchBox.register(bc)
-                bc.make_shelf_widgets(self.tkFrame)
+        self.cases = shelf.read("shelves.txt")
+
+        for bc in self.cases:
+          self.searchBox.register(bc)
+          bc.make_shelf_widgets(self.tkFrame)
 
     def collection_fetch(self, username):
         def _realfetch(self,username):
@@ -154,13 +154,12 @@ class App:
             collectionNodes = root.findall("./item") # get all items
 
             self.start_work("Fetching data for games...", True)
-            self.games = GameFilters(collectionNodes, self.set_progress)
+            self.games = GameFilters(collectionNodes, self.set_progress, self.resort_games)
             self.sort_games()
 
         threading.Thread(target=_realfetch, args=(self, username)).start()
 
     def set_progress(self, pct):
-        print(pct)
         self.progressPct.set( pct * 100.0 )
 
     def resort_games(self):

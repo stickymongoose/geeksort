@@ -3,6 +3,7 @@ from constants import *
 from enum import Enum
 import hover
 import game
+from mixed_fractions import Mixed
 
 
 _verbose = False
@@ -18,18 +19,26 @@ class StackSort(Enum):
     Size   = 2
 
 class Bookcase:
-    def __init__(self, line):
+    def __init__(self, line, ismetric):
         bits = line.split('\t')
         self.shelves = []
         self.name = bits[0]
-        self.width = float(bits[1])
-        depth = bits[2]
-        heights = bits[3:]
-        self.height = 0
+
+        self.width = float(Mixed(bits[1]))
+        depth = float(Mixed(bits[2]))
+        heights = [ float(Mixed(h)) for h in bits[3:] ]
+        self.height = 0.0
+
+        # native BGG dimensions are inches, so... we'll honor that
+        if ismetric:
+            self.width *= CM_TO_IN
+            depth *= CM_TO_IN
+            heights = [ h * CM_TO_IN for h in heights ]
+
         for i in range(len(heights)):
             name = "{}-{}".format(self.name,  i+1)
-            self.shelves.append( Shelf(  name, self.width, heights[i], depth ) )
-            self.height += float(heights[i])
+            self.shelves.append( Shelf( name, self.width, heights[i], depth ) )
+            self.height += heights[i]
 
     def try_box(self, box):
         for shelf in self.shelves:
@@ -173,9 +182,9 @@ class Shelf:
 
     def __init__(self,name,width,height,depth):
         self.name = name
-        self.maxwidth = float(width)
-        self.height = float(height)
-        self.depth = float(depth)
+        self.maxwidth = width
+        self.height = height
+        self.depth = depth
         self.widthleft = self.maxwidth
         self.games = []
         self.stacks = []
@@ -377,3 +386,21 @@ class Shelf:
 
         print(sum,  self.frmwidth)
 
+def read(filename):
+    cases = []
+    metric = False
+    with open(filename, "r") as f:
+        for line in f.read().splitlines():
+            line = line.strip()
+            print(line)
+            if line.startswith('#'):
+                continue
+            if len(line) == 0:
+                continue
+            if line.lower().startswith('unit'):
+                if "cm" in line.lower():
+                    metric = True
+                continue
+            bc = Bookcase(line, metric)
+            cases.append(bc)
+    return cases

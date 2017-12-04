@@ -7,9 +7,14 @@ import errno
 import functools
 import pathlib
 from constants import *
+import queue
+import threading
 #import concurrent.futures
 
 # return collection for any user, but wait 2 seconds and retry if error. 10 total attempts.
+
+_q = queue.Queue()
+_q_continue = True
 
 def init():
     try:
@@ -21,6 +26,27 @@ def init():
         os.mkdir(pathlib.Path(CACHE_DIR) / "pics")
     except OSError:
         pass
+
+    threading.Thread(target=pump_queue).start()
+
+def pump_queue():
+    while True:
+        user, game = _q.get()
+        if user is None:
+            game()
+            break
+
+        game.set_image(get_img(user, game.id))
+        _q.task_done()
+
+    print("Done pumping")
+
+
+def queue_img(user, game):
+    _q.put( (user, game) )
+
+def done_adding(func):
+    _q.put((None,func))
 
 
 @functools.lru_cache(maxsize=None)

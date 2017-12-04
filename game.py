@@ -56,6 +56,12 @@ class Game:
     _app = None
     _sidepreference = SidePreference.Left
 
+    _not_ready = None
+
+    @staticmethod
+    def init():
+        Game._not_ready = Tk.PhotoImage(file="pics/notready.gif")
+
     @staticmethod
     def set_side_preference(side:SidePreference):
         Game._sidepreference = side
@@ -85,9 +91,11 @@ class Game:
 
         #gd = collection.getgame(Game._user, self.id)
         #self.averating = getvaluef(gd, "./statistics/ratings/average")
-        self.hoverimgurl = collection.get_img(Game._user, self.id)
-        self.hoverimgraw = Image.open(self.hoverimgurl)
-        self.color = self.get_ave_color()
+        self.hoverimgurl = None
+        self.hoverimgraw = None
+        self.color = 0x808080
+        collection.queue_img(Game._user, self)
+
 
         self.tkLabel = None
 
@@ -139,6 +147,19 @@ class Game:
             #print("No version for",  self.name,  GAME_URL.format(id=self.id))
             pass
 
+    def set_image(self, url):
+        self.hoverimgurl = url
+        self.hoverimgraw = Image.open(self.hoverimgurl)
+        self.color = self.get_ave_color()
+
+        try:
+            self.make_image()
+            self._make_box_art()
+            self.set_size(self.xraw, self.yraw, self.zraw, self.wraw)
+            self.tkLabel.configure(image=self.boximgTk)
+        except:
+            pass
+
     def set_size(self, x, y, z, w):
         self.x = self.xraw = x
         self.y = self.yraw = y
@@ -158,7 +179,10 @@ class Game:
                     #print("$$ {} {}<->{} ({} {})".format(self.name, self.x, self.y, w, h))
                     self.x, self.y = self.y, self.x
 
-            except (IOError,FileNotFoundError,AttributeError) as e:
+            except AttributeError as e:
+                pass
+
+            except (IOError,FileNotFoundError) as e:
                 print(self.name, e)
                 pass
 
@@ -170,6 +194,7 @@ class Game:
             #link = VERSION_URL.format(id=self.versionid)
             #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
             pass
+
 
     def get_ave_color(self, bPrint = False):
         return averagecolor.calcfromdata(self.hoverimgraw)
@@ -238,11 +263,16 @@ class Game:
 
 
     def make_image(self):
-        self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
+        if self.hoverimgraw is not None:
+            self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
+        else:
+            self.hoverImgTk = None
 
     def make_widget(self, shelf, center=False):
-        self.make_image()
-        self._make_box_art()
+        try:
+            self.make_image()
+            self._make_box_art()
+        except: pass
 
         self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.get_human_dir())
@@ -267,11 +297,14 @@ class Game:
                 self.lblheight = max(1, self.lblheight)
                 break
 
+        self.lblwidth  = int(self.lblwidth+1)
+        self.lblheight = int(self.lblheight+1)
+
         self.tkLabel = Tk.Label(shelf
                                 , width =self.lblwidth
                                 , height=self.lblheight
                                 #, text=self.name
-                                , image=self.boximgTk
+                                #, image=self.boximgTk
                                 , relief=Tk.RAISED
                                 #, wraplength=(self.shelfwidth * IN_TO_PX)-2
                                 , borderwidth=border
@@ -282,6 +315,11 @@ class Game:
                                 #, highlightcolor="red"
                                 #,  takefocus=1
                                 )
+
+        try:
+            self.tkLabel.configure(image=self.boximgTk)
+        except:
+            self.tkLabel.configure(image=Game._not_ready)
 
         self.tkLabel.bind("<Motion>", self.onMove)
 
