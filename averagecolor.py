@@ -24,6 +24,7 @@ def calcfromfile(filename:str):
     with PImage.open(filename) as p:
         r, g, b = calc(p)
         return r << 16 | g << 8 | b
+
 def calcfromdata(data:PImage):
     r, g, b = calc(data)
     return r << 16 | g << 8 | b
