@@ -15,6 +15,9 @@ import threading
 
 _q = queue.Queue()
 _q_continue = True
+_threads = []
+
+THREAD_COUNT = 2
 
 def init():
     try:
@@ -27,13 +30,16 @@ def init():
     except OSError:
         pass
 
-    threading.Thread(target=pump_queue).start()
+    for i in range(THREAD_COUNT):
+        t = threading.Thread(target=pump_queue)
+        t.start()
+        _threads.append(t)
 
 def pump_queue():
     while True:
         user, game = _q.get()
         if user is None:
-            game()
+            _q.task_done()
             break
 
         game.set_image(get_img(user, game.id))
@@ -46,7 +52,14 @@ def queue_img(user, game):
     _q.put( (user, game) )
 
 def done_adding(func):
-    _q.put((None,func))
+    def _done_adding(func_):
+        for i in range(THREAD_COUNT):
+            _q.put((None,None))
+        _q.join()
+        func_()
+
+    threading.Thread(target=_done_adding, args=(func,)).start()
+
 
 
 @functools.lru_cache(maxsize=None)
