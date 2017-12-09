@@ -14,10 +14,11 @@ import threading
 
 _q = queue.Queue()
 _q_continue = True
+_q_blocked = False
 _queued_cnt = 0
 _threads = []
 
-THREAD_COUNT = 10
+THREAD_COUNT = 3
 
 def init():
     try:
@@ -43,12 +44,17 @@ def shutdown():
 
 def pump_queue():
     while True:
+        if _q_blocked:
+            time.sleep(0.02)
+            continue
+
         try:
             #print(threading.current_thread().name, "tried")
             user, game = _q.get(timeout=1)
             #print(threading.current_thread().name, "got", game.name)
             game.set_image(get_img(user, game.id))
             _q.task_done()
+            #time.sleep(0.01)
         except queue.Empty:
             if _q_continue:
                 #print(threading.current_thread().name, "idled")
@@ -67,15 +73,24 @@ def queue_img(user, game):
 def done_adding(func, progressfunc):
     def _done_adding(func_, progressfunc_):
         #_q.join()
-        #print("Done Adding..", _queued_cnt, _q.qsize())
+        print("Done Adding..", _queued_cnt, _q.qsize(), threading.current_thread().getName())
         while not _q.empty():
             progressfunc_(get_progress())
             time.sleep(0.05)
-        #print("Finished it up")
+        print("Finished it up")
 
         func_()
 
     threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder").start()
+
+def block_pumping():
+    global _q_blocked
+    _q_blocked = True
+
+def allow_pumping():
+    global _q_blocked
+    _q_blocked = False
+
 
 def get_progress():
     return (_queued_cnt - _q.qsize()) / _queued_cnt

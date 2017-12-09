@@ -3,6 +3,8 @@ from constants import *
 from enum import Enum
 import hover
 import game
+import pathlib
+import pickle
 from mixed_fractions import Mixed
 
 
@@ -80,7 +82,7 @@ class Bookcase:
 
 
     def clear_games(self):
-        for s in self.shelves:
+        for s in reversed(self.shelves):
             s.clear_games()
 
     def search(self, text):
@@ -162,7 +164,7 @@ class GameStack:
             pass
 
     def clear_games(self):
-        for g in self.games:
+        for g in reversed(self.games):
             g.clear_widget()
 
         try:
@@ -180,6 +182,7 @@ class GameStack:
 
         return sum
 
+
 class Shelf:
     sortlist = []
 
@@ -195,16 +198,13 @@ class Shelf:
         self.usedarea = 0.0
         self.weight = 0.0
         self.wreported = 0
+        self.tkShelf = None
+        self.frmwidth = 0.0
+        self.hovertext = ""
 
     def vprint(self, *args,  **kwargs):
         if _verbose:
             print(self.name,  ":", args,  **kwargs)
-
-    def __repr__(self):
-        return u"%s %.1f (%.1f) x %.1f x %.1f (%s)" % (self.name, self.maxwidth, self.widthleft, self.height, self.depth, ", ".join(map(str, self.games)))
-
-    def __str__(self):
-        return u"%s %.1f (%.1f) x %.1f x %.1f (%s)" % (self.name, self.maxwidth, self.widthleft, self.height, self.depth, ", ".join(map(str, self.games)))
 
     def add_box_lite(self, box):
         self.usedarea += (box.shelfwidth * box.shelfheight)
@@ -230,14 +230,14 @@ class Shelf:
         elif style == StoreStyle.StackOnly:
             Shelf.sortlist = [Shelf.try_stack]
         else:
-            raise ValueError("Invalid StoreStyle: " + style)
+            raise ValueError("Invalid StoreStyle: " + str(style))
 
     def try_vertical(self, box):
-        #early out if the box is too wide
+        # early out if the box is too wide
         if box.z > self.widthleft:
             return False
 
-        #pick smallest to see if it fits
+        # pick smallest to see if it fits
         if box.y < box.x:
             if box.y <= self.height:
                 self.vprint(box,  "passed zy {}<={}, {}<={}".format(
@@ -259,7 +259,7 @@ class Shelf:
         if box.z > self.height:
             return False
 
-        #check the smallest dimension
+        # check the smallest dimension
         if box.x < box.y:
             if box.x <= self.widthleft:
                 self.vprint(box,  "passed xz {}<={}, {}<={}".format(
@@ -298,14 +298,14 @@ class Shelf:
             s.finish()
 
     def search(self, text):
-        sum = 0
+        count = 0
         for s in self.stacks:
-            sum += s.search(text)
+            count += s.search(text)
 
         for g in self.games:
-            sum += g.search(text)
+            count += g.search(text)
 
-        if sum > 0:
+        if count > 0:
             self.tkShelf.configure(bg=FOUND_COLOR)
             for st in self.stacks:
                 st.tkFrame.configure(bg=FOUND_COLOR)
@@ -313,13 +313,13 @@ class Shelf:
             self.tkShelf.configure(bg=SHELF_COLOR)
             for st in self.stacks:
                 st.tkFrame.configure(bg=SHELF_COLOR)
-        return sum
+        return count
 
     def add_stack(self, box: game.Game, dir):
         box.set_dir(dir)
         stackname = "{}-{}".format(self.name,  len(self.stacks)+1)
         self.vprint("made stack",  stackname,  box, dir, box.shelfwidth)
-        stack = GameStack( stackname,  box.shelfwidth, self.height)
+        stack = GameStack( stackname,  box.shelfwidth, self.height )
         self.stacks.append( stack )
         self.widthleft -= box.shelfwidth
         stack.add_box(box, dir)
@@ -329,7 +329,7 @@ class Shelf:
     def make_widget(self, case, row):
         border = SHELF_BORDER
 
-        height = (self.height   * IN_TO_PX) + (border * 2.0)
+        height = (self.height * IN_TO_PX) + (border * 2.0)
         self.frmwidth = (self.maxwidth * IN_TO_PX) + (border * 2.0)
         #print(self.name, self.frmwidth, height)
         self.tkShelf = Tk.Frame(case
@@ -352,9 +352,10 @@ class Shelf:
 {used:3.0f}% Used""".format(
             name=self.name, row=row
             , w=self.maxwidth, h=self.height, d=self.depth
-            , usedwidth = self.maxwidth - self.widthleft
+            , usedwidth=(self.maxwidth - self.widthleft)
             , plus="+" if self.wreported < len(self.games) else ""
-            , weight=round(self.weight, ROUND_PRECISION), wcnt=round(self.wreported, ROUND_PRECISION), total = len(self.games)
+            , weight=round(self.weight, ROUND_PRECISION), wcnt=round(self.wreported, ROUND_PRECISION)
+            , total=len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
 
     def make_game_widgets(self):
@@ -383,24 +384,26 @@ class Shelf:
         hover.Hover.inst.onMove(self, event)
 
     def onClick(self, event):
-        sum = 0.0
+        total_width = 0.0
         for st in self.stacks:
             print(st.name,  st.games[0].lblwidth)
-            sum += st.games[0].lblwidth
+            total_width += st.games[0].lblwidth
             for g in st.games:
                 print("\t",  g.name)
 
 
         for g in self.games:
             print(g.name,  g.lblwidth)
-            sum += g.lblwidth
+            total_width += g.lblwidth
 
-        print(sum,  self.frmwidth)
+        print(total_width, self.frmwidth)
+
 
 def read(filename):
     cases = []
-    metric = False
+
     with open(filename, "r") as f:
+        metric = False
         for line in f.read().splitlines():
             line = line.strip()
             if line.startswith('#'):
@@ -414,3 +417,17 @@ def read(filename):
             bc = Bookcase(line, metric)
             cases.append(bc)
     return cases
+
+def load(user):
+    try:
+        with open(pathlib.Path(CACHE_DIR) / "shelves_{}.xml".format(user), "r") as file:
+            cases = pickle.load(file)
+            return cases
+    except FileNotFoundError:
+        # expected, totally okay if it's not here
+        pass
+
+    except pickle.UnpicklingError as e:
+        print(e)
+
+    return None

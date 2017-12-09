@@ -19,6 +19,9 @@ class SearchBox(Tk.LabelFrame):
     def register(self, searchable):
         self.searchlist.append(searchable)
 
+    def unregister(self, unwanted):
+        self.searchlist.remove(unwanted)
+
     def search(self):
         self.requestid = 0
         text = to_search(self.box.get())
