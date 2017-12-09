@@ -2,12 +2,15 @@ from PIL import Image as PImage
 
 #adapted from https://gist.github.com/olooney/1246268
 def calc(imgdata:PImage):
-    h = imgdata.histogram()
+    try:
+        h = imgdata.histogram()
 
-    # split into red, green, blue
-    r = h[  0:256]
-    g = h[256:512]
-    b = h[512:768]
+        # split into red, green, blue
+        r = h[  0:256]
+        g = h[256:512]
+        b = h[512:768]
+    except SyntaxError:
+        r = g = b = [1]
 
     # perform the weighted average of each channel:
     # the *index* is the channel value, and the *value* is its weight
