@@ -109,16 +109,19 @@ class GameStack:
             print(self.name,  ":", args,  **kwargs)
 
     def try_box(self, box: game.Game):
+        # if the box is too tall, just bail
         if box.z > self.heightleft:
             self.vprint(box,  "failed stack height",  box.z,  self.heightleft)
             return False
 
-        if box.x <= self.width:
-            self.add_box(box, game.HorizLong)
-            self.vprint(box,  "passed stack xz",   box.x,  self.width )
-            return True
+        # try the smallest dimension
+        if box.x < box.y:
+            if box.x <= self.width:
+                self.add_box(box, game.HorizLong)
+                self.vprint(box,  "passed stack xz",   box.x,  self.width )
+                return True
 
-        if box.y <= self.width:
+        elif box.y <= self.width:
             self.add_box(box, game.HorizShort)
             self.vprint(box,  "passed stack yz",   box.y,  self.width )
             return True
@@ -229,9 +232,13 @@ class Shelf:
         else:
             raise ValueError("Invalid StoreStyle: " + style)
 
-    @staticmethod
     def try_vertical(self, box):
-        if box.z <= self.widthleft:
+        #early out if the box is too wide
+        if box.z > self.widthleft:
+            return False
+
+        #pick smallest to see if it fits
+        if box.y < box.x:
             if box.y <= self.height:
                 self.vprint(box,  "passed zy {}<={}, {}<={}".format(
                     box.z,  self.widthleft,
@@ -239,17 +246,21 @@ class Shelf:
                 self.add_box(box, game.VerticalLong)
                 return True
 
-            if box.x <= self.height:
-                self.vprint(box,  "passed zx {}<={}, {}<={}".format(
-                    box.z,  self.widthleft,
-                    box.x,  self.height))
-                self.add_box(box, game.VerticalShort)
-                return True
+        elif box.x <= self.height:
+            self.vprint(box,  "passed zx {}<={}, {}<={}".format(
+                box.z,  self.widthleft,
+                box.x,  self.height))
+            self.add_box(box, game.VerticalShort)
+            return True
         return False
 
-    @staticmethod
     def try_stack(self, box):
-        if box.z <= self.height:
+        # early out if the box is too tall
+        if box.z > self.height:
+            return False
+
+        #check the smallest dimension
+        if box.x < box.y:
             if box.x <= self.widthleft:
                 self.vprint(box,  "passed xz {}<={}, {}<={}".format(
                     box.z,  self.height,
@@ -257,13 +268,14 @@ class Shelf:
                 self.add_stack(box, game.HorizShort)
                 return True
 
-        # or the other?
-        if box.y <= self.widthleft:
+        elif box.y <= self.widthleft:
             self.vprint(box,  "passed yz {}<={}, {}<={}".format(
                     box.z,  self.height,
                     box.y,  self.widthleft))
             self.add_stack(box, game.HorizLong)
             return True
+
+        return False
 
     def try_box(self, box):
         # if there's already stacks, check 'em out
@@ -371,7 +383,6 @@ class Shelf:
         hover.Hover.inst.onMove(self, event)
 
     def onClick(self, event):
-        print("###", self.name,"###")
         sum = 0.0
         for st in self.stacks:
             print(st.name,  st.games[0].lblwidth)
@@ -392,7 +403,6 @@ def read(filename):
     with open(filename, "r") as f:
         for line in f.read().splitlines():
             line = line.strip()
-            print(line)
             if line.startswith('#'):
                 continue
             if len(line) == 0:

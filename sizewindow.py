@@ -18,11 +18,12 @@ UNIT_DATA = { Units.US_FRACTION:{"title":"Imperial, Fractions", "len":"in", "wei
 
 class Popup:
 
-    def __init__(self, master, game):
+    def __init__(self, master, game, app):
         self.top = Tk.Toplevel(master)
         self.top.title( "Editing Dimensions")
         self.top.focus_force()
         self.target = game
+        self.app = app
 
         self.unitstr = Tk.StringVar()
         self.lenunit = Tk.StringVar()
@@ -112,6 +113,8 @@ class Popup:
         okbtn.pack(side=Tk.LEFT, padx=20)
         nokbtn.pack(side=Tk.RIGHT, padx=20)
 
+        master.wait_window(self.top)
+
     def convert(self, val, scale=True, islen=True):
         try:
             val = val.get()
@@ -180,7 +183,8 @@ class Popup:
             self.top.bell()
         else:
             self.close()
-            self.target.set_size(*temp.values())
+            self.target.set_size_and_adjust(*temp.values())
+            self.app.resort_games()
 
     def unitchange(self, newtitle):
 
@@ -242,7 +246,7 @@ if __name__=="__main__":
     fakegame.longname = "Castle of Mad King Ludwig"
     s = Popup(root, fakegame)
     #s.top.lift()
-    root.wait_window(s.top)
+    #root.wait_window(s.top)
 
     root.mainloop()
 

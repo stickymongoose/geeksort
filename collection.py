@@ -6,18 +6,18 @@ import os
 import errno
 import functools
 import pathlib
+import time
 from constants import *
 import queue
 import threading
 #import concurrent.futures
 
-# return collection for any user, but wait 2 seconds and retry if error. 10 total attempts.
-
 _q = queue.Queue()
 _q_continue = True
+_queued_cnt = 0
 _threads = []
 
-THREAD_COUNT = 2
+THREAD_COUNT = 10
 
 def init():
     try:
@@ -31,35 +31,54 @@ def init():
         pass
 
     for i in range(THREAD_COUNT):
-        t = threading.Thread(target=pump_queue)
+        t = threading.Thread(target=pump_queue, name="Fetcher {}".format(i))
         t.start()
         _threads.append(t)
 
+def shutdown():
+    global _q_continue
+    _q_continue = False
+    for t in _threads:
+        t.join()
+
 def pump_queue():
     while True:
-        user, game = _q.get()
-        if user is None:
+        try:
+            #print(threading.current_thread().name, "tried")
+            user, game = _q.get(timeout=1)
+            #print(threading.current_thread().name, "got", game.name)
+            game.set_image(get_img(user, game.id))
             _q.task_done()
+        except queue.Empty:
+            if _q_continue:
+                #print(threading.current_thread().name, "idled")
+                continue
+            #print(threading.current_thread().name, "bailed!")
             break
 
-        game.set_image(get_img(user, game.id))
-        _q.task_done()
-
-    print("Done pumping")
+    #print(threading.current_thread().name, "done pumping")
 
 
 def queue_img(user, game):
+    global _queued_cnt
     _q.put( (user, game) )
+    _queued_cnt += 1
 
-def done_adding(func):
-    def _done_adding(func_):
-        for i in range(THREAD_COUNT):
-            _q.put((None,None))
-        _q.join()
+def done_adding(func, progressfunc):
+    def _done_adding(func_, progressfunc_):
+        #_q.join()
+        #print("Done Adding..", _queued_cnt, _q.qsize())
+        while not _q.empty():
+            progressfunc_(get_progress())
+            time.sleep(0.05)
+        #print("Finished it up")
+
         func_()
 
-    threading.Thread(target=_done_adding, args=(func,)).start()
+    threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder").start()
 
+def get_progress():
+    return (_queued_cnt - _q.qsize()) / _queued_cnt
 
 
 @functools.lru_cache(maxsize=None)

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import requests
 import time
+import os
+from constants import *
 import xml.etree.ElementTree as ET
 
 # return a request, but wait some seconds and retry if error
@@ -23,14 +25,21 @@ def _fetch(request):
     print("Timeout exceeded")
     raise Exception
 
-def get(filename, func, request, delay=0):
 
+def get(filename, func, request, delay=0, canexpire=True):
     for i in range(3):
         try:
+            filetime = os.path.getmtime(filename)
+            now = time.time()
+            # if file is too old
+            if canexpire and (now - filetime) >= MAX_CACHE_AGE:
+                raise TimeoutError()
+
             return func()
-        except (FileNotFoundError, ET.ParseError):
+        except (FileNotFoundError, ET.ParseError,TimeoutError):
             try:
-                print( "Contacting bgg, attempt: ", i+1 )
+                if i > 0:
+                    print( "Contacting bgg, attempt: ", i+1 )
                 f = _fetch(request)
                 with open(filename,"wb") as fh:
                     fh.write(f)

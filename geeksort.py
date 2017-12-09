@@ -5,7 +5,7 @@
 
 import tkinter as Tk
 from tkinter import ttk
-
+from enum import IntEnum
 import threading
 import collection
 import hover
@@ -15,9 +15,17 @@ import game
 import shelf
 import sizewindow
 import scrollable
+#import scrwindow
+import namebox
 from constants import *
 
+ROW_SEARCH = 10
+ROW_PROGRESS = 10
+ROW_SHELVES = 20
 
+class WorkTypes(IntEnum):
+    PROGRESS = 1
+    FETCH = 2
 
 class GameFilters:
     def __init__(self, gameNodes, progressFunc, doneFunc):
@@ -27,8 +35,8 @@ class GameFilters:
         for index in range(len(gameNodes)):
             newgame = game.Game(gameNodes[index])
             self.all.append( newgame )
-            progressFunc( index / len(gameNodes) )
-        collection.done_adding(doneFunc)
+            #progressFunc( index / len(gameNodes) )
+        collection.done_adding(doneFunc, progressFunc)
         self.make_lists()
 
     def make_lists(self):
@@ -57,7 +65,7 @@ class GameFilters:
 class Sort:
     @staticmethod
     def byName(box):
-        return box.longname
+        return box.sortname
 
     @staticmethod
     def bySize(box):
@@ -76,10 +84,16 @@ class App:
         game.Game._app = self
         game.Game.init()
 
-        self.tkFrame = Tk.Frame(self.tkWindow,border=15)
-        self.tkFrame.grid(column=0, row=1, sticky=(Tk.W, Tk.E, Tk.S, Tk.N),columnspan=20)
+        self.tkFrame = Tk.Frame(self.tkWindow, border=15)
+        self.tkFrame.grid(column=0, row=ROW_SHELVES, sticky=(Tk.W, Tk.E, Tk.S, Tk.N), columnspan=2)
         self.tkSideNotebook = None
+        self.tkWindow.columnconfigure(0, weight=1)
+        self.tkWindow.rowconfigure(ROW_SHELVES, weight=1)
 
+
+        self.menu = Tk.Menu(self.tkWindow, tearoff=0)
+        self.menu.add_command(label="Change User", command=self.prompt_name)
+        self.tkWindow.config(menu=self.menu)
 
 
         # self.menu = Tk.Menu(self.tkFrame, tearoff=0)
@@ -103,10 +117,13 @@ class App:
 
         self.games = None
 
+        self.tkWindow.after(100,func=self.prompt_name)
+
         self.searchBox = searchbox.SearchBox(self.tkWindow)
-        self.searchBox.grid(column=0, row=0, pady=10, sticky=Tk.W, padx=5)
+        self.searchBox.grid(column=0, row=ROW_SEARCH, pady=10, sticky=Tk.W, padx=5)
 
         self.progressPct = Tk.DoubleVar(0.0)
+        self.tkProgressActives = {}
         self.tkProgressFrm = ttk.Frame(self.tkWindow)
         self.tkProgressLabel = ttk.Label(self.tkProgressFrm)
         self.tkProgressLabel.pack()
@@ -116,12 +133,11 @@ class App:
 
         self.make_shelves()
         # TODO: Cache off
-        self.sortFuncs = [Sort.byName, Sort.bySize]
+        self.sortFuncs = [Sort.bySize] #[Sort.byName, Sort.bySize]
+        self.workerThread = None
 
-        self.tkWindow.after(0, self.collection_fetch, "jadthegerbil")
-
-        #self.collection_fetch("jadthegerbil")
-
+    def prompt_name(self):
+        namebox.NameBox(self.tkWindow, self)
 
     def mainloop(self):
         self.tkWindow.mainloop()
@@ -147,20 +163,33 @@ class App:
 
     def collection_fetch(self, username):
         def _realfetch(self,username):
-            self.start_work("Fetching collection for {}...".format(username))
+            self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
             game.Game._user = username
             root = collection.get_collection(game.Game._user)
 
             collectionNodes = root.findall("./item") # get all items
 
-            self.start_work("Fetching data for games...", True)
-            self.games = GameFilters(collectionNodes, self.set_progress, self.resort_games)
+            self.start_work("Fetching data for games...", type=WorkTypes.FETCH, progress=True)
+            self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
             self.sort_games()
 
-        threading.Thread(target=_realfetch, args=(self, username)).start()
+        self.clear_games()
+        self.games = None
+
+        if self.workerThread is not None:
+            print("Waiting to fetch")
+            self.workerThread.join()
+            print("Done")
+        self.workerThread = threading.Thread(target=_realfetch, args=(self, username), name="Fetcher")
+        self.workerThread.start()
 
     def set_progress(self, pct):
+        #print("Progress", pct, threading.current_thread().getName())
         self.progressPct.set( pct * 100.0 )
+
+    def game_fetch_complete(self):
+        self.stop_work(WorkTypes.FETCH)
+        self.resort_games()
 
     def resort_games(self):
         def _real_resort(self):
@@ -168,7 +197,11 @@ class App:
             self.clear_games()
             self.sort_games()
 
-        threading.Thread(target=_real_resort, args=(self,)).start()
+        if self.workerThread is not None:
+            print("Waiting to resort")
+            self.workerThread.join()
+            print("Done")
+        self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
 
     def sort_games(self):
         sgames = self.games.get_sorted_boxes(self.sortFuncs)
@@ -177,7 +210,7 @@ class App:
 
         # do all the sorting
         self.games.unplaced = []
-        self.start_work("Organizing shelves...")
+        self.start_work("Organizing shelves...", type=WorkTypes.PROGRESS)
         for g in sgames:
             try:
                 #shelf._verbose = True
@@ -191,7 +224,7 @@ class App:
             except GamePlaced:
                 continue
 
-        self.start_work("Fixing up...")
+        self.start_work("Fixing up...",type=WorkTypes.PROGRESS)
         #do post-sort fixing
         for bc in self.cases:
             bc.finish()
@@ -235,7 +268,7 @@ class App:
         if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) > 0:
             if self.tkSideNotebook is None:
                 self.tkSideNotebook = ttk.Notebook(self.tkFrame)
-                self.tkSideNotebook.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+                self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
 
             self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
                                                     self.open_version)
@@ -249,7 +282,7 @@ class App:
         elif self.tkSideNotebook is not None:
             self.tkSideNotebook.pack_forget()
 
-        self.stop_work()
+        self.stop_work(WorkTypes.PROGRESS)
 
 
     def _make_scroller(self, scroller, name, height, list, func):
@@ -271,33 +304,43 @@ class App:
         self.resort_games()
 
     def open_version(self, game):
-        s = sizewindow.Popup(self.tkWindow, game)
-        print("Window open")
-        self.tkWindow.wait_window(s.top)
-        print("And we're back")
+        sizewindow.Popup(self.tkWindow, game, self)
 
     def open_version_picker(self, game):
-        print(game.longname)
         webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
 
-    def start_work(self, label: str, progress=False):
-        self.tkProgressFrm.grid(column=1, row=0)
+    def start_work(self, label: str, type, progress=False):
+        """Queues up a progress bar, with priority given to higher-numbered types"""
+        self.tkProgressActives[type] = (label,progress)
+        self._update_work()
 
-        if progress:
-            self.tkProgressBar.configure(mode="determinate")
+    def stop_work(self, type):
+        self.tkProgressActives.pop(type)
+        self._update_work()
+
+    def _update_work(self):
+
+        try:
+            key = max(self.tkProgressActives, key=lambda key: self.tkProgressActives[key])
+            label, progress = self.tkProgressActives[key]
+            #print(key, label, progress)
+            if progress:
+                self.tkProgressBar.configure(mode="determinate")
+                self.tkProgressBar.stop()
+            else:
+                self.tkProgressBar.configure(mode="indeterminate")
+                self.tkProgressBar.start()
+
+            self.tkProgressLabel.configure(text=label)
+            self.tkProgressFrm.grid(column=1, row=ROW_PROGRESS, sticky=Tk.W)
+        # progressActives is empty, so turn off the progress bar
+        except ValueError:
+            self.tkProgressFrm.grid_forget()
             self.tkProgressBar.stop()
-        else:
-            self.tkProgressBar.configure(mode="indeterminate")
-            self.tkProgressBar.start()
-        self.tkProgressLabel.configure(text=label)
-
-    def stop_work(self):
-        self.tkProgressFrm.grid_forget()
-        self.tkProgressBar.stop()
 
 
 # TODO: Cache off from preferences
-shelf.Shelf.set_store_style(shelf.StoreStyle.PreferSide)
+shelf.Shelf.set_store_style(shelf.StoreStyle.PreferStack)
 game.Game.set_side_preference(game.SidePreference.Left)
 
 collection.init()
@@ -306,6 +349,7 @@ collection.init()
 
 a = App()
 a.mainloop()
+collection.shutdown()
 
 # make up a picture, created early so we can use the image data
 #a.collection_fetch("jadthegerbil")

@@ -82,8 +82,8 @@ class Game:
         self.id = int(xmlfromcollection.get("objectid"))
 
         self.longname = self.name
-        self.searchname = self.longname.lower()
-        self.searchname = self.searchname.replace(" ", "")
+        self.searchname = to_search(self.longname)
+        self.sortname = to_sort(self.longname)
         #should other ones go away...?
 
         #self.name = textwrap.shorten(self.longname,30)
@@ -155,8 +155,7 @@ class Game:
         try:
             self.make_image()
             self._make_box_art()
-            self.set_size(self.xraw, self.yraw, self.zraw, self.wraw)
-            self.tkLabel.configure(image=self.boximgTk)
+            self.set_size_and_adjust(self.xraw, self.yraw, self.zraw, self.wraw)
         except:
             pass
 
@@ -194,6 +193,10 @@ class Game:
             #link = VERSION_URL.format(id=self.versionid)
             #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
             pass
+
+    def set_size_and_adjust(self,x,y,z,w):
+        self.set_size(x, y, z, w)
+        self.tkLabel.configure(image=self.boximgTk)
 
 
     def get_ave_color(self, bPrint = False):
@@ -274,7 +277,7 @@ class Game:
             self._make_box_art()
         except: pass
 
-        self.hovertext = "{self.longname}\n{self.x} x {self.y} x {self.z}\n{self.w} lbs\n{humdir} ({self.dir})".format(
+        self.hovertext = "{self.longname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.get_human_dir())
 
         #color = "#{:06x}".format( self.color )

@@ -1,4 +1,5 @@
 import tkinter as Tk
+from constants import *
 
 class SearchBox(Tk.LabelFrame):
     def __init__(self, window):
@@ -7,8 +8,8 @@ class SearchBox(Tk.LabelFrame):
         self.box.pack(side=Tk.LEFT,  anchor=Tk.NW, pady=5, padx=5)
         self.requestid = 0
 
-        self.results = Tk.Label(self, width=20)
-        self.results.pack(side=Tk.LEFT, anchor=Tk.NW, pady=5, padx=5)
+        self.results = Tk.Label(self, width=15)
+        self.results.pack(side=Tk.LEFT, anchor=Tk.NW, pady=5, padx=2)
 
         self.box.bind("<Key>", self.typed)
         self.box.bind("<Return>", self.search)
@@ -20,8 +21,7 @@ class SearchBox(Tk.LabelFrame):
 
     def search(self):
         self.requestid = 0
-        text = self.box.get()
-        text = text.lower().replace(" ", "")
+        text = to_search(self.box.get())
         matchcount = 0
         for t in self.searchlist:
             matchcount += t.search(text)

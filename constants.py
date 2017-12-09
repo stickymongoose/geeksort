@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import math
+import re
 
 IN_TO_PX = 6
 IN_TO_CM = 2.54
@@ -22,6 +23,8 @@ SAMPLE_STRIDE = 10
 COLOR_CUTOFF = 250*3
 NEEDED_SAMPLES = 20
 ALPHA_CUTOFF = 240
+
+MAX_CACHE_AGE = 8*60*60 # only 8 hours
 
 SQIN_TO_SQFEET = (1/(12*12))
 
@@ -59,3 +62,11 @@ def top(l):
     return l[ len(l)-1]
 
 
+def to_search(t):
+    t = t.strip().lower()
+    return re.sub(":| |-", "", t)
+
+def to_sort(t):
+    t = t.strip().lower()
+    #TODO: See if there's a smarter way to get more languages... is NLTK the universal way?
+    return re.sub("^(a|an|the|el|la|los|las|die|der|das|le|la|l'|les) ", "", t)
