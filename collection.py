@@ -18,6 +18,9 @@ _q_blocked = False
 _queued_cnt = 0
 _threads = []
 
+_collection_xml = None
+_game_xml = None
+
 THREAD_COUNT = 3
 
 def init():
@@ -41,6 +44,23 @@ def shutdown():
     _q_continue = False
     for t in _threads:
         t.join()
+
+def set_user(user):
+    print("User set to", user)
+    global _collection_xml, _game_xml
+    print("Fetching collection data...")
+    filename = pathlib.Path(CACHE_DIR) / "collection_{}.xml".format(user)
+    _collection_xml = fetch.get(filename, lambda: ET.parse(filename), API_COLL_URL.format(id=user))
+
+    print("Fetching game data...")
+    gameids = [el.get("objectid") for el in _collection_xml.findall("./item")]
+    gameidstring = ",".join(sorted(gameids))
+    filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
+    _game_xml = fetch.get(filename, lambda:ET.parse(filename), API_GAME_URL.format(id=gameidstring))
+
+    returnedCount = len(list(_game_xml.getroot()))
+    if len(gameids) != returnedCount:
+        raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returnedCount))
 
 def pump_queue():
     while True:
@@ -95,30 +115,12 @@ def allow_pumping():
 def get_progress():
     return (_queued_cnt - _q.qsize()) / _queued_cnt
 
-
-@functools.lru_cache(maxsize=None)
 def get_collection(user):
-    filename = pathlib.Path(CACHE_DIR) / "collection_{}.xml".format(user)
-    return fetch.get(filename, lambda: ET.parse(filename) , API_COLL_URL.format(id=user))
+    return _collection_xml
 
 
-@functools.lru_cache(maxsize=5)
-def game_from_db(filename, id):
-    root = ET.parse(filename)
-    return root.find("./item[@id='{}']".format(id))
-
-
-@functools.lru_cache(maxsize=5)
 def get_game(user, id):
-    gamecol = get_collection(user)
-    gameids = [el.get("objectid") for el in gamecol.findall("./item")]
-
-    gameidstring = ",".join(sorted(gameids))
-
-
-    filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
-    gamedata = fetch.get(filename, lambda: game_from_db(filename, id), API_GAME_URL.format(id=gameidstring))
-    return gamedata
+    return _game_xml.find("./item[@id='{}']".format(id))
 
 
 def validate_file(file):
@@ -145,12 +147,14 @@ def get_img(user, id):
             root = get_game(user, id)
             thumb = root.find("./thumbnail")
             if thumb is None:
-                raise Exception()
+                raise ModuleNotFoundError()
 
         return get_img_specific(thumb.text)
+    except ModuleNotFoundError:
+        print("No Thumbnail or version for", id)
     except Exception as e:
-        print(e)
-        return "pics/noimage.jpg"
+        print("Root failed", e, id)
+    return "pics/noimage.jpg"
 
 
 if __name__ == "__main__":

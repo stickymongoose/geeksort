@@ -13,6 +13,8 @@ import webbrowser
 import searchbox
 import game
 import shelf
+import sorts
+import preferences
 import sizewindow
 import scrollable
 #import scrwindow
@@ -27,17 +29,24 @@ class WorkTypes(IntEnum):
     PROGRESS = 1
     FETCH = 2
 
+
+
 class GameFilters:
     def __init__(self, gameNodes, progressFunc, doneFunc):
         self.all = []
         self.unplaced = []
+        self.by_id = {}
         progressFunc( 0.0 )
         for index in range(len(gameNodes)):
             newgame = game.Game(gameNodes[index])
             self.all.append( newgame )
+            self.by_id[newgame.id] = newgame
             #progressFunc( index / len(gameNodes) )
         collection.done_adding(doneFunc, progressFunc)
         self.make_lists()
+
+    def find(self, id):
+        return self.by_id[id]
 
     def make_lists(self):
 
@@ -51,8 +60,8 @@ class GameFilters:
         # assumption being, it has a version, but might not have a box
         self.noData = [g for g in self.noBoxes if g.versionid != 0 and not g.hasbox]
 
-        self.noVersions.sort(key=Sort.byName)
-        self.noData.sort(key=Sort.byName)
+        self.noVersions.sort(key=sorts.byName)
+        self.noData.sort(key=sorts.byName)
 
     def get_sorted_boxes(self, sortfuncs):
         sortedboxes = self.inBoxes
@@ -62,23 +71,11 @@ class GameFilters:
         return sortedboxes
 
 
-class Sort:
-    @staticmethod
-    def byName(box):
-        return box.sortname
-
-    @staticmethod
-    def bySize(box):
-        return -(box.x * box.y * box.z)
-
-    @staticmethod
-    def byColor(box):
-        return game.color_brightness(box.color)
-
 
 class App:
 
     def __init__(self):
+        self.preferences = preferences.load(self)
 
         self.tkWindow = Tk.Tk()
         game.Game._app = self
@@ -94,6 +91,7 @@ class App:
 
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
         self.menu.add_command(label="Change User", command=self.prompt_name)
+        self.menu.add_command(label="Adjust Preferences", command=self.prompt_prefs)
         self.tkWindow.config(menu=self.menu)
 
 
@@ -117,6 +115,8 @@ class App:
         self.scrollExclude = None
 
         self.games = None
+        self.cases = []
+
 
         self.tkWindow.after(100,func=self.prompt_name)
 
@@ -134,13 +134,26 @@ class App:
                                              , variable=self.progressPct)
         self.tkProgressBar.pack()
 
-        self.make_shelves()
-        # TODO: Cache off
-        self.sortFuncs = [Sort.bySize] #[Sort.byName, Sort.bySize]
         self.workerThread = None
+        self.pref_window = None
+
+    def set_sorts(self, *args:str):
+        self.sortFuncs = []
+        for f in args:
+            self.sortFuncs.append(getattr(sorts, f))
+
 
     def prompt_name(self):
-        namebox.NameBox(self.tkWindow, self)
+        namebox.NameBox(self.tkWindow, self, self.preferences)
+
+    def prompt_prefs(self):
+        if self.pref_window is None:
+            self.pref_window = preferences.PreferencesUI(self.tkWindow, self.preferences, self.resort_games)
+            self.pref_window.protocol("WM_DELETE_WINDOW", self.pref_closed)
+
+    def pref_closed(self):
+        self.pref_window.destroy()
+        self.pref_window = None
 
     def mainloop(self):
         self.tkWindow.mainloop()
@@ -176,7 +189,9 @@ class App:
 
         def _realfetch(self, username):
             self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
+            self.preferences.user = username
             game.Game._user = username
+            collection.set_user(username)
             root = collection.get_collection(game.Game._user)
 
             collectionNodes = root.findall("./item") # get all items
@@ -184,13 +199,19 @@ class App:
             self.start_work("Fetching data for games...", type=WorkTypes.FETCH, progress=True)
             self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
 
-            # savedcases = shelf.load(username)
-            # if savedcases is not None:
-            #     for c in self.cases:
-            #         self.searchBox.unregister(c)
-            #     self.cases = savedcases
-
-            self.sort_games()
+            # collection game in, so load the shelf collection
+            savedcases = shelf.load(username, self.games)
+            if savedcases is not None:
+                for c in self.cases:
+                    self.searchBox.unregister(c)
+                    c.clear_widgets()
+                self.cases = savedcases
+                self._make_shelf_widgets()
+                self._after_sort()
+            else:
+                # no collection, make some shelves and sort everything
+                self.make_shelves()
+                self.sort_games()
 
         self.clear_games()
         self.games = None
@@ -247,6 +268,8 @@ class App:
         #do post-sort fixing
         for bc in self.cases:
             bc.finish()
+
+        shelf.save(game.Game._user, self.cases)
 
         self._after_sort()
 
@@ -350,7 +373,11 @@ class App:
 
     def stop_work(self, type):
         # print((threading.current_thread().name, "stops", type)
-        self.tkProgressActives.pop(type)
+        try:
+            self.tkProgressActives.pop(type)
+        except KeyError:
+            pass
+
         self.tkProgressBar.after(0, self._update_work)
         #self._update_work()
 
@@ -375,11 +402,7 @@ class App:
             self.tkProgressBar.stop()
 
 
-# TODO: Cache off from preferences
 threading.current_thread().setName("mainThread")
-shelf.Shelf.set_store_style(shelf.StoreStyle.PreferStack)
-game.Game.set_side_preference(game.SidePreference.Left)
-
 a = App()
 a.mainloop()
 

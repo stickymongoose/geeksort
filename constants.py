@@ -70,3 +70,6 @@ def to_sort(t):
     t = t.strip().lower()
     #TODO: See if there's a smarter way to get more languages... is NLTK the universal way?
     return re.sub("^(a|an|the|el|la|los|las|die|der|das|le|la|l'|les) ", "", t)
+
+
+class SortException(Exception): pass

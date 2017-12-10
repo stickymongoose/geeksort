@@ -1,24 +1,32 @@
 import tkinter as Tk
 from constants import *
-from enum import Enum
+from enum import IntEnum
 import hover
 import game
 import pathlib
 import pickle
+import sorts
 from mixed_fractions import Mixed
 
 
 _verbose = False
+_app = None
 
-class StoreStyle(Enum):
-    SideOnly   = 1
-    PreferSide = 2
-    PreferStack   = 3
-    StackOnly     = 4
+class StoreStyle(IntEnum):
+    SideOnly    = 0
+    PreferSide  = 1
+    PreferStack = 2
+    StackOnly   = 3
 
-class StackSort(Enum):
-    Weight = 1
-    Size   = 2
+StoreStyle_names = ["Vertical Only", "Prefer Vertical", "Prefer Horizontal", "Horizontal Only"]
+
+
+class StackSort(IntEnum):
+    Weight = 0
+    Size   = 1
+
+StackSort_names = ["Weight", "Size"]
+
 
 class Bookcase:
     def __init__(self, line, ismetric):
@@ -31,6 +39,8 @@ class Bookcase:
         heights = [ float(Mixed(h)) for h in bits[3:] ]
         self.height = 0.0
 
+        self.tkCase = None
+
         # native BGG dimensions are inches, so... we'll honor that
         if ismetric:
             self.width *= CM_TO_IN
@@ -41,6 +51,18 @@ class Bookcase:
             name = "{}-{}".format(self.name,  i+1)
             self.shelves.append( Shelf( name, self.width, heights[i], depth ) )
             self.height += heights[i]
+
+    def __getstate__(self):
+        s = self.__dict__.copy()
+        del s['tkCase']
+        return s
+
+    def __setstate__(self, dict):
+        self.__dict__.update(dict)
+
+    def thaw(self, gamedb):
+        for s in self.shelves:
+            s.thaw(gamedb)
 
     def try_box(self, box):
         for shelf in self.shelves:
@@ -62,19 +84,19 @@ class Bookcase:
 
     def make_shelf_widgets(self, owner):
         border=BOOKCASE_BORDER
-        self.case = Tk.Frame(owner
-                        #, width=(self.width*IN_TO_PX)+(border*2)
-                        , bg=CASE_COLOR, border=border
-                        , relief=Tk.RAISED)
+        self.tkCase = Tk.Frame(owner
+                               #, width=(self.width*IN_TO_PX)+(border*2)
+                               , bg=CASE_COLOR, border=border
+                               , relief=Tk.RAISED)
 
-        self.case.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
-        self.case.bind("<Motion>", hover.Hover.inst.onClear)
+        self.tkCase.pack(side=Tk.LEFT, anchor=Tk.SW, padx=5)
+        self.tkCase.bind("<Motion>", hover.Hover.inst.onClear)
 
-        text = Tk.Label(self.case, text=self.name, bg=CASE_COLOR)
+        text = Tk.Label(self.tkCase, text=self.name, bg=CASE_COLOR)
         text.grid(row=0, pady=0)
         for si in range(len(self.shelves)):
             s = self.shelves[si]
-            s.make_widget(self.case, si + 1)
+            s.make_widget(self.tkCase, si + 1)
 
     def make_game_widgets(self):
         for s in self.shelves:
@@ -84,6 +106,11 @@ class Bookcase:
     def clear_games(self):
         for s in reversed(self.shelves):
             s.clear_games()
+
+    def clear_widgets(self):
+        self.clear_games()
+        self.tkCase.destroy()
+        self.tkCase = None
 
     def search(self, text):
         sum = 0
@@ -104,7 +131,24 @@ class GameStack:
         self.maxheight=h
         self.heightleft = self.maxheight
         self.games = []
+        self.tkFrame = None
         self.vprint("{}w {}h".format(w, h) )
+
+    def __getstate__(self):
+        s = self.__dict__.copy()
+        del s['tkFrame']
+        thaw_list = game.freeze_games(s['games'])
+        del s['games']
+        s['thaw_list'] = thaw_list
+        return s
+
+    def __setstate__(self, dict):
+        self.__dict__.update(dict)
+
+    def thaw(self, gamedb):
+        self.games = game.thaw_games(gamedb, self.thaw_list)
+        delattr(self, "thaw_list")
+
 
     def vprint(self, *args,  **kwargs):
         if _verbose:
@@ -138,7 +182,7 @@ class GameStack:
 
     def finish(self):
         if GameStack.sortmethod == StackSort.Weight:
-            self.games.sort(key=lambda s:s.w,  reverse=True)
+            self.games.sort(key=sorts.byWeight,  reverse=True)
 
         elif GameStack.sortmethod == StackSort.Size:
             # sort by the size of the stack's dimensions
@@ -201,6 +245,21 @@ class Shelf:
         self.tkShelf = None
         self.frmwidth = 0.0
         self.hovertext = ""
+
+    def __getstate__(self):
+        s = self.__dict__.copy()
+        del s['tkShelf']
+        thaw_list = game.freeze_games(s['games'])
+        del s['games']
+        s['thaw_list'] = thaw_list
+        return s
+
+    def thaw(self, gamedb):
+        self.games = game.thaw_games(gamedb, self.thaw_list)
+        delattr(self, "thaw_list")
+
+        for s in self.stacks:
+            s.thaw(gamedb)
 
     def vprint(self, *args,  **kwargs):
         if _verbose:
@@ -358,6 +417,11 @@ class Shelf:
             , total=len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
 
+    def clear_widgets(self):
+        self.clear_games()
+        self.tkShelf.destroy()
+        self.tkShelf = None
+
     def make_game_widgets(self):
         for st in self.stacks:
             st.make_widgets(self.tkShelf, self)
@@ -418,12 +482,15 @@ def read(filename):
             cases.append(bc)
     return cases
 
-def load(user):
+
+def load(user, gamedb):
     try:
-        with open(pathlib.Path(CACHE_DIR) / "shelves_{}.xml".format(user), "r") as file:
+        with open(pathlib.Path(CACHE_DIR) / "shelves_{}.pkl".format(user), "rb") as file:
             cases = pickle.load(file)
+            for c in cases:
+                c.thaw(gamedb)
             return cases
-    except FileNotFoundError:
+    except (FileNotFoundError, EOFError):
         # expected, totally okay if it's not here
         pass
 
@@ -431,3 +498,12 @@ def load(user):
         print(e)
 
     return None
+
+
+def save(user, cases):
+    try:
+        with open(pathlib.Path(CACHE_DIR) / "shelves_{}.pkl".format(user), "wb") as file:
+            pickle.dump(cases, file)
+
+    except (TypeError, pickle.PicklingError) as e:
+        print(e)

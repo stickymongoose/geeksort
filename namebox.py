@@ -3,7 +3,7 @@ import tkinter.ttk as ttk
 
 
 class NameBox(Tk.Toplevel):
-    def __init__(self, window, app):
+    def __init__(self, window, app, pref):
         Tk.Toplevel.__init__(self, window)
         self.title("User Name")
         self.focus_force()
@@ -12,7 +12,7 @@ class NameBox(Tk.Toplevel):
         self.box = ttk.Entry(self,  width=32, font="Sans 16 bold")
         self.box.grid(sticky=Tk.NSEW, pady=0, padx=10)
 
-        self.box.insert(0,"jadthegerbil")
+        self.box.insert(0,pref.user)
         self.app = app
         self.box.bind("<Return>", self.set_name)
         self.box.focus_force()
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         def collection_fetch(self,text):
             print("Fetching:", text)
 
-    s = NameBox(root, fakeApp())
+    s = NameBox(root, fakeApp(),"user")
     # s.top.lift()
     # root.wait_window(s.top)
 

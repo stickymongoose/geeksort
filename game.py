@@ -3,7 +3,7 @@
 import unicodedata
 import re
 import tkinter as Tk
-from enum import Enum
+from enum import IntEnum
 from PIL import Image
 from PIL import ImageTk
 
@@ -45,10 +45,11 @@ def color_brightness(rgb):
     y = (2*r + 1*b + 3*g)/(255.0*6.0)
     return y
 
-class SidePreference(Enum):
-    Left = 1
-    Right = 2
+class SidePreference(IntEnum):
+    Left = 0
+    Right = 1
 
+SidePreference_names = ["Left", "Right"]
 
 
 class Game:
@@ -322,7 +323,13 @@ class Game:
         try:
             self.tkLabel.configure(image=self.boximgTk)
         except:
-            self.tkLabel.configure(image=Game._not_ready)
+            while True:
+                try:
+                    self.tkLabel.configure(image=Game._not_ready)
+                    break
+                except Tk.TclError:
+                    print("Picture error?")
+                    Game.init()
 
         self.tkLabel.bind("<Motion>", self.onMove)
 
@@ -338,7 +345,11 @@ class Game:
         self.set_highlighted(self.highlighted)
 
     def clear_widget(self):
-        self.tkLabel.destroy()
+        try:
+            self.tkLabel.destroy()
+        except AttributeError:
+            pass
+
         self.tkLabel = None
         self.hoverimgTk = None # Does this release it?
         self.boximgTk = None
@@ -431,10 +442,17 @@ class Game:
 
     def get_human_dir(self):
         dirs = {VerticalLong: "Up", VerticalShort: "Side", HorizLong: "Flat, Bottom", HorizShort: "Flat, Side"}
-        return dirs[self.dir];
+        return dirs[self.dir]
 
-    def __repr__(self):
-        return u"%s %.1f x %.1f x %.1f x %.3f (%.3f)" % (self.name, self.x, self.y, self.z, self.w, self.density)
 
-    def __str__(self):
-        return self.name
+def freeze_games(gamelist):
+    return [(g.id, g.dir) for g in gamelist]
+
+def thaw_games(gamedb, gamelist):
+    out = []
+    for id, dir in gamelist:
+        g = gamedb.find(id)
+        g.set_dir(dir)
+        out.append(g)
+
+    return out
