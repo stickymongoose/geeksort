@@ -222,7 +222,7 @@ class Popup:
         self.top.destroy()
 
     def openurl(self):
-        webbrowser.open(VERSION_URL.format(id=self.target.versionid))
+        webbrowser.open(VERSION_EDIT_URL.format(id=self.target.versionid))
 
 if __name__=="__main__":
     root = Tk.Tk()

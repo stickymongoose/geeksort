@@ -45,7 +45,7 @@ class Hover:
         try:
             self.tkLabel.config(text=caller.hovertext)
         except AttributeError:
-            self.tkLabel.config(text=None)
+            self.tkLabel.config(text="")
 
         try:
             self.set_image(caller.hoverimgTk)

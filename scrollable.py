@@ -3,7 +3,7 @@ import tkinter.ttk as ttk
 import math
 
 from constants import *
-
+import hover
 
 class ScrollableList:
     starImage = None
@@ -16,38 +16,56 @@ class ScrollableList:
         self.title = title
         self.owner = owner
 
-        self.list = Tk.Listbox(self.frm)
-        self.list.bind("<Double-Button-1>", lambda evnt:actionfunc(evnt.widget.values[evnt.widget.curselection()[0]]))
-        self.list.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
+        self.tkList = Tk.Listbox(self.frm)
+        self.tkList.bind("<Double-Button-1>", lambda evnt:actionfunc(evnt.widget.values[evnt.widget.curselection()[0]]))
+        self.tkList.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
+        self.tkList.bind("<Motion>", self.onHover)
 
         scroll = Tk.Scrollbar(self.frm)
         scroll.pack(side=Tk.RIGHT, fill=Tk.Y)
 
 
-        self.list.config(yscrollcommand=scroll.set)
-        scroll.config(command=self.list.yview)
+        self.tkList.config(yscrollcommand=scroll.set)
+        scroll.config(command=self.tkList.yview)
+
+    def onHover(self, event):
+        index = self.tkList.index("@{},{}".format(event.x, event.y))
+
+        # there's seemingly a bug where it doesn't return out-of-range indices
+        # at the bottom of the window, so we gotta cheat a bit
+        if index == len(self.tkList.values)-1:
+            (x,y,w,h) = self.tkList.bbox(index)
+            if event.y > y+h:
+                index = -1
+
+        if index >= 0 and index < len(self.tkList.values):
+            game = self.tkList.values[index]
+            hover.Hover.inst.onMove(game, event)
+        else:
+            hover.Hover.inst.onClear(event)
 
 
     def set_list(self, values):
-        self.list.delete(0,Tk.END)
+        self.tkList.delete(0, Tk.END)
         for g in values:
-            self.list.insert(Tk.END, g.longname)
+            self.tkList.insert(Tk.END, g.longname)
             g.make_image()
-        self.list.values = values
+            g.make_lite_hover()
+        self.tkList.values = values
 
 
     def hide(self):
-        self.list.pack_forget()
+        self.tkList.pack_forget()
 
     def search(self, text):
         matches = 0
-        for i in range(len(self.list.values)):
-            g = self.list.values[i]
+        for i in range(len(self.tkList.values)):
+            g = self.tkList.values[i]
             if g.search(text):
                 matches += 1
-                self.list.itemconfig(i, {"bg":"yellow"})
+                self.tkList.itemconfig(i, {"bg": "yellow"})
             else:
-                self.list.itemconfig(i, {"bg":"white"}) # assumption, this is the original color
+                self.tkList.itemconfig(i, {"bg": "white"}) # assumption, this is the original color
 
 
         if matches > 0:

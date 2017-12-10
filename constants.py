@@ -40,7 +40,8 @@ SHELF_SPACING = 5
 
 EXCLUDE_COMMENT = "#geeksort-exclude"
 
-VERSION_URL = "https://boardgamegeek.com/item/correction/boardgameversion/{id}"
+VERSION_URL = "https://boardgamegeek.com/item/boardgameversion/{id}/xxx"
+VERSION_EDIT_URL = "https://boardgamegeek.com/item/correction/boardgameversion/{id}"
 GAME_URL    = "https://boardgamegeek.com/boardgame/{id}"
 GAME_VERSIONS_URL = "https://boardgamegeek.com/boardgame/{id}/xxx/versions"
 API_COLL_URL    = 'http://www.boardgamegeek.com/xmlapi2/collection?username={id}&own=1&version=1&stats=1'

@@ -6,11 +6,12 @@ import tkinter as Tk
 from enum import IntEnum
 from PIL import Image
 from PIL import ImageTk
-
 from constants import *
 import collection
 import averagecolor
 import hover
+import webbrowser
+import sizewindow
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -50,6 +51,48 @@ class SidePreference(IntEnum):
     Right = 1
 
 SidePreference_names = ["Left", "Right"]
+
+class ActionMenu(Tk.Menu):
+    def __init__(self, root, game):
+        Tk.Menu.__init__(self, root, tearoff=0, title=game.name)
+        self.game = game
+        if game.excluded:
+            self.add_command(label="Unexclude from Sort", command=self.toggle_exclude, underline=3)
+        else:
+            self.add_command(label="Exclude from Sort", command=self.toggle_exclude, underline=1)
+
+        self.geekimg = geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
+
+        self.add_command(label="Edit Size...", command=self.edit_size, underline=5)
+        self.add_separator()
+        self.add_command(label="To Game Entry", image=geekimg, compound=Tk.LEFT
+                         , command=self.to_bgg, underline=7)
+        self.add_command(label="To Version List", image=geekimg, compound=Tk.LEFT
+                         , command=self.to_version_selector, underline=15)
+        if game.versionid != 0:
+            self.add_command(label="To Version Entry", image=geekimg, compound=Tk.LEFT
+                             , command=self.to_version, underline=7)
+            self.add_command(label="To Version Editor", image=geekimg, compound=Tk.LEFT
+                             , command=self.to_version_edit, underline=7)
+
+    def toggle_exclude(self):
+        self.game.excluded = not self.game.excluded
+        Game._app.resort_games()
+
+    def edit_size(self):
+        sizewindow.Popup(self, self.game, Game._app)
+
+    def to_bgg(self):
+        webbrowser.open(GAME_URL.format(id=self.game.id))
+
+    def to_version_selector(self):
+        webbrowser.open(GAME_VERSIONS_URL.format(id=self.game.id))
+
+    def to_version(self):
+        webbrowser.open(VERSION_URL.format(id=self.game.versionid))
+
+    def to_version_edit(self):
+        webbrowser.open(VERSION_EDIT_URL.format(id=self.game.versionid))
 
 
 class Game:
@@ -272,6 +315,9 @@ class Game:
         else:
             self.hoverImgTk = None
 
+    def make_lite_hover(self):
+        self.hovertext = "{self.longname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs".format(self=self)
+
     def make_widget(self, shelf, center=False):
         try:
             self.make_image()
@@ -334,7 +380,7 @@ class Game:
         self.tkLabel.bind("<Motion>", self.onMove)
 
         self.tkLabel.bind("<Button-1>", self.onClick)
-        self.tkLabel.bind("<Double-Button-1>", self.onDblClick)
+        self.tkLabel.bind("<Button-3>", self.onRClick)
 
         if center:
             self.tkLabel.pack(side=Tk.BOTTOM, anchor=Tk.S)
@@ -397,9 +443,10 @@ class Game:
         self.set_highlighted(not self.highlighted)
         print(self.name, self.lblwidth,  self.lblheight)
 
-    def onDblClick(self, event):
-        self.excluded = True
-        Game._app.resort_games()
+    def onRClick(self, event):
+        hover.Hover.inst.onClear(None)
+        a = ActionMenu(self.tkLabel, self)
+        a.post(event.x_root, event.y_root)
 
     def onMove(self, event):
         hover.Hover.inst.onMove(self, event)

@@ -337,9 +337,10 @@ class App:
             if self.tkSideNotebook is None:
                 self.tkSideNotebook = ttk.Notebook(self.tkFrame)
                 self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
+                self.tkSideNotebook.bind("<Motion>", hover.Hover.inst.onClear)
 
             self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
-                                                    self.open_version)
+                                                    self.open_size_editor)
 
             self.scrollNoVers = self._make_scroller(self.scrollNoVers, "No Versions", highestshelf,
                                                     self.games.noVersions, self.open_version_picker)
@@ -372,7 +373,7 @@ class App:
         game.excluded = False
         self.resort_games()
 
-    def open_version(self, game):
+    def open_size_editor(self, game):
         sizewindow.Popup(self.tkWindow, game, self)
 
     def open_version_picker(self, game):
