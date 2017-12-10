@@ -19,6 +19,7 @@ class Preferences:
         self.app = app
 
     def set_prefs(self, save_=True):
+        print("Prefs set", self.storeStyle, self.sideStyle, self.stackSort)
         shelf.Shelf.set_store_style(self.storeStyle)
         game.Game.set_side_preference(self.sideStyle)
         shelf.GameStack.setStackSort(self.stackSort)
@@ -63,22 +64,23 @@ def save(pref):
 
 
 class PrefBundle(Tk.Frame):
-    def __init__(self, window, text, values, out_var, wigglefunc):
+    def __init__(self, window, text, values, pref, out_var, wigglefunc):
         Tk.Frame.__init__(self, window, width=220, height=25)
         self.grid_propagate(False)
         self.var = Tk.StringVar(self)
         self.var.trace('w', self.var_wiggle)
         self.values = values
+        self.pref = pref
         self.out_var = out_var
         self.wigglefunc = wigglefunc
 
         ttk.Label(self, text=text, width=15)\
             .grid(row=0, column=0, sticky=Tk.E)
-        ttk.OptionMenu(self, self.var, values[int(out_var)], *values)\
+        ttk.OptionMenu(self, self.var, values[getattr(self.pref, self.out_var)], *values)\
             .grid(row=0, column=1, sticky=Tk.W)
 
     def var_wiggle(self, *vars):
-        self.out_var = self.values.index(self.var.get())
+        setattr(self.pref, self.out_var, self.values.index(self.var.get()))
         self.wigglefunc()
 
 
@@ -92,9 +94,9 @@ class PreferencesUI(Tk.Toplevel):
         frm = Tk.Frame(self, borderwidth=10)
         frm.pack()
 
-        PrefBundle(frm, "Shelving Choice:",   shelf.StoreStyle_names,    pref.storeStyle, pref.set_prefs).pack()
-        PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref.sideStyle, pref.set_prefs).pack()
-        PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref.stackSort, pref.set_prefs).pack()
+        PrefBundle(frm, "Shelving Choice:",   shelf.StoreStyle_names,    pref, "storeStyle", pref.set_prefs).pack()
+        PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle", pref.set_prefs).pack()
+        PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort", pref.set_prefs).pack()
 
         btn = Tk.Button(frm, text="Re-Sort Games", width=20, command=sortfunc)
         btn.pack()

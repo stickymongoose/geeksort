@@ -189,9 +189,10 @@ class GameStack:
             self.games.sort(key=lambda s:s.shelfwidth, reverse=True)
 
     def make_widgets(self, owner, shelf=None, index=None):
-        self.tkFrame = Tk.Frame(owner, bg=SHELF_COLOR)
+        self.tkFrame = Tk.Frame(owner)
 
         if shelf is not None:
+            self.tkFrame.configure(bg=SHELF_COLOR)
             self.tkFrame.pack(side=Tk.LEFT, anchor=Tk.S)
             self.tkFrame.bind("<Motion>", shelf.onMove)
             self.tkFrame.bind("<Button-1>", shelf.onClick)
@@ -282,12 +283,16 @@ class Shelf:
     def set_store_style(style:StoreStyle):
         if style == StoreStyle.PreferSide:
             Shelf.sortlist = [Shelf.try_vertical, Shelf.try_stack]
+
         elif style == StoreStyle.PreferStack:
             Shelf.sortlist = [Shelf.try_stack, Shelf.try_vertical]
+
         elif style == StoreStyle.SideOnly:
             Shelf.sortlist = [Shelf.try_vertical]
+
         elif style == StoreStyle.StackOnly:
             Shelf.sortlist = [Shelf.try_stack]
+
         else:
             raise ValueError("Invalid StoreStyle: " + str(style))
 
