@@ -76,6 +76,7 @@ class App:
 
     def __init__(self):
         self.preferences = preferences.load(self)
+        self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
         game.Game._app = self
@@ -138,6 +139,7 @@ class App:
         self.pref_window = None
 
     def set_sorts(self, *args:str):
+        print("set_sorts")
         self.sortFuncs = []
         for f in args:
             self.sortFuncs.append(getattr(sorts, f))
@@ -187,7 +189,7 @@ class App:
     def collection_fetch(self, username):
         print("collection_fetch", threading.current_thread().name)
 
-        def _realfetch(self, username):
+        def _realfetch(self:App, username):
             self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
             self.preferences.user = username
             game.Game._user = username
@@ -200,14 +202,25 @@ class App:
             self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
 
             # collection game in, so load the shelf collection
-            savedcases = shelf.load(username, self.games)
-            if savedcases is not None:
+            savedcases, savedstack = shelf.load(username, self.games)
+            if savedcases is not None or savedstack is not None:
                 for c in self.cases:
                     self.searchBox.unregister(c)
                     c.clear_widgets()
+
+                self.searchBox.unregister(self.stackUnplaced)
+                self.stackUnplaced.clear_games()
+
                 self.cases = savedcases
+                self.stackUnplaced = savedstack
+
                 self._make_shelf_widgets()
-                self._after_sort()
+                try:
+                    self.stackUnplaced.make_widgets(self.tkFrame)
+                except AttributeError:
+                    pass
+
+                self._after_sort(False)
             else:
                 # no collection, make some shelves and sort everything
                 self.make_shelves()
@@ -248,7 +261,7 @@ class App:
 
         class GamePlaced(Exception):pass
 
-        # do all the sorting
+        # do all the sorting/placing
         self.games.unplaced = []
         self.start_work("Organizing shelves...", type=WorkTypes.PROGRESS)
         for g in sgames:
@@ -269,11 +282,11 @@ class App:
         for bc in self.cases:
             bc.finish()
 
-        shelf.save(game.Game._user, self.cases)
+        shelf.save(game.Game._user, self.cases, self.stackUnplaced)
 
         self._after_sort()
 
-    def _after_sort(self):
+    def _after_sort(self, checkUnplaced=True):
         # print(("_after_sort", threading.current_thread().name)
 
         totalarea = 0.0
@@ -303,18 +316,19 @@ class App:
         # print(("overflow")
 
         # only add an overflow shelf if we need it
-        if len(self.games.unplaced) > 0:
-            self.searchBox.register(self.stackUnplaced)
-            for b in self.games.unplaced:
-                if b.x >= b.y:
-                    self.stackUnplaced.add_box(b, game.HorizLong)
-                else:
-                    self.stackUnplaced.add_box(b, game.HorizShort)
+        if checkUnplaced:
+            if len(self.games.unplaced) > 0:
+                self.searchBox.register(self.stackUnplaced)
+                for b in self.games.unplaced:
+                    if b.x >= b.y:
+                        self.stackUnplaced.add_box(b, game.HorizLong)
+                    else:
+                        self.stackUnplaced.add_box(b, game.HorizShort)
 
-            self.stackUnplaced.finish()
-            self.stackUnplaced.make_widgets(self.tkFrame)
-        else:
-            self.stackUnplaced.hide()
+                self.stackUnplaced.finish()
+                self.stackUnplaced.make_widgets(self.tkFrame)
+            else:
+                self.stackUnplaced.hide()
 
         # print(("versionless")
 

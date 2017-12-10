@@ -492,9 +492,11 @@ def load(user, gamedb):
     try:
         with open(pathlib.Path(CACHE_DIR) / "shelves_{}.pkl".format(user), "rb") as file:
             cases = pickle.load(file)
+            stack = pickle.load(file)
             for c in cases:
                 c.thaw(gamedb)
-            return cases
+            stack.thaw(gamedb)
+            return cases, stack
     except (FileNotFoundError, EOFError):
         # expected, totally okay if it's not here
         pass
@@ -502,13 +504,14 @@ def load(user, gamedb):
     except pickle.UnpicklingError as e:
         print(e)
 
-    return None
+    return None, None
 
 
-def save(user, cases):
+def save(user, cases, stacks):
     try:
         with open(pathlib.Path(CACHE_DIR) / "shelves_{}.pkl".format(user), "wb") as file:
             pickle.dump(cases, file)
+            pickle.dump(stacks, file)
 
     except (TypeError, pickle.PicklingError) as e:
         print(e)

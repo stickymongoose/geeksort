@@ -19,7 +19,6 @@ class Preferences:
         self.app = app
 
     def set_prefs(self, save_=True):
-        print("Prefs set", self.storeStyle, self.sideStyle, self.stackSort)
         shelf.Shelf.set_store_style(self.storeStyle)
         shelf.GameStack.setStackSort(self.stackSort)
         game.Game.set_side_preference(self.sideStyle)

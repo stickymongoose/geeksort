@@ -20,7 +20,9 @@ class SearchBox(Tk.LabelFrame):
         self.searchlist.append(searchable)
 
     def unregister(self, unwanted):
-        self.searchlist.remove(unwanted)
+        try:
+            self.searchlist.remove(unwanted)
+        except ValueError: pass
 
     def search(self):
         self.requestid = 0
