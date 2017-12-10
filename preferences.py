@@ -21,8 +21,8 @@ class Preferences:
     def set_prefs(self, save_=True):
         print("Prefs set", self.storeStyle, self.sideStyle, self.stackSort)
         shelf.Shelf.set_store_style(self.storeStyle)
-        game.Game.set_side_preference(self.sideStyle)
         shelf.GameStack.setStackSort(self.stackSort)
+        game.Game.set_side_preference(self.sideStyle)
         try:
             self.app.set_sorts(*self.sortFuncs)
         except AttributeError:
@@ -99,6 +99,7 @@ class PreferencesUI(Tk.Toplevel):
         PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort", pref.set_prefs).pack()
 
         btn = Tk.Button(frm, text="Re-Sort Games", width=20, command=sortfunc)
+        btn.bind("<Return>", btn["command"])
         btn.pack()
 
 if __name__ == "__main__":
