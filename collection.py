@@ -58,9 +58,14 @@ def set_user(user):
     filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
     _game_xml = fetch.get(filename, lambda:ET.parse(filename), API_GAME_URL.format(id=gameidstring))
 
-    returnedCount = len(list(_game_xml.getroot()))
-    if len(gameids) != returnedCount:
-        raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returnedCount))
+    if _game_xml.getroot().tag == "div":
+        print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text))
+        os.remove(filename)
+        set_user(user)
+    else:
+        returnedCount = len(list(_game_xml.getroot()))
+        if len(gameids) != returnedCount:
+            raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returnedCount))
 
 def pump_queue():
     while True:
