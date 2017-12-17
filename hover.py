@@ -1,8 +1,6 @@
 import tkinter as Tk
 from PIL import Image
 from PIL import ImageTk
-from constants import *
-import shelf
 
 HOVER_WIDTH=200
 HOVER_HEIGHT=220
@@ -61,7 +59,17 @@ class Hover:
     def onClear(self, event):
         self.tkFrame.place_forget()
 
+    def block(self):
+        self.blocked = True
+
+    def unblock(self):
+        self.blocked = False
+
     def onMove(self, caller, event):
+        if self.blocked:
+            self.onClear(event)
+            return
+
         self.set(caller)
 
         # get the mouse's location on the current window

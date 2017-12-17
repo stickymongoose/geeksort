@@ -49,7 +49,6 @@ class GameFilters:
         return self.by_id[id]
 
     def make_lists(self):
-
         self.excluded = [b for b in self.all if b.excluded]
         self.sorted   = [b for b in self.all if not b.excluded]
 
@@ -60,14 +59,26 @@ class GameFilters:
         # assumption being, it has a version, but might not have a box
         self.noData = [g for g in self.noBoxes if g.versionid != 0 and not g.hasbox]
 
-        self.noVersions.sort(key=sorts.byName)
-        self.noData.sort(key=sorts.byName)
+        self.noVersions.sort(key=sorts.Name)
+        self.noData.sort(key=sorts.Name)
 
-    def get_sorted_boxes(self, sortfuncs):
-        sortedboxes = self.inBoxes
+    def get_sorted_boxes(self, sortfuncs, filterfuncs):
+        sortedboxes = []
+        if len(filterfuncs) > 0:
+            for agame in self.sorted:
+                for func, op, values, rev in filterfuncs:
+                    if op(func(agame), *values) == True:
+                        sortedboxes.append(agame)
+        else:
+            sortedboxes = self.sorted
 
-        for f in sortfuncs[::-1]:
-            sortedboxes.sort(key=f)
+
+
+        # sort in reverse order, ie, less to more important
+        # standard primary, secondary, tertiary key stuff
+        for func, op, values, rev in sortfuncs[::-1]:
+            #print(op(func(sortedboxes[0]), *values))
+            sortedboxes.sort(key=lambda game:op(func(game), *values), reverse=rev)
         return sortedboxes
 
 
@@ -105,6 +116,8 @@ class App:
 
         # make it last so it's on top of everything
         self.hover = hover.Hover(self.tkWindow)
+        self.tkWindow.bind("<FocusIn>",  self.app_gain_focus)
+        self.tkWindow.bind("<FocusOut>", self.app_lost_focus)
 
         self.tkFrame.bind("<Motion>", self.hover.onClear)
 
@@ -138,12 +151,6 @@ class App:
         self.workerThread = None
         self.pref_window = None
 
-    def set_sorts(self, *args:str):
-        print("set_sorts")
-        self.sortFuncs = []
-        for f in args:
-            self.sortFuncs.append(getattr(sorts, f))
-
 
     def prompt_name(self):
         namebox.NameBox(self.tkWindow, self, self.preferences)
@@ -152,10 +159,18 @@ class App:
         if self.pref_window is None:
             self.pref_window = preferences.PreferencesUI(self.tkWindow, self.preferences, self.resort_games)
             self.pref_window.protocol("WM_DELETE_WINDOW", self.pref_closed)
+        self.pref_window.focus_force()
 
     def pref_closed(self):
         self.pref_window.destroy()
         self.pref_window = None
+
+    def app_gain_focus(self, event):
+        self.hover.unblock()
+
+    def app_lost_focus(self, event):
+        self.hover.onClear(event)
+        self.hover.block()
 
     def mainloop(self):
         self.tkWindow.mainloop()
@@ -166,7 +181,7 @@ class App:
         collection.shutdown()
 
     def clear_games(self):
-        print("clear_games", threading.current_thread().name)
+        #print("clear_games", threading.current_thread().name)
         self.stackUnplaced.clear_games()
         for b in reversed(self.cases):
             b.clear_games()
@@ -176,7 +191,6 @@ class App:
     # TODO: make this customizable and possibly with a UI
     def make_shelves(self):
         self.cases = shelf.read("shelves.txt")
-
         self._make_shelf_widgets()
 
     def _make_shelf_widgets(self):
@@ -257,7 +271,7 @@ class App:
 
     def sort_games(self):
         # print(("sort_games", threading.current_thread().name)
-        sgames = self.games.get_sorted_boxes(self.sortFuncs)
+        sgames = self.games.get_sorted_boxes(self.preferences.sortFuncs, self.preferences.filterFuncs)
 
         class GamePlaced(Exception):pass
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unicodedata
-import re
 import tkinter as Tk
 from enum import IntEnum
 from PIL import Image
@@ -12,6 +11,7 @@ import averagecolor
 import hover
 import webbrowser
 import sizewindow
+import setlist
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -37,6 +37,15 @@ def get_valuef(node, path, default="0.0"):
 def get_valuer(node, path, rounding=BOX_PRECISION):
     f = get_valuef(node, path)
     return ceilFraction(f, rounding)
+
+def get_node_values(node, type, defaults=[], node_name="link", attr="value", strip=""):
+    items = node.findall("{}[@type='{}']".format(node_name, type))
+    if len(items) > 0:
+        out = []
+        for v in items:
+            out.append(get_value(v, ".", None, attr).strip(strip))
+        return out
+    return defaults
 
 def color_brightness(rgb):
     r = (rgb>>16) & 0xff
@@ -133,8 +142,6 @@ class Game:
         #self.name = textwrap.shorten(self.longname,30)
         self.name = self.longname[:30]
 
-        #gd = collection.getgame(Game._user, self.id)
-        #self.averating = getvaluef(gd, "./statistics/ratings/average")
         self.hoverimgurl = None
         self.hoverimgraw = None
         self.color = 0x808080
@@ -147,7 +154,11 @@ class Game:
         self.excluded = EXCLUDE_COMMENT in get_text(xmlfromcollection, "comment", "").lower()
 
         # ratings
-        self.rating = self.minplayers = self.maxplayers = self.minplaytime = self.maxplaytime = -1
+        self.rating_user = self.rating_ave = self.rating_bayes = -1
+        self.minplayers = self.maxplayers = -1
+        self.minplaytime = self.maxplaytime = -1
+        self.num_plays = int(get_text(xmlfromcollection, "numplays", 0))
+
         try:
             stats = xmlfromcollection.find("stats")
 
@@ -160,11 +171,36 @@ class Game:
             rating = stats.find("rating")
             try:
                 # rating may be returned as "N/A", so we cast it to a float to see if it's that
-                self.rating = get_valuef(rating, ".", "-1")
+                self.rating_user = get_valuef(rating, ".", "-1")
             except ValueError:
-                self.rating = -1.0
+                pass
 
+            self.types = get_node_values(rating, "ranks/rank", node_name="family", attr="friendlyname", strip=" Game Rank")
+
+            self.rating_bayes = get_valuef(rating, "bayesaverage")
+            self.rating_ave   = get_valuef(rating, "average")
         except:
+            pass
+
+        # game data we can't get from the collection's data
+        #self.expansions = []
+        self.year_published = self.min_age = 0
+
+        self.categories = self.mechanics = self.families = []
+        self.designers = self.artists = self.publishers = self.types = []
+        gd = collection.get_game(Game._user, self.id)
+        try:
+            self.year_published = get_value(gd, "yearpublished", 0)
+            self.min_age    = get_value(gd, "minage", 0)
+            self.categories = get_node_values(gd, "boardgamecategory")
+            self.mechanics  = get_node_values(gd, "boardgamemechanic")
+            self.families   = get_node_values(gd, "boardgamefamily")
+            self.designers  = get_node_values(gd, "boardgamedesigner")
+            self.artists    = get_node_values(gd, "boardgameartist")
+            self.publishers = get_node_values(gd, "boardgamepublisher")
+
+        except ValueError as e:
+            print(e)
             pass
 
         # dimensions
@@ -186,10 +222,27 @@ class Game:
                           , get_valuef(versionitem, "weight")
                           )
 
+            # get more exact data from the actual owned version
+            self.year_published = get_value(versionitem, "yearpublished", self.year_published)
+            self.categories = get_node_values(versionitem, "boardgamecategory", self.categories)
+            self.mechanics  = get_node_values(versionitem, "boardgamemechanic", self.mechanics)
+            self.families   = get_node_values(versionitem, "boardgamefamily", self.families)
+            self.designers  = get_node_values(versionitem, "boardgamedesigner", self.designers)
+            self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
+            self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
         except Exception as e: # no version data
             #print(e)
             #print("No version for",  self.name,  GAME_URL.format(id=self.id))
             pass
+
+        # now that we're done with all the possible adding, add each to the set list
+        setlist.Types.update(self.types)
+        setlist.Categories.update(self.categories)
+        setlist.Mechanics.update(self.mechanics)
+        setlist.Families.update(self.families)
+        setlist.Designers.update(self.designers)
+        setlist.Artists.update(self.artists)
+        setlist.Publishers.update(self.publishers)
 
     def set_image(self, url):
         self.hoverimgurl = url

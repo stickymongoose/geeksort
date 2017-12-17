@@ -182,7 +182,7 @@ class GameStack:
 
     def finish(self):
         if GameStack.sortmethod == StackSort.Weight:
-            self.games.sort(key=sorts.byWeight,  reverse=True)
+            self.games.sort(key=sorts.Weight,  reverse=True)
 
         elif GameStack.sortmethod == StackSort.Size:
             # sort by the size of the stack's dimensions

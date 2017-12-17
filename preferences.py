@@ -5,10 +5,13 @@ from constants import *
 import pickle
 import tkinter as Tk
 import tkinter.ttk as ttk
+import accordion
+import sorts
 
 class Preferences:
     def __init__(self):
-        self.sortFuncs = ["bySize"]
+        self.sortFuncs = [(sorts.Size, sorts.identity, [], False)] # default, sort by size
+        self.filterFuncs = []
         self.storeStyle = shelf.StoreStyle.PreferStack
         self.sideStyle = game.SidePreference.Left
         self.stackSort = shelf.StackSort.Size
@@ -23,20 +26,42 @@ class Preferences:
         shelf.GameStack.setStackSort(self.stackSort)
         game.Game.set_side_preference(self.sideStyle)
         try:
-            self.app.set_sorts(*self.sortFuncs)
+            self.app.set_sorts(self.sortFuncs, self.filterFuncs)
         except AttributeError:
             pass
 
         if save_:
             save(self)
 
+    @staticmethod
+    def switch_values(in_, out_, data):
+        return [(out_[in_.index(func)], op, values, rev) for (func, op, values, rev) in data]
+
+
     def __getstate__(self):
         d = self.__dict__.copy()
         del d["app"]
+
+        justlabels = [label for (label, data, func) in sorts.RAW_DATA]
+        justfuncs  = [func for (label, data, func) in sorts.RAW_DATA]
+
+        # translate funcs (which may be lambdas, and thus not pickleable
+        # to their strings, which... are better than nothing
+        d["sortFuncs"]   = Preferences.switch_values(justfuncs, justlabels, d["sortFuncs"])
+        d["filterFuncs"] = Preferences.switch_values(justfuncs, justlabels, d["filterFuncs"])
         return d
 
     def __setstate__(self, dict):
-        self.__init__() # this doesn't seem to be called...
+        self.__init__() # this doesn't seem to be called normally, so force it
+
+        justlabels = [label for (label, data, func) in sorts.RAW_DATA]
+        justfuncs = [func for (label, data, func) in sorts.RAW_DATA]
+
+        # translate funcs (which may be lambdas, and thus not pickleable
+        # to their strings, which... are better than nothing
+        dict["sortFuncs"]   = Preferences.switch_values(justlabels, justfuncs, dict["sortFuncs"])
+        dict["filterFuncs"] = Preferences.switch_values(justlabels, justfuncs, dict["filterFuncs"])
+
         self.__dict__.update(dict)
         self.set_prefs(False)
 
@@ -84,22 +109,40 @@ class PrefBundle(Tk.Frame):
 
 
 class PreferencesUI(Tk.Toplevel):
-    def __init__(self, window, pref, sortfunc):
+    def __init__(self, window, pref:Preferences, resortfunc):
         Tk.Toplevel.__init__(self, window)
         self.title("Preferences")
         self.focus_force()
         self.pref = pref
 
+        self.resort_func = resortfunc
+
         frm = Tk.Frame(self, borderwidth=10)
-        frm.pack()
+        frm.pack(anchor=Tk.SW, side=Tk.LEFT)
+
+        acc = accordion.Accordion(frm, 450)
+        acc.pack(anchor=Tk.NW)
+        sortchord = acc.create_chord("Sorting Criteria").body
+        self.sortWidget = sorts.FilterBuilderUI(sortchord)
+        self.sortWidget.pack(anchor=Tk.W)
+
+        filtchord = acc.create_chord("Filtering Criteria").body
+        self.filtWidget = sorts.FilterBuilderUI(filtchord)
+        self.filtWidget.pack(anchor=Tk.W)
 
         PrefBundle(frm, "Shelving Choice:",   shelf.StoreStyle_names,    pref, "storeStyle", pref.set_prefs).pack()
-        PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle", pref.set_prefs).pack()
-        PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort", pref.set_prefs).pack()
+        PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
+        PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort",  pref.set_prefs).pack()
 
-        btn = Tk.Button(frm, text="Re-Sort Games", width=20, command=sortfunc)
+        btn = Tk.Button(frm, text="Re-Sort Games", width=20, command=self.resort)
         btn.bind("<Return>", btn["command"])
         btn.pack()
+
+    def resort(self):
+        self.pref.sortFuncs = self.sortWidget.get_actions()
+        self.pref.filterFuncs = self.filtWidget.get_actions()
+        save(self.pref)
+        self.resort_func()
 
 if __name__ == "__main__":
     root = Tk.Tk()
@@ -110,7 +153,7 @@ if __name__ == "__main__":
 
     p = load(fakeApp)
 
-    s = PreferencesUI(root, p, resort_games)
+    fbui = PreferencesUI(root, p, resort_games)
     # s.top.lift()
     # root.wait_window(s.top)
 
