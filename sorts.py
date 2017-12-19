@@ -6,9 +6,19 @@ import operator
 import mixed_fractions
 import setlist
 
-DefaultList = "Any"
+DEFAULT_LIST = "Any"
 
-
+BGG_RATINGS = [ "10 - Outstanding, will always enjoy playing"
+              , "9 - Excellent, very much enjoy playing"
+              , "8 - Very Good, enjoy playing and would suggest it"
+              , "7 - Good, usually willing to play"
+              , "6 - Ok, will play if in the mood"
+              , "5 - Mediocre, take it or leave it"
+              , "4 - Not So Good, but could play again"
+              , "3 - Bad, likely won't play this again"
+              , "2 - Very Bad, won't play ever again"
+              , "1 - Awful, defies description"
+              ]
 # a bit silly to have them match, but it helps prevent typos
 EMPTY = ""
 
@@ -40,19 +50,19 @@ def between(v, a, b):
     return min(a, b) <= v and v <= max(a, b)
 
 def any_list(array:list, string:str):
-    if string == DefaultList:
+    if string == DEFAULT_LIST:
         return array
     data = string.split(", ")
     return any(elt in array for elt in data)
 
 def all_list(array:list, string:str):
-    if string == DefaultList:
+    if string == DEFAULT_LIST:
         return array
     data = string.split(", ")
     return all(elt in array for elt in data)
 
 
-# Field-fillers... probably needs to be renamed
+# Field-fillers
 class FieldFactory_Base():
     def add_widget(self, owner):
         return [], []
@@ -79,8 +89,9 @@ class FieldFactory_Entry(FieldFactory_Base):
             e = ttk.Entry(owner, textvariable=v, width=self.width)
             e.pack(side=Tk.LEFT)
             tkWidgets.append(e)
-            vars.append(e)
+            vars.append(v)
         return tkWidgets, vars
+
 
 class FieldFactory_EntryNum(FieldFactory_Entry):
     def convert_field(self, field):
@@ -98,7 +109,7 @@ class FieldFactory_SelMenu(FieldFactory_Base):
         menu = Tk.Menu(owner, tearoff=0)
         tkWidgets.append(menu)
 
-        te = Tk.StringVar(menu, DefaultList)
+        te = Tk.StringVar(menu, DEFAULT_LIST)
         menuBtn = ttk.Menubutton(owner, textvariable=te, menu=menu
                                  , direction=Tk.RIGHT, width=20)
         menuBtn.pack(side=Tk.LEFT)
@@ -123,7 +134,7 @@ class FieldFactory_SelMenu(FieldFactory_Base):
     def adjust_label(te:Tk.StringVar, menu):
         temp = ", ".join(var.get() for var in menu.vars if var.get() is not EMPTY)
         if len(temp) == 0:
-            te.set(DefaultList)
+            te.set(DEFAULT_LIST)
         else:
             te.set(temp)
 
@@ -146,6 +157,46 @@ class FieldFactory_SelMenu(FieldFactory_Base):
 
 
 
+class FieldFactory_RatingMenu(FieldFactory_Base):
+    def __init__(self, count):
+        FieldFactory_Base.__init__(self)
+        self.count = count
+
+    def add_widget(self, owner):
+        tkWidgets = []
+        vars = []
+        for i in range(self.count):
+            if i > 0:
+                l = ttk.Label(owner, text="and")
+                l.pack(side=Tk.LEFT, padx=5)
+                tkWidgets.append(l)
+            w, v = self.__make_picker(owner)
+            tkWidgets += w
+            vars += v
+        return tkWidgets, vars
+
+    def __make_picker(self, owner):
+        menu = Tk.Menu(owner, tearoff=0)
+
+        te = Tk.IntVar(menu)
+        self.__set_value(te, BGG_RATINGS[len(BGG_RATINGS) // 2])
+        menuBtn = ttk.Menubutton(owner, textvariable=te, menu=menu
+                                 , direction=Tk.RIGHT, width=3)
+        menuBtn.pack(side=Tk.LEFT)
+
+        for rating in BGG_RATINGS:
+            menu.add_command(label=rating, command=functools.partial(self.__set_value, te, rating))
+
+        return [menu, menuBtn], [te]
+
+    def __set_value(self, te, rating, *values):
+        te.set( int(rating.split(" - ")[0] ) )
+
+    def convert_field(self, field):
+        return field
+
+
+
 # Big ol' pile of metadata
 
 DATA_OP_LABELS = 0
@@ -156,6 +207,9 @@ NoEntry        = FieldFactory_Base()
 WideEntry      = FieldFactory_Entry(1, 20)
 NarrowEntry    = FieldFactory_EntryNum(1, 8)
 DblNarrowEntry = FieldFactory_EntryNum(2, 8)
+
+RatingEntry    = FieldFactory_RatingMenu(1)
+DblRatingEntry = FieldFactory_RatingMenu(2)
 
 STRING_DATA = \
     [("as is",           NoEntry,      identity)
@@ -168,6 +222,13 @@ NUMBER_DATA = \
      ,("less than",    NarrowEntry,    operator.lt)
      ,("greater than", NarrowEntry,    operator.gt)
      ,("between",      DblNarrowEntry, between)]
+
+RATING_DATA = \
+     [("as is",        NoEntry,        identity)
+     ,("equals",       RatingEntry,    operator.eq)
+     ,("less than",    RatingEntry,    operator.lt)
+     ,("greater than", RatingEntry,    operator.gt)
+     ,("between",      DblRatingEntry, between)]
 
 
 NOTHING_DATA = [("as is", NoEntry, identity)]
@@ -221,10 +282,10 @@ RAW_DATA = [("Name",            STRING_DATA,   Name)
           , ("Artist",          ART_DATA,      lambda g:g.artists)
           , ("Publisher",       PUB_DATA,      lambda g:g.publishers)
           , ("# of Plays",      NUMBER_DATA,   lambda g:g.num_plays)
-          , ("Rating (Mine)",   NUMBER_DATA,   lambda g:g.rating_user)
-          , ("Rating (Ave)",    NUMBER_DATA,   lambda g:g.rating_ave)
-          , ("Rating (Ranked)", NUMBER_DATA,   lambda g:g.rating_bayes)
-          , ("Complexity",      NUMBER_DATA,   lambda g:g.weight)
+          , ("Rating (Average)", RATING_DATA,   lambda g:g.rating_ave)
+          , ("Rating (Ranked)", RATING_DATA,   lambda g:g.rating_bayes)
+          , ("Rating (Mine)",   RATING_DATA,   lambda g:g.rating_user)
+          , ("Complexity",      RATING_DATA,   lambda g:g.weight)
           # @TODO, add more, or revisit this to be a bit more expansive
     ]
 
@@ -445,6 +506,9 @@ if __name__=="__main__":
     #FilterBuilderUI.init()
     fbui = FilterBuilderUI(root)
     fbui.pack()
+    ff = FieldFactory_RatingMenu()
+    cb,var = ff.add_widget(fbui)
+    cb[1].pack()
     print([(Size, identity, [])])
 
     setlist.Publishers.add("A")
