@@ -1,45 +1,81 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+## What is this?
+Maybe you've got a lot of board games. Maybe you don't have a lot of shelves. Maybe you just like things organized.
+Well, GeekSort's for you. 
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+This assumes that you have a (BoardGameGeek)[www.boardgamegeek.com] account with the games you wanted sorted 
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
+## Getting started using GeekSort for the impatient
+If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
 
----
+1. Download the most recent build for your platform
 
-## Edit a file
+2. Unzip the package into the appropriate place.
 
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
+3. Jump down to Once Installed below
 
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
+## Getting started for the advanced
+You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
 
----
+0. You'll need Python 3.6.4...ish to run GeekSort from source.
+For Windows folks, get it (here)[https://www.python.org/downloads/]
+For Mac Folks... (here?)[https://www.python.org/downloads/mac-osx/], unless it's installed already...
+For Linux Users, run your appropriate package getter to get the latest version, break your kernel, and have to reinstall ;)
 
-## Create a file
+1. Checkout the (source)[https://bitbucket.org/geeksort/geeksort/src]
 
-Next, you’ll add a new file to this repository.
+2. Open up a command window in the directory you checked the source to
 
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
+3. Run pip3 -r requirements.txt to get all the updates (some folks may just run pip instead)
 
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
+4. Run Geeksort with python geeksort.py
 
----
 
-## Clone a repository
+## Once Installed
+1. Find a tape measure, yard/meter stick, or appropriate schematics from the internet for your shelves.
 
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
+2. Edit Shelves.txt in your favorite text editor.
 
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
+3. Following the instructions therein, edit the dimensions to match your shelves
+**Note that this step will eventually be streamlined**
 
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+4. Launch the executable.
+
+5. Enter your name when prompted.
+
+6. WAIT. This step can take a long time, depending on how overloaded the BGG servers are. Can easily take several minutes.
+
+7. Once everything's ready, it'll populate your shelves in a default manner!
+
+8. At this point, you can experiment with different sorting methods in the Preferences tab, or edit some games.
+
+## Some of my games have blue question marks!
+
+Chances are you it had to guess on the sizes/versions of your games. These games are marked with a blue question mark (?).
+Due to the wide variety of games sizes, GeekSort will guess based on the largest one, and be conservative. To adjust this behavior,
+right click on the most egregious games (OGRE Designer's Edition, for example), and adjust your collection's version.
+After you've done several, you must then reload your collection manually for GeekSort to get the updated sizes.
+
+## I have some games I don't want sorted!
+When sorting your games, you can specify a Filter, which will exclude any games that match from being put on shelves.
+
+For a more targeted approach, you can exclude games by right-clicking and selecting Exclude. 
+**Note:** This will last until the next time you update your game collection from BGG.
+For a more permanent solution, go to that game's page (via the right click menu), and add **#GeekSort-Exclude** as a comment.
+It's not the prettiest solution, but there seemingly isn't an API for reading the tags.  This may eventually be cached off locally.
+
+## These sorts are sub-optimal! They could definitely fit better!
+
+* Packing things into boxes is a known problem in computer science, and many different algorithms exist.
+  To keep the problem simpler (and GeekSort actually released), it's currently a very greedy packing attempt.
+  It starts at the topleft-most shelf, and starts slotting in games, moving on to the next available shelf if there's no space.
+  As such, you can trick it a bit to get better sorting results
+* Try adjusting your sort preferences, rearranging options around
+* If you're concerned about space, make sure that sorting by Size, As-is is always the last item.
+* Try experimenting with different shelf ordering by rearranging Shelves.txt (more dynamic options are slated for later). 
+
+## I found a problem. Where do I go?
+
+Try checking out the (subreddit)[www.reddit.com/r/geeksort], or the (Trello board)[https://trello.com/b/GtFVkybB/issue-tracking], 
+which is linked at the (GeekSort BitBucket)[https://bitbucket.org/geeksort/geeksort/] page.
+
+
