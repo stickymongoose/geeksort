@@ -1,3 +1,9 @@
+## What is this?
+Maybe you've got a lot of board games. Maybe you don't have a lot of shelves. Maybe you just like things organized.
+Well, GeekSort's for you. 
+
+This assumes that you have a (BoardGameGeek)[www.boardgamegeek.com] account with the games you wanted sorted 
+
 ## Getting started using GeekSort for the impatient
 If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
 
@@ -6,6 +12,22 @@ If you're raring to start sorting games onto your shelves and don't care about t
 2. Unzip the package into the appropriate place.
 
 3. Jump down to Once Installed below
+
+## Getting started for the advanced
+You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
+
+0. You'll need Python 3.6.4...ish to run GeekSort from source.
+For Windows folks, get it (here)[https://www.python.org/downloads/]
+For Mac Folks... (here?)[https://www.python.org/downloads/mac-osx/], unless it's installed already...
+For Linux Users, run your appropriate package getter to get the latest version, break your kernel, and have to reinstall ;)
+
+1. Checkout the (source)[https://bitbucket.org/geeksort/geeksort/src]
+
+2. Open up a command window in the directory you checked the source to
+
+3. Run pip3 -r requirements.txt to get all the updates (some folks may just run pip instead)
+
+4. Run Geeksort with python geeksort.py
 
 
 ## Once Installed
@@ -32,6 +54,14 @@ Chances are you it had to guess on the sizes/versions of your games. These games
 Due to the wide variety of games sizes, GeekSort will guess based on the largest one, and be conservative. To adjust this behavior,
 right click on the most egregious games (OGRE Designer's Edition, for example), and adjust your collection's version.
 After you've done several, you must then reload your collection manually for GeekSort to get the updated sizes.
+
+## I have some games I don't want sorted!
+When sorting your games, you can specify a Filter, which will exclude any games that match from being put on shelves.
+
+For a more targeted approach, you can exclude games by right-clicking and selecting Exclude. 
+**Note:** This will last until the next time you update your game collection from BGG.
+For a more permanent solution, go to that game's page (via the right click menu), and add **#GeekSort-Exclude** as a comment.
+It's not the prettiest solution, but there seemingly isn't an API for reading the tags.  This may eventually be cached off locally.
 
 ## These sorts are sub-optimal! They could definitely fit better!
 
