@@ -11,7 +11,6 @@ idna==2.6
 incremental==17.5.0
 olefile==0.44
 Pillow==4.3.0
-PyQt5==5.9.1
 QScintilla==2.10.1
 requests==2.18.4
 sip==4.19.4
