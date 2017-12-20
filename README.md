@@ -2,17 +2,17 @@
 Maybe you've got a lot of board games. Maybe you don't have a lot of shelves. Maybe you just like things organized.
 Well, GeekSort's for you. 
 
-This assumes that you have a [BoardGameGeek](www.boardgamegeek.com) account with the games you wanted sorted 
+This assumes that you have a [BoardGameGeek](www.boardgamegeek.com) account with the games you wanted sorted.
 
 # Getting Started
 ## For the impatient
 If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
 
-1. Download the most recent build for your platform
+1. Download the most recent build for your platform.
 
 2. Unzip the package into the appropriate place.
 
-3. Jump down to [Operating Instructions](README.md/Operating_Instructions)
+3. Jump down to **Operating Instructions**.
 
 ## For the advanced
 You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
@@ -22,13 +22,13 @@ For Windows folks, get it [here](https://www.python.org/downloads/)
 For Mac Folks... [here?](https://www.python.org/downloads/mac-osx/), unless it's installed already...
 For Linux Users, run your appropriate package getter to get the latest version, break your kernel, and have to reinstall ;)
 
-1. Checkout the [source](https://bitbucket.org/geeksort/geeksort/src)
+1. Checkout the [source](https://bitbucket.org/geeksort/geeksort/src).
 
-2. Open up a command window in the directory you checked the source to
+2. Open up a command window in the directory you checked the source to.
 
-3. Run pip3 -r requirements.txt to get all the updates (some folks may just run pip instead)
+3. Run `pip3 -r requirements.txt` to get all the updates (some folks may just run pip instead).
 
-4. Run Geeksort with python geeksort.py
+4. Run Geeksort with `python geeksort.py`.
 
 
 # Operating Instructions
