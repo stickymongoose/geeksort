@@ -119,6 +119,7 @@ class App:
         self.menu.add_command(label="Change User", command=self.prompt_name)
         self.menu.add_command(label="Adjust Preferences", command=self.prompt_prefs)
         self.tkWindow.config(menu=self.menu)
+        self.tkWindow.title("GeekSort")
 
 
         # self.menu = Tk.Menu(self.tkFrame, tearoff=0)
@@ -327,7 +328,7 @@ class App:
 
         # print(("set title")
 
-        self.tkWindow.title("Boardsort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
+        self.tkWindow.title("GeekSort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
             totalused*SQIN_TO_SQFEET
             , totalarea*SQIN_TO_SQFEET
             , (totalused/totalarea)*100.0))
