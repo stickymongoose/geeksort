@@ -4,16 +4,17 @@ Well, GeekSort's for you.
 
 This assumes that you have a [BoardGameGeek](www.boardgamegeek.com) account with the games you wanted sorted 
 
-## Getting started using GeekSort for the impatient
+# Getting Started
+## For the impatient
 If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
 
 1. Download the most recent build for your platform
 
 2. Unzip the package into the appropriate place.
 
-3. Jump down to Once Installed below
+3. Jump down to [Operating Instructions](Operating_Instructions)
 
-## Getting started for the advanced
+## For the advanced
 You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
 
 0. You'll need Python 3.6.4...ish to run GeekSort from source.
@@ -30,7 +31,7 @@ For Linux Users, run your appropriate package getter to get the latest version, 
 4. Run Geeksort with python geeksort.py
 
 
-## Once Installed
+# Operating Instructions
 1. Find a tape measure, yard/meter stick, or appropriate schematics from the internet for your shelves.
 
 2. Edit Shelves.txt in your favorite text editor.
