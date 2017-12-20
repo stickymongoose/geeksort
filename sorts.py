@@ -5,6 +5,7 @@ import functools
 import operator
 import contrib.mixed_fractions as mixed_fractions
 import setlist
+from constants import top
 
 DEFAULT_LIST = "Any"
 
@@ -57,7 +58,6 @@ def not_contains(a,b):
     return b not in a
 
 def between(v, a, b):
-    print(v, a, b)
     return min(a, b) <= v and v <= max(a, b)
 
 def any_list(array:list, string:str):
@@ -336,8 +336,8 @@ class FilterEntryUI(Tk.Frame):
         self.field_data = None
         self.field_factory = None
 
-        om = OpMenu(self, ALL_TYPE_DATA[DATA_STRINGS], self.__field_changed)
-        om.pack(side=Tk.LEFT)
+        self.tkField = OpMenu(self, ALL_TYPE_DATA[DATA_STRINGS], self.__field_changed)
+        self.tkField.pack(side=Tk.LEFT)
 
         self.__field_changed(0)
 
@@ -392,6 +392,15 @@ class FilterEntryUI(Tk.Frame):
         vals = [self.field_factory.convert_field(v.get()) for v in self.vars]
         return self.field_func, self.op_func, vals
 
+    def set(self, func, op, vals):
+        funcIndex = ALL_TYPE_DATA[DATA_FUNC].index(func)
+        self.tkField._variable.set(ALL_TYPE_DATA[DATA_STRINGS][funcIndex])
+
+        opIndex = self.op_data.index(op)
+        self.tkOp._variable.set(self.op_labels[opIndex])
+
+        for v in range(len(vals)):
+            self.vars[v].set(vals[v])
 
 
 class FilterBuilderUI(Tk.Frame):
@@ -413,7 +422,6 @@ class FilterBuilderUI(Tk.Frame):
         if FilterBuilderUI.addimg is None:
             FilterBuilderUI.init()
 
-
         self.list_items = []
 
         self.fbFrame = Tk.Frame(self)
@@ -425,6 +433,15 @@ class FilterBuilderUI(Tk.Frame):
 
         Tk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
             .pack(side=Tk.LEFT)
+
+    def set(self, preload):
+        for func, op, values, reversed in preload:
+            self.__add()
+            justadded = top(self.list_items)
+            justadded.entry.set(func, op, values)
+            if reversed:
+                self.__toggle(justadded)
+
 
     def __add(self):
         frm = Tk.Frame(self.fbFrame, bg=self["bg"])
@@ -520,10 +537,6 @@ if __name__=="__main__":
     #FilterBuilderUI.init()
     fbui = FilterBuilderUI(root)
     fbui.pack()
-    ff = FieldFactory_RatingMenu()
-    cb,var = ff.add_widget(fbui)
-    cb[1].pack()
-    print([(Size, identity, [])])
 
     setlist.Publishers.add("A")
     setlist.Publishers.add("B")

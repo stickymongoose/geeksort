@@ -125,10 +125,12 @@ class PreferencesUI(Tk.Toplevel):
         sortchord = acc.create_chord("Sorting Criteria").body
         self.sortWidget = sorts.FilterBuilderUI(sortchord)
         self.sortWidget.pack(anchor=Tk.W)
+        self.sortWidget.set(self.pref.sortFuncs)
 
         filtchord = acc.create_chord("Filtering Criteria").body
         self.filtWidget = sorts.FilterBuilderUI(filtchord)
         self.filtWidget.pack(anchor=Tk.W)
+        self.filtWidget.set(self.pref.filterFuncs)
 
         PrefBundle(frm, "Shelving Choice:",   shelf.StoreStyle_names,    pref, "storeStyle", pref.set_prefs).pack()
         PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
