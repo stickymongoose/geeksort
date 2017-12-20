@@ -98,13 +98,15 @@ class GameFilters:
 class App:
 
     def __init__(self):
+        collection.init()
+		
         self.preferences = preferences.load(self)
         self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
         game.Game._app = self
         game.Game.init()
-        collection.init()
+        
 
         self.tkFrame = Tk.Frame(self.tkWindow, border=15)
         self.tkFrame.grid(column=0, row=ROW_SHELVES, sticky=(Tk.W, Tk.E, Tk.S, Tk.N), columnspan=2)
