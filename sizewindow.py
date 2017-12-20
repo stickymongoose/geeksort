@@ -1,7 +1,7 @@
 import tkinter as Tk
 from PIL import Image
 from PIL import ImageTk
-from mixed_fractions import Mixed
+from contrib.mixed_fractions import Mixed
 import webbrowser
 from constants import *
 import enum

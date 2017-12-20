@@ -5,7 +5,7 @@ from constants import *
 import pickle
 import tkinter as Tk
 import tkinter.ttk as ttk
-import accordion
+import contrib.accordion as accordion
 import sorts
 
 class Preferences:

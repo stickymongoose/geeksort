@@ -3,7 +3,7 @@ import tkinter as Tk
 import tkinter.ttk as ttk
 import functools
 import operator
-import mixed_fractions
+import contrib.mixed_fractions as mixed_fractions
 import setlist
 
 DEFAULT_LIST = "Any"

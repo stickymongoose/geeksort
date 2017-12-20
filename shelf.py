@@ -6,7 +6,7 @@ import game
 import pathlib
 import pickle
 import sorts
-from mixed_fractions import Mixed
+from contrib.mixed_fractions import Mixed
 
 
 _verbose = False
