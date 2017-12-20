@@ -26,9 +26,11 @@ For Linux Users, run your appropriate package getter to get the latest version, 
 
 2. Open up a command window in the directory you checked the source to.
 
-3. Run `pip3 -r requirements.txt` to get all the updates (some folks may just run pip instead).
+3. Run `pip3 install -r requirements.txt` to get all the updates (some folks may just run pip instead).
 
-4. Run Geeksort with `python geeksort.py`.
+4. Wait.
+
+5. Run Geeksort with `python geeksort.py`.
 
 
 # Operating Instructions
