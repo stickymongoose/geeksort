@@ -2,7 +2,7 @@
 Maybe you've got a lot of board games. Maybe you don't have a lot of shelves. Maybe you just like things organized.
 Well, GeekSort's for you. 
 
-This assumes that you have a (BoardGameGeek)[www.boardgamegeek.com] account with the games you wanted sorted 
+This assumes that you have a [BoardGameGeek](www.boardgamegeek.com) account with the games you wanted sorted 
 
 ## Getting started using GeekSort for the impatient
 If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
@@ -17,11 +17,11 @@ If you're raring to start sorting games onto your shelves and don't care about t
 You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
 
 0. You'll need Python 3.6.4...ish to run GeekSort from source.
-For Windows folks, get it (here)[https://www.python.org/downloads/]
-For Mac Folks... (here?)[https://www.python.org/downloads/mac-osx/], unless it's installed already...
+For Windows folks, get it [here](https://www.python.org/downloads/)
+For Mac Folks... [here?](https://www.python.org/downloads/mac-osx/), unless it's installed already...
 For Linux Users, run your appropriate package getter to get the latest version, break your kernel, and have to reinstall ;)
 
-1. Checkout the (source)[https://bitbucket.org/geeksort/geeksort/src]
+1. Checkout the [source](https://bitbucket.org/geeksort/geeksort/src)
 
 2. Open up a command window in the directory you checked the source to
 
@@ -47,6 +47,7 @@ For Linux Users, run your appropriate package getter to get the latest version, 
 7. Once everything's ready, it'll populate your shelves in a default manner!
 
 8. At this point, you can experiment with different sorting methods in the Preferences tab, or edit some games.
+
 
 ## Some of my games have blue question marks!
 
@@ -75,7 +76,10 @@ It's not the prettiest solution, but there seemingly isn't an API for reading th
 
 ## I found a problem. Where do I go?
 
-Try checking out the (subreddit)[www.reddit.com/r/geeksort], or the (Trello board)[https://trello.com/b/GtFVkybB/issue-tracking], 
-which is linked at the (GeekSort BitBucket)[https://bitbucket.org/geeksort/geeksort/] page.
+Try checking out the [subreddit](www.reddit.com/r/geeksort), or the [Trello board](https://trello.com/b/GtFVkybB/issue-tracking), 
+which is linked at the [GeekSort BitBucket](https://bitbucket.org/geeksort/geeksort/) page.
 
 
+## I like this, I want to help!
+
+Check out the [Trello board](https://trello.com/b/GtFVkybB/issue-tracking) with steps on how to join/post. 
