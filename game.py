@@ -202,7 +202,6 @@ class Game:
             self.publishers = get_node_values(gd, "boardgamepublisher")
 
             self.weight = get_valuef(gd, "statistics/ratings/averageweight")
-            print(self.weight, self.name)
 
         except ValueError as e:
             print(e)

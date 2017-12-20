@@ -35,6 +35,13 @@ class GameFilters:
     def __init__(self, gameNodes, progressFunc, doneFunc):
         self.all = []
         self.unplaced = []
+        self.sorted = []
+        self.excluded = []
+        self.filtered = []
+        self.inBoxes = []
+        self.noBoxes = []
+        self.noVersions = []
+        self.noData = []
         self.by_id = {}
         progressFunc( 0.0 )
         for index in range(len(gameNodes)):
@@ -64,11 +71,16 @@ class GameFilters:
 
     def get_sorted_boxes(self, sortfuncs, filterfuncs):
         sortedboxes = []
+        self.filtered = []
         if len(filterfuncs) > 0:
             for agame in self.sorted:
                 for func, op, values, rev in filterfuncs:
+                    # some filters may return non-binary values
+                    # but, we only wanna check filters that TRULY pass
                     if op(func(agame), *values) == True:
                         sortedboxes.append(agame)
+                    else:
+                        self.filtered.append(agame)
         else:
             sortedboxes = self.sorted
 
@@ -127,6 +139,7 @@ class App:
         self.scrollNoVers = None
         self.scrollNoDims = None
         self.scrollExclude = None
+        self.scrollFilter = None
 
         self.games = None
         self.cases = []
@@ -347,7 +360,7 @@ class App:
         # print(("versionless")
 
         # only add versionless shelf if we need it
-        if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) > 0:
+        if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) + len(self.games.filtered) > 0:
             if self.tkSideNotebook is None:
                 self.tkSideNotebook = ttk.Notebook(self.tkFrame)
                 self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
@@ -361,6 +374,9 @@ class App:
 
             self.scrollExclude = self._make_scroller(self.scrollExclude, "Excluded", highestshelf, self.games.excluded,
                                                      self.unexclude)
+
+            self.scrollFilter = self._make_scroller(self.scrollFilter, "Filtered", highestshelf, self.games.filtered,
+                                                    self.open_size_editor)
 
         elif self.tkSideNotebook is not None:
             self.tkSideNotebook.pack_forget()
