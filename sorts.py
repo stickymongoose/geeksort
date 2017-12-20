@@ -19,7 +19,18 @@ BGG_RATINGS = [ "10 - Outstanding, will always enjoy playing"
               , "2 - Very Bad, won't play ever again"
               , "1 - Awful, defies description"
               ]
-# a bit silly to have them match, but it helps prevent typos
+
+WEIGHT_VALUES = [ "1 - Light"
+                , "1.5"
+                , "2 - Medium Light"
+                , "2.5"
+                , "3 - Medium"
+                , "3.5"
+                , "4 - Medium Heavy"
+                , "4.5"
+                , "5 - Heavy"
+                ]
+
 EMPTY = ""
 
 # GENERAL FUNCTORS
@@ -29,7 +40,7 @@ def Name(g):
 def Size(g):
     return -(g.x * g.y * g.z)
 
-def Color(g):
+def Brightness(g):
     return game.color_brightness(g.color)
 
 def Weight(g):
@@ -157,10 +168,11 @@ class FieldFactory_SelMenu(FieldFactory_Base):
 
 
 
-class FieldFactory_RatingMenu(FieldFactory_Base):
-    def __init__(self, count):
+class FieldFactory_FixedSelMenu(FieldFactory_Base):
+    def __init__(self, count, data):
         FieldFactory_Base.__init__(self)
         self.count = count
+        self.data = data
 
     def add_widget(self, owner):
         tkWidgets = []
@@ -179,18 +191,18 @@ class FieldFactory_RatingMenu(FieldFactory_Base):
         menu = Tk.Menu(owner, tearoff=0)
 
         te = Tk.IntVar(menu)
-        self.__set_value(te, BGG_RATINGS[len(BGG_RATINGS) // 2])
+        self.__set_value(te, self.data[len(self.data) // 2])
         menuBtn = ttk.Menubutton(owner, textvariable=te, menu=menu
                                  , direction=Tk.RIGHT, width=3)
         menuBtn.pack(side=Tk.LEFT)
 
-        for rating in BGG_RATINGS:
+        for rating in self.data:
             menu.add_command(label=rating, command=functools.partial(self.__set_value, te, rating))
 
         return [menu, menuBtn], [te]
 
     def __set_value(self, te, rating, *values):
-        te.set( int(rating.split(" - ")[0] ) )
+        te.set( float(rating.split(" - ")[0] ) )
 
     def convert_field(self, field):
         return field
@@ -208,30 +220,11 @@ WideEntry      = FieldFactory_Entry(1, 20)
 NarrowEntry    = FieldFactory_EntryNum(1, 8)
 DblNarrowEntry = FieldFactory_EntryNum(2, 8)
 
-RatingEntry    = FieldFactory_RatingMenu(1)
-DblRatingEntry = FieldFactory_RatingMenu(2)
+RatingEntry    = FieldFactory_FixedSelMenu(1, BGG_RATINGS)
+DblRatingEntry = FieldFactory_FixedSelMenu(2, BGG_RATINGS)
 
-STRING_DATA = \
-    [("as is",           NoEntry,      identity)
-    ,("contains",        WideEntry,    operator.contains )
-    ,("doesn't contain", WideEntry,    not_contains )]
-
-NUMBER_DATA = \
-     [("as is",        NoEntry,        identity)
-     ,("equals",       NarrowEntry,    operator.eq)
-     ,("less than",    NarrowEntry,    operator.lt)
-     ,("greater than", NarrowEntry,    operator.gt)
-     ,("between",      DblNarrowEntry, between)]
-
-RATING_DATA = \
-     [("as is",        NoEntry,        identity)
-     ,("equals",       RatingEntry,    operator.eq)
-     ,("less than",    RatingEntry,    operator.lt)
-     ,("greater than", RatingEntry,    operator.gt)
-     ,("between",      DblRatingEntry, between)]
-
-
-NOTHING_DATA = [("as is", NoEntry, identity)]
+WeightEntry    = FieldFactory_FixedSelMenu(1, WEIGHT_VALUES)
+DblWeightEntry = FieldFactory_FixedSelMenu(2, WEIGHT_VALUES)
 
 FamilyFactory = FieldFactory_SelMenu(setlist.Families)
 CatFactory = FieldFactory_SelMenu(setlist.Categories)
@@ -242,6 +235,27 @@ PubFactory = FieldFactory_SelMenu(setlist.Publishers)
 
 AnyOf = "are any of"
 AllOf = "are all of"
+
+
+def NUMERICAL(onefield, twofield):
+     return \
+     [("as is",        NoEntry,  identity)
+     ,("equals",       onefield, operator.eq)
+     ,("less than",    onefield, operator.lt)
+     ,("greater than", onefield, operator.gt)
+     ,("between",      twofield, between)]
+
+STRING_DATA = \
+    [("as is",           NoEntry,      identity)
+    ,("contains",        WideEntry,    operator.contains )
+    ,("doesn't contain", WideEntry,    not_contains )]
+
+NUMBER_DATA = NUMERICAL(NarrowEntry, DblNarrowEntry)
+RATING_DATA = NUMERICAL(RatingEntry, DblRatingEntry)
+WEIGHT_DATA = NUMERICAL(WeightEntry, DblWeightEntry)
+
+NOTHING_DATA = [("as is", NoEntry, identity)]
+
 
 FAMILY_DATA = [(AnyOf, FamilyFactory, any_list)
             , (AllOf, FamilyFactory, all_list)]
@@ -267,25 +281,25 @@ DATA_STRINGS = 0
 DATA_TYPES = 1
 DATA_FUNC = 2
 FUNC_ID = 3
-RAW_DATA = [("Name",            STRING_DATA,   Name)
-          , ("Size",            NUMBER_DATA,   Size)
-          , ("Color",           NOTHING_DATA,  Color)
-          , ("Physical Weight", NUMBER_DATA,   Weight)
-          , ("Min Players",     NUMBER_DATA,   lambda g:g.minplayers)
-          , ("Max Players",     NUMBER_DATA,   lambda g:g.maxplayers)
-          , ("Min Playing Time", NUMBER_DATA,  lambda g:g.minplaytime)
-          , ("Max Playing Time", NUMBER_DATA,  lambda g:g.maxplaytime)
-          , ("Family",          FAMILY_DATA,   lambda g:g.families)
-          , ("Category",        CAT_DATA,      lambda g:g.categories)
-          , ("Mechanics",       MECH_DATA,     lambda g:g.mechanics)
-          , ("Designer",        DESI_DATA,     lambda g:g.designers)
-          , ("Artist",          ART_DATA,      lambda g:g.artists)
-          , ("Publisher",       PUB_DATA,      lambda g:g.publishers)
-          , ("# of Plays",      NUMBER_DATA,   lambda g:g.num_plays)
+RAW_DATA = [("Name",             STRING_DATA,   Name)
+          , ("Size",             NUMBER_DATA,   Size)
+          , ("Color Brightness", NUMBER_DATA,   Brightness)
+          , ("Physical Weight",  NUMBER_DATA,   Weight)
           , ("Rating (Average)", RATING_DATA,   lambda g:g.rating_ave)
-          , ("Rating (Ranked)", RATING_DATA,   lambda g:g.rating_bayes)
-          , ("Rating (Mine)",   RATING_DATA,   lambda g:g.rating_user)
-          , ("Complexity",      RATING_DATA,   lambda g:g.weight)
+          , ("Rating (Ranked)",  RATING_DATA,   lambda g:g.rating_bayes)
+          , ("Rating (Mine)",    RATING_DATA,   lambda g:g.rating_user)
+          , ("Complexity",       WEIGHT_DATA,   lambda g:g.weight)
+          , ("Min Players",      NUMBER_DATA,   lambda g:g.minplayers)
+          , ("Max Players",      NUMBER_DATA,   lambda g:g.maxplayers)
+          , ("Min Playing Time", NUMBER_DATA,   lambda g:g.minplaytime)
+          , ("Max Playing Time", NUMBER_DATA,   lambda g:g.maxplaytime)
+          , ("# of Plays",       NUMBER_DATA,   lambda g:g.num_plays)
+          , ("Family",           FAMILY_DATA,   lambda g:g.families)
+          , ("Category",         CAT_DATA,      lambda g:g.categories)
+          , ("Mechanics",        MECH_DATA,     lambda g:g.mechanics)
+          , ("Designer",         DESI_DATA,     lambda g:g.designers)
+          , ("Artist",           ART_DATA,      lambda g:g.artists)
+          , ("Publisher",        PUB_DATA,      lambda g:g.publishers)
           # @TODO, add more, or revisit this to be a bit more expansive
     ]
 

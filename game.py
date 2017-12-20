@@ -158,6 +158,7 @@ class Game:
         self.minplayers = self.maxplayers = -1
         self.minplaytime = self.maxplaytime = -1
         self.num_plays = int(get_text(xmlfromcollection, "numplays", 0))
+        self.weight = -1
 
         try:
             stats = xmlfromcollection.find("stats")
@@ -179,7 +180,8 @@ class Game:
 
             self.rating_bayes = get_valuef(rating, "bayesaverage")
             self.rating_ave   = get_valuef(rating, "average")
-        except:
+        except Exception as e:
+            print(self.name, e)
             pass
 
         # game data we can't get from the collection's data
@@ -198,6 +200,9 @@ class Game:
             self.designers  = get_node_values(gd, "boardgamedesigner")
             self.artists    = get_node_values(gd, "boardgameartist")
             self.publishers = get_node_values(gd, "boardgamepublisher")
+
+            self.weight = get_valuef(gd, "statistics/ratings/averageweight")
+            print(self.weight, self.name)
 
         except ValueError as e:
             print(e)
