@@ -47,7 +47,7 @@ GAME_VERSIONS_URL = "https://boardgamegeek.com/boardgame/{id}/xxx/versions"
 API_COLL_URL    = 'http://www.boardgamegeek.com/xmlapi2/collection?username={id}&own=1&version=1&stats=1'
 API_GAME_URL    = 'http://www.boardgamegeek.com/xmlapi2/thing?id={id}&stats=1&version=1'
 
-CACHE_DIR = "cache"
+CACHE_DIR = "__cache__"
 
 def ceilFraction(val, factor):
     return math.ceil(val*factor)/factor
