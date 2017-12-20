@@ -12,7 +12,7 @@ If you're raring to start sorting games onto your shelves and don't care about t
 
 2. Unzip the package into the appropriate place.
 
-3. Jump down to [Operating Instructions](Operating_Instructions)
+3. Jump down to [Operating Instructions](README.md/Operating_Instructions)
 
 ## For the advanced
 You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
