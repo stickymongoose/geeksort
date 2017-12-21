@@ -165,10 +165,10 @@ class Game:
 
             #while we could (ab)use reflection to just attach these to our class,
             # I can't think of a good way to then have it default to good values if not found
-            self.minplayers = stats.get("minplayers", -1)
-            self.maxplayers = stats.get("maxplayers", -1)
-            self.minplaytime = stats.get("minplaytime", -1)
-            self.maxplaytime = stats.get("maxplaytime", -1)
+            self.minplayers = int(stats.get("minplayers", -1))
+            self.maxplayers = int(stats.get("maxplayers", -1))
+            self.minplaytime = int(stats.get("minplaytime", -1))
+            self.maxplaytime = int(stats.get("maxplaytime", -1))
             rating = stats.find("rating")
             try:
                 # rating may be returned as "N/A", so we cast it to a float to see if it's that

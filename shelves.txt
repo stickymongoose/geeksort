@@ -1,12 +1,35 @@
+
+# Set the unit the shelves following are in.
+# Note, you can intermingle this with your data.
 #unit = cm
 unit = in
 
-# Name  Width   Depth   Height(s)
 # Assumption is that shelves are like bookcases:
 # Fixed width and depth, adjustable shelf height
+# Thus, if the width/depth of your shelves change, FOR NOW, it's best to make them two separate cases
 
-Shelf 1	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
-Shelf 2	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
-Shelf 3	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
-Shelf 4	    33 7/8	11 1/2	13	    12 5/8	13	13 1/4	11 1/2
-Short Shelf	33 7/8	11 1/2	12 3/4	10 3/8
+# Numbers can be either fractions or decimal. Fractions are best for imperial units.
+# Specify a fraction like 5-1/2, as spaces separate
+# If you want a space in your name, use - or _
+# Each heights specifies a new shelf. Want 5 shelves? Give 5 heights.
+
+# Name          Width	  Depth		Height(s), from top to bottom.
+Bookcase_1	33-7/8	  11-1/2	13	    12-5/8	13	13-1/4	11-1/2
+Bookcase_2	33-7/8	  11-1/2	13	    12-5/8	13	13-1/4	11-1/2
+Bookcase_3	33-7/8	  11-1/2	13	    12-5/8	13	13-1/4	11-1/2
+Bookcase_4	33-7/8	  11-1/2	13	    12-5/8	13	13-1/4	11-1/2
+Short_Case	33-7/8	  11-1/2	12-3/4		10-3/8
+
+
+# Examples
+unit = cm
+# Ikea_Billy_Narrow	36	26	<Various heights>
+# Ikea_Billy_Wide	76	26	<Various heights>
+
+# These are like the common 13"x13" cube shelves that Target also sells
+# Ikea_Kallax_4		32	32	32	32	32	32
+# Ikea_Kallax_5		32	32	32	32	32	32	32
+
+unit = in
+# Also called Sauder Camden County Library
+# Sauder_Premier	33-7/8	11-1/2	<Various heights>
