@@ -1,4 +1,4 @@
-![what it looks like](https://bitbucket.org/GeekSort/GeekSort/web/raw/master/example.png)
+![Example of Geeksort](web/example.png)
 
 ## What is this?
 Maybe you've got a lot of board games. Maybe you don't have a lot of shelves. Maybe you just like things organized.
