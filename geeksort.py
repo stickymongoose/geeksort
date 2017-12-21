@@ -72,15 +72,23 @@ class GameFilters:
     def get_sorted_boxes(self, sortfuncs, filterfuncs):
         sortedboxes = []
         self.filtered = []
+        class FailedFilter(Exception): pass
+
         if len(filterfuncs) > 0:
             for agame in self.sorted:
-                for func, op, values, rev in filterfuncs:
-                    # some filters may return non-binary values
-                    # but, we only wanna check filters that TRULY pass
-                    if op(func(agame), *values) == True:
-                        sortedboxes.append(agame)
-                    else:
-                        self.filtered.append(agame)
+                try:
+                    for func, op, values, rev in filterfuncs:
+                        # some filters may return non-binary values
+                        # but, we only wanna check filters that TRULY pass
+                        if op(func(agame), *values) != True:
+                            raise FailedFilter()
+
+                except FailedFilter:
+                    self.filtered.append(agame)
+                    continue
+
+                # passed all filters, success!
+                sortedboxes.append(agame)
         else:
             sortedboxes = self.sorted
 

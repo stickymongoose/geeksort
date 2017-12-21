@@ -59,7 +59,7 @@ def set_user(user):
     _game_xml = fetch.get(filename, lambda:ET.parse(filename), API_GAME_URL.format(id=gameidstring))
 
     if _game_xml.getroot().tag == "div":
-        print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text))
+        print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
         os.remove(filename)
         set_user(user)
     else:
