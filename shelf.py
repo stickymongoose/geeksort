@@ -30,7 +30,9 @@ StackSort_names = ["Weight", "Size"]
 
 class Bookcase:
     def __init__(self, line, ismetric):
-        bits = line.split('\t')
+        bits = line.split()
+        # since spaces are parsed out, we gotta use hyphens or underscores to separate
+        bits = [b.replace("-", " ").replace("_", " ") for b in bits]
         self.shelves = []
         self.name = bits[0]
 
