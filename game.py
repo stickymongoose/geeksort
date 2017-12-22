@@ -12,11 +12,17 @@ import hover
 import webbrowser
 import sizewindow
 import setlist
+import functools
 
 VerticalLong = "zy"
 VerticalShort = "zx"
 HorizLong = "xz"
 HorizShort = "yz"
+
+# TODO: Adjust this message based on guesstimation method
+GUESSED_MESSAGE =\
+"""Size approximated, based on the largest size in BGG.
+If it's too large, it's probably in the wrong units (cm instead of in)"""
 
 
 def get_text(node, path, default):
@@ -272,6 +278,7 @@ class Game:
             self.make_image()
             self._make_box_art()
             self.set_size_and_adjust(self.xraw, self.yraw, self.zraw, self.wraw)
+            self.set_highlighted(self.highlighted)
         except:
             pass
 
@@ -410,7 +417,7 @@ class Game:
             col = 0xFFFFFF # just let it be white anyway
 
         if bPrint:
-            print("Return {:x}".format(col))
+            print("Return {:06x}".format(col))
         return col
 
 
@@ -463,6 +470,7 @@ class Game:
                                 , relief=Tk.RAISED
                                 #, wraplength=(self.shelfwidth * IN_TO_PX)-2
                                 , borderwidth=border
+                                , bg="red"
                                 #, bg=color
                                 , compound="center"
                                 #, fg=fontcolor
@@ -498,7 +506,8 @@ class Game:
         if self.guesstimated:
             self.tkIcon = Tk.Label(self.tkLabel, image=Game._guessed_img)
             self.tkIcon.place(relx=0, rely=0)
-            self.tkIcon.bind("<Motion>", self.onMove)
+            self.tkIcon.hovertext = GUESSED_MESSAGE
+            self.tkIcon.bind("<Motion>", self.onMoveGuessed)
 
 
     def clear_widget(self):
@@ -552,7 +561,7 @@ class Game:
     def onClick(self, event):
         #self.getcolor(True)
         self.set_highlighted(not self.highlighted)
-        print(self.name, self.lblwidth,  self.lblheight)
+        print(self.name, self.lblwidth,  self.lblheight, "{:06x}".format(self.color))
 
     def onRClick(self, event):
         hover.Hover.inst.onClear(None)
@@ -561,6 +570,9 @@ class Game:
 
     def onMove(self, event):
         hover.Hover.inst.onMove(self, event)
+
+    def onMoveGuessed(self, event):
+        hover.Hover.inst.onMove(self.tkIcon, event)
 
     def search(self, text):
         if len(text)==0:
@@ -578,7 +590,7 @@ class Game:
 
         return int(matched)
 
-    def set_highlighted(self, highlighted, bg='yellow'):
+    def set_highlighted(self, highlighted):
         self.highlighted = highlighted
         try:
             if highlighted:

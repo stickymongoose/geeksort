@@ -7,6 +7,8 @@ import contrib.mixed_fractions as mixed_fractions
 import setlist
 from constants import top
 
+FILTER_WIDTH = 450
+
 DEFAULT_LIST = "Any"
 
 BGG_RATINGS = [ "10 - Outstanding, will always enjoy playing"
@@ -94,11 +96,11 @@ class FieldFactory_Entry(FieldFactory_Base):
         for i in range(self.count):
             if i > 0:
                 l = ttk.Label(owner, text="and")
-                l.pack(side=Tk.LEFT, padx=5)
+                l.pack(side=Tk.LEFT, padx=5, anchor=Tk.W)
                 tkWidgets.append(l)
             v = Tk.StringVar(owner)
             e = ttk.Entry(owner, textvariable=v, width=self.width)
-            e.pack(side=Tk.LEFT)
+            e.pack(side=Tk.LEFT, anchor=Tk.W)
             tkWidgets.append(e)
             vars.append(v)
         return tkWidgets, vars
@@ -123,7 +125,7 @@ class FieldFactory_SelMenu(FieldFactory_Base):
         te = Tk.StringVar(menu, DEFAULT_LIST)
         menuBtn = ttk.Menubutton(owner, textvariable=te, menu=menu
                                  , direction=Tk.RIGHT, width=20)
-        menuBtn.pack(side=Tk.LEFT)
+        menuBtn.pack(side=Tk.LEFT, anchor=Tk.W)
         tkWidgets.append(menuBtn)
 
         for d in sorted(self.data):
@@ -180,7 +182,7 @@ class FieldFactory_FixedSelMenu(FieldFactory_Base):
         for i in range(self.count):
             if i > 0:
                 l = ttk.Label(owner, text="and")
-                l.pack(side=Tk.LEFT, padx=5)
+                l.pack(side=Tk.LEFT, padx=5, anchor=Tk.W)
                 tkWidgets.append(l)
             w, v = self.__make_picker(owner)
             tkWidgets += w
@@ -194,7 +196,7 @@ class FieldFactory_FixedSelMenu(FieldFactory_Base):
         self.__set_value(te, self.data[len(self.data) // 2])
         menuBtn = ttk.Menubutton(owner, textvariable=te, menu=menu
                                  , direction=Tk.RIGHT, width=3)
-        menuBtn.pack(side=Tk.LEFT)
+        menuBtn.pack(side=Tk.LEFT, anchor=Tk.W)
 
         for rating in self.data:
             menu.add_command(label=rating, command=functools.partial(self.__set_value, te, rating))
@@ -337,7 +339,7 @@ class FilterEntryUI(Tk.Frame):
         self.field_factory = None
 
         self.tkField = OpMenu(self, ALL_TYPE_DATA[DATA_STRINGS], self.__field_changed)
-        self.tkField.pack(side=Tk.LEFT)
+        self.tkField.pack(side=Tk.LEFT, anchor=Tk.W)
 
         self.__field_changed(0)
 
@@ -367,7 +369,7 @@ class FilterEntryUI(Tk.Frame):
             self.op_data = type_data[DATA_OPS]
 
             self.tkOp = OpMenu(self, self.op_labels, self.__set_value)
-            self.tkOp.pack(side=Tk.LEFT)
+            self.tkOp.pack(side=Tk.LEFT, anchor=Tk.W)
             self.__set_value(0) # has to happen BEFORE the pack
 
     def __set_value(self, index):
@@ -404,6 +406,9 @@ class FilterEntryUI(Tk.Frame):
 
 
 class FilterBuilderUI(Tk.Frame):
+    """Main widget that builds a sort/filter option.
+    It's constituent parts are FilterEntryUIs"""
+
     addimg = None
     subimg = None
     upimg = None
@@ -428,11 +433,11 @@ class FilterBuilderUI(Tk.Frame):
         self.fbFrame.pack(anchor=Tk.NW)
 
         # divider/width-enforcer
-        Tk.Frame(self, border=2, relief=Tk.RIDGE, bg=self["bg"], width=450) \
+        Tk.Frame(self, border=2, relief=Tk.RIDGE, bg=self["bg"], width=FILTER_WIDTH) \
             .pack(pady=0, fill=Tk.X, padx=2)
 
         Tk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
-            .pack(side=Tk.LEFT)
+            .pack(side=Tk.LEFT, padx=(10, 0), anchor=Tk.W)
 
     def set(self, preload):
         for func, op, values, reversed in preload:
@@ -445,19 +450,28 @@ class FilterBuilderUI(Tk.Frame):
 
     def __add(self):
         frm = Tk.Frame(self.fbFrame, bg=self["bg"])
-        frm.reversed = False
-        killbtn     = Tk.Button(frm, image=FilterBuilderUI.subimg, height=28, command=functools.partial(self.__sub, frm))
-        frm.upbtn   = Tk.Button(frm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
-        frm.downbtn = Tk.Button(frm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
-        frm.reverbtn = Tk.Button(frm, text="▲A-Z", command=functools.partial(self.__toggle, frm))
-        new = FilterEntryUI(frm, bg=self["bg"])
-        frm.entry = new # so we can track it later
 
-        killbtn.grid(column=0, row=0, rowspan=2)
-        frm.upbtn.grid(column=1, row=0, sticky=Tk.N)
-        frm.downbtn.grid(column=1, row=1, sticky=Tk.S)
-        new.grid(column=5, row=0, rowspan=2)
-        frm.reverbtn.grid(column=10,row=0, rowspan=2)
+        subfrm = Tk.Frame(frm, bg=self["bg"])
+        killbtn     = Tk.Button(subfrm, image=FilterBuilderUI.subimg, height=28, command=functools.partial(self.__sub, frm))
+        frm.upbtn   = Tk.Button(subfrm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
+        frm.downbtn = Tk.Button(subfrm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
+        frm.reverbtn = Tk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm))
+
+        frm.spacer = Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", width=450)
+
+        new = FilterEntryUI(subfrm, bg=self["bg"])
+        frm.reversed = False
+        frm.entry = new  # so we can track it later
+
+        killbtn.grid(column=0, row=0, rowspan=2, sticky=Tk.W, padx=(10, 0))
+        frm.upbtn.grid(column=1, row=0, sticky=Tk.NW)
+        frm.downbtn.grid(column=1, row=1, sticky=Tk.SW)
+        new.grid(column=2, row=0, rowspan=2, sticky=Tk.W)
+
+        subfrm.pack(anchor=Tk.NW, pady=5)
+        frm.spacer.pack(anchor=Tk.NW, pady=5)
+
+
         self.list_items.append(frm)
         self.__reorder()
         try:
@@ -501,7 +515,7 @@ class FilterBuilderUI(Tk.Frame):
         length = len(self.list_items)
         for i in range(length):
             frm = self.list_items[i]
-            frm.grid(row=i+10, sticky=Tk.NW)
+            frm.grid(row=i+10, sticky=Tk.NW, pady=(5,0))
 
             frm.upbtn.configure(  state=Tk.NORMAL if length>1 and i>0        else Tk.DISABLED)
             frm.downbtn.configure(state=Tk.NORMAL if length>1 and i<length-1 else Tk.DISABLED)

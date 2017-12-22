@@ -63,7 +63,6 @@ class Chord(Frame):
     def __init__(self, master, title, width, body_background="white", background="#f0f0f0", foreground="#333333", selected_background="#1ba1e2", selected_foreground="white", active_foreground="#0067cb", cursor="hand1"):
         Frame.__init__(self, master, background="white")
         self._title = title
-
         self._background = background
         self._foreground = foreground
         self._active_foreground = active_foreground
@@ -220,8 +219,8 @@ class Accordion(Frame):
         self._width = width
         self._list_of_chords = []
 
-    def create_chord(self, title, background="white"):
-        chord = Chord(self, title=title, body_background=background, width=self._width)
+    def create_chord(self, title, background="white", *args, **kwargs):
+        chord = Chord(self, title=title, body_background=background, width=self._width, *args, **kwargs)
         self._list_of_chords.append(chord)
 
         if len(self._list_of_chords) == 1:

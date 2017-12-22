@@ -102,12 +102,12 @@ class Popup:
         # buttons
         self.geekimg = Tk.PhotoImage(file="pics/bgg.png")
         bggbtn = Tk.Button(insetframe, text="Edit Entry on BGG", command=self.openurl
-            , bg="lightblue", compound=Tk.RIGHT, image=self.geekimg,  padx=15)
+            , bg=BGG_BTN_COLOR, compound=Tk.RIGHT, image=self.geekimg,  padx=15)
         bggbtn.pack(pady=5)
         btnframe = Tk.Frame(insetframe)
         btnframe.pack(pady=5)
-        okbtn  = Tk.Button(btnframe, text="OK",           width=15, height=2, command=self.commit, bg="lightgreen")
-        nokbtn = Tk.Button(btnframe, text="Cancel",       width=15, height=2, command=self.close, bg="red2")
+        okbtn  = Tk.Button(btnframe, text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.commit, bg=OK_BTN_COLOR)
+        nokbtn = Tk.Button(btnframe, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.close, bg=CANCEL_BTN_COLOR)
 
 
         okbtn.pack(side=Tk.LEFT, padx=20)

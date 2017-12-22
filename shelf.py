@@ -456,18 +456,21 @@ class Shelf:
 
     def onClick(self, event):
         total_width = 0.0
+        total_realwidth = 0.0
         for st in self.stacks:
-            print(st.name,  st.games[0].lblwidth)
+            print(st.name,  st.games[0].lblwidth, st.games[0].shelfwidth)
             total_width += st.games[0].lblwidth
+            total_realwidth += st.games[0].shelfwidth
             for g in st.games:
                 print("\t",  g.name)
 
 
         for g in self.games:
-            print(g.name,  g.lblwidth)
+            print(g.name,  g.lblwidth, g.shelfwidth)
             total_width += g.lblwidth
+            total_realwidth += g.shelfwidth
 
-        print(total_width, self.frmwidth)
+        print(total_width, self.frmwidth, total_realwidth, self.maxwidth)
 
 
 def read(filename):

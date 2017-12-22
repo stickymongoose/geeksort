@@ -120,14 +120,14 @@ class PreferencesUI(Tk.Toplevel):
         frm = Tk.Frame(self, borderwidth=10)
         frm.pack(anchor=Tk.SW, side=Tk.LEFT)
 
-        acc = accordion.Accordion(frm, 450)
+        acc = accordion.Accordion(frm, sorts.FILTER_WIDTH)
         acc.pack(anchor=Tk.NW)
-        sortchord = acc.create_chord("Sorting Criteria").body
+        sortchord = acc.create_chord("Sorting Criteria", cursor=None).body
         self.sortWidget = sorts.FilterBuilderUI(sortchord)
         self.sortWidget.pack(anchor=Tk.W)
         self.sortWidget.set(self.pref.sortFuncs)
 
-        filtchord = acc.create_chord("Filtering Criteria").body
+        filtchord = acc.create_chord("Filtering Criteria", cursor=None).body
         self.filtWidget = sorts.FilterBuilderUI(filtchord)
         self.filtWidget.pack(anchor=Tk.W)
         self.filtWidget.set(self.pref.filterFuncs)
@@ -136,7 +136,7 @@ class PreferencesUI(Tk.Toplevel):
         PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
         PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort",  pref.set_prefs).pack()
 
-        btn = Tk.Button(frm, text="Re-Sort Games", width=20, command=self.resort)
+        btn = Tk.Button(frm, text="Re-Sort Games", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.resort, bg=RESORT_BTN_COLOR)
         btn.bind("<Return>", btn["command"])
         btn.pack()
 

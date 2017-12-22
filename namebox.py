@@ -1,5 +1,6 @@
 import tkinter as Tk
 import tkinter.ttk as ttk
+from constants import *
 
 
 class NameBox(Tk.Toplevel):
@@ -19,8 +20,8 @@ class NameBox(Tk.Toplevel):
 
         frm =  Tk.Frame(self)
         frm.grid(pady=15, padx=10)
-        okbtn = Tk.Button(frm, text="OK", width=15, height=2, command=self.set_name, bg="lightgreen")
-        nokbtn = Tk.Button(frm, text="Cancel", width=15, height=2, command=self.destroy, bg="red2")
+        okbtn = Tk.Button(frm,  text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.set_name, bg=OK_BTN_COLOR)
+        nokbtn = Tk.Button(frm, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.destroy,  bg=CANCEL_BTN_COLOR)
 
         okbtn.pack(side=Tk.LEFT, padx=20)
         nokbtn.pack(side=Tk.RIGHT, padx=20)
