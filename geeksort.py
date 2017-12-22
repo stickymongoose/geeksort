@@ -124,17 +124,22 @@ class App:
 
 
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
+        self.geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
+
+
 
         filemenu = Tk.Menu(self.menu, tearoff=0)
-        self.menu.add_cascade(menu=filemenu, label="File")
-        filemenu.add_command(label="Change User", command=self.prompt_name)
-        filemenu.add_command(label="Reload Shelves.txt", command=self.reload_shelves)
+        self.menu.add_cascade(menu=filemenu, label="File", underline=0)
+        filemenu.add_command(label="Change User", command=self.prompt_name, underline=0)
+        filemenu.add_command(label="Reload Collection from BGG", command=self.reload_games
+                             , image=self.geekimg, underline=7, compound=Tk.RIGHT)
+        filemenu.add_command(label="Reload Shelves.txt", command=self.reload_shelves, underline=7)
         filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.exit)
+        filemenu.add_command(label="Exit", command=self.exit, underline=1)
 
         sorting = Tk.Menu(self.menu, tearoff=0)
-        self.menu.add_cascade(menu=sorting, label="Sorting")
-        sorting.add_command(label="Change Criteria...", command=self.prompt_prefs)
+        self.menu.add_cascade(menu=sorting, label="Sorting", underline=0)
+        sorting.add_command(label="Change Criteria...", command=self.prompt_prefs, underline=0)
 
         self.tkWindow.config(menu=self.menu)
 
@@ -235,14 +240,14 @@ class App:
           self.searchBox.register(bc)
           bc.make_shelf_widgets(self.tkFrame)
 
-    def collection_fetch(self, username):
+    def collection_fetch(self, username, forcereload=False):
         print("collection_fetch", threading.current_thread().name)
 
-        def _realfetch(self:App, username):
+        def _realfetch(self:App, username, forcereload):
             self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
             self.preferences.user = username
             game.Game._user = username
-            collection.set_user(username)
+            collection.set_user(username, forcereload)
             root = collection.get_collection(game.Game._user)
 
             collectionNodes = root.findall("./item") # get all items
@@ -280,7 +285,7 @@ class App:
             print("Waiting to fetch", threading.current_thread().name)
             self.workerThread.join()
             print("Done", threading.current_thread().name)
-        self.workerThread = threading.Thread(target=_realfetch, args=(self, username), name="Fetcher")
+        self.workerThread = threading.Thread(target=_realfetch, args=(self, username, forcereload), name="Fetcher")
         self.workerThread.start()
 
     def set_progress(self, pct):
@@ -289,6 +294,9 @@ class App:
 
     def game_fetch_complete(self):
         self.stop_work(WorkTypes.FETCH)
+
+    def reload_games(self):
+        self.collection_fetch(self.preferences.user, True)
 
     def reload_shelves(self):
         def _real_reload(self):

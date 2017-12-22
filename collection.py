@@ -45,11 +45,15 @@ def shutdown():
     for t in _threads:
         t.join()
 
-def set_user(user):
+def set_user(user, forcereload=False):
     print("User set to", user)
     global _collection_xml, _game_xml
     print("Fetching collection data...")
     filename = pathlib.Path(CACHE_DIR) / "collection_{}.xml".format(user)
+
+    if forcereload:
+        os.remove(filename)
+
     _collection_xml = fetch.get(filename, lambda: ET.parse(filename), API_COLL_URL.format(id=user))
 
     print("Fetching game data...")
