@@ -59,6 +59,11 @@ class SidePreference(IntEnum):
     Left = 0
     Right = 1
 
+class SizePreference(IntEnum):
+    Biggest = 0
+    MostCommon = 1
+    Average = 2
+
 SidePreference_names = ["Left", "Right"]
 
 class ActionMenu(Tk.Menu):
@@ -108,16 +113,23 @@ class Game:
     _user = None
     _app = None
     _sidepreference = SidePreference.Left
+    _sizepreference = SizePreference.Biggest
 
-    _not_ready = None
+    _not_ready_img = None
+    _guessed_img = None
 
     @staticmethod
     def init():
-        Game._not_ready = Tk.PhotoImage(file="pics/notready.gif")
+        Game._not_ready_img = Tk.PhotoImage(file="pics/notready.gif")
+        Game._guessed_img   = Tk.PhotoImage(file="pics/guessed.gif")
 
     @staticmethod
     def set_side_preference(side:SidePreference):
         Game._sidepreference = side
+
+    @staticmethod
+    def set_size_preference(size: SizePreference):
+        Game._sizepreference = size
 
     def __init__(self, xmlfromcollection):
 
@@ -163,7 +175,7 @@ class Game:
         try:
             stats = xmlfromcollection.find("stats")
 
-            #while we could (ab)use reflection to just attach these to our class,
+            # while we could (ab)use reflection to just attach these to our class,
             # I can't think of a good way to then have it default to good values if not found
             self.minplayers = int(stats.get("minplayers", -1))
             self.maxplayers = int(stats.get("maxplayers", -1))
@@ -214,15 +226,16 @@ class Game:
         self.wraw = self.w = self.density = 0.0
         self.hasbox = False
         self.versionid = 0
+        self.guesstimated = False
 
         try:
             versionitem = xmlfromcollection.find("version/item")
 
             self.versionid = int(versionitem.get("id"))
 
-            self.set_size(get_valuer(versionitem, "width")
-                          , get_valuer(versionitem, "length")
-                          , get_valuer(versionitem, "depth")
+            self.set_size(get_valuef(versionitem, "width")
+                          , get_valuef(versionitem, "length")
+                          , get_valuef(versionitem, "depth")
                           , get_valuef(versionitem, "weight")
                           )
 
@@ -234,8 +247,10 @@ class Game:
             self.designers  = get_node_values(versionitem, "boardgamedesigner", self.designers)
             self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
             self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
-        except Exception as e: # no version data
-            #print(e)
+        except Exception as e:
+            # no version data, best guess it.
+            self.set_size_by_guess(gd.findall("versions/item"))
+
             #print("No version for",  self.name,  GAME_URL.format(id=self.id))
             pass
 
@@ -260,11 +275,44 @@ class Game:
         except:
             pass
 
+    def set_size_by_guess(self, nodes):
+        sizes = []
+        for n in nodes:
+            x = get_valuef(n, "width")
+            y = get_valuef(n, "length")
+            z = get_valuef(n, "depth")
+            w = get_valuef(n, "weight")
+
+            if x+y+z > 0:
+                rawobj  = (x, y, z, w)
+                sortobj = [ceilFraction(x, BOX_PRECISION)
+                        , ceilFraction(y, BOX_PRECISION)
+                        , ceilFraction(z, BOX_PRECISION)
+                          ]
+                sortobj.sort(reverse=True) # sort from big to small
+                sortkey = sortobj[0] * 1000000 + sortobj[1] * 1000 + sortobj[2]  # make a hashable key
+                sizes.append((sortkey, rawobj))
+
+        if len(sizes) > 0:
+            sizes.sort(reverse=True)
+            self.guesstimated = True
+            if Game._sizepreference == SizePreference.Biggest:
+                print(self.name, sizes[0][1])
+                self.set_size(*(sizes[0][1]))
+
+            elif Game._sizepreference == SizePreference.MostCommon or Game._sizepreference == SizePreference.Average:
+                # TODO: Figure out how to do this...
+                pass
+
     def set_size(self, x, y, z, w):
-        self.x = self.xraw = x
-        self.y = self.yraw = y
-        self.z = self.zraw = z
-        self.w = self.wraw = w
+        self.xraw = x
+        self.yraw = y
+        self.zraw = z
+        self.wraw = w
+        self.x = ceilFraction(x, BOX_PRECISION)
+        self.y = ceilFraction(y, BOX_PRECISION)
+        self.z = ceilFraction(z, BOX_PRECISION)
+        self.w = ceilFraction(w, BOX_PRECISION)
         self.density = 0
         # if somebody goofed on the 'depth', switch it
         if self.z > max(self.x,self.y):
@@ -428,7 +476,7 @@ class Game:
         except:
             while True:
                 try:
-                    self.tkLabel.configure(image=Game._not_ready)
+                    self.tkLabel.configure(image=Game._not_ready_img)
                     break
                 except Tk.TclError:
                     print("Picture error?")
@@ -446,6 +494,12 @@ class Game:
 
         # reset this to adjust the things we've made
         self.set_highlighted(self.highlighted)
+
+        if self.guesstimated:
+            self.tkIcon = Tk.Label(self.tkLabel, image=Game._guessed_img)
+            self.tkIcon.place(relx=0, rely=0)
+            self.tkIcon.bind("<Motion>", self.onMove)
+
 
     def clear_widget(self):
         try:
