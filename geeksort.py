@@ -124,18 +124,22 @@ class App:
 
 
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
-        self.menu.add_command(label="Change User", command=self.prompt_name)
-        self.menu.add_command(label="Adjust Preferences", command=self.prompt_prefs)
+
+        filemenu = Tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(menu=filemenu, label="File")
+        filemenu.add_command(label="Change User", command=self.prompt_name)
+        filemenu.add_command(label="Reload Shelves.txt", command=self.reload_shelves)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.exit)
+
+        sorting = Tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(menu=sorting, label="Sorting")
+        sorting.add_command(label="Change Criteria...", command=self.prompt_prefs)
+
         self.tkWindow.config(menu=self.menu)
+
         self.tkWindow.title("GeekSort")
 
-
-        # self.menu = Tk.Menu(self.tkFrame, tearoff=0)
-        # self.menu.add_command(label="Undo", command=lambda: print("Undo"))
-        # self.menu.add_command(label="Redo", command=lambda: print("Redo"))
-        # self.tkWindow.config(menu=self.menu)
-        #
-        # self.tkFrame.bind("<Button-3>", lambda e:self.menu.post(e.x_root, e.y_root))
 
         # make it last so it's on top of everything
         self.hover = hover.Hover(self.tkWindow)
@@ -175,6 +179,8 @@ class App:
         self.workerThread = None
         self.pref_window = None
 
+    def exit(self):
+        self.tkWindow.destroy()
 
     def prompt_name(self):
         namebox.NameBox(self.tkWindow, self, self.preferences)
@@ -217,6 +223,11 @@ class App:
         self.cases = shelf.read("shelves.txt")
         self._make_shelf_widgets()
 
+    def clear_shelves(self):
+        for c in self.cases:
+            self.searchBox.unregister(c)
+            c.clear_widgets()
+
     def _make_shelf_widgets(self):
         print("_make_shelf_widgets", threading.current_thread().name)
 
@@ -242,9 +253,7 @@ class App:
             # collection game in, so load the shelf collection
             savedcases, savedstack = shelf.load(username, self.games)
             if savedcases is not None or savedstack is not None:
-                for c in self.cases:
-                    self.searchBox.unregister(c)
-                    c.clear_widgets()
+                self.clear_shelves()
 
                 self.searchBox.unregister(self.stackUnplaced)
                 self.stackUnplaced.clear_games()
@@ -280,6 +289,19 @@ class App:
 
     def game_fetch_complete(self):
         self.stop_work(WorkTypes.FETCH)
+
+    def reload_shelves(self):
+        def _real_reload(self):
+            self.clear_shelves()
+            self.make_shelves()
+            self.sort_games()
+
+        if self.workerThread is not None:
+            print("Waiting to reload", threading.current_thread().name)
+            self.workerThread.join()
+            print("Done ", threading.current_thread().name)
+        self.workerThread = threading.Thread(target=_real_reload, args=(self,), name="Reloader").start()
+
 
     def resort_games(self):
         def _real_resort(self):
