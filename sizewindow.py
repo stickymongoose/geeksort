@@ -100,7 +100,7 @@ class Popup:
         d.pack(pady=8, fill=Tk.X, padx=2)
 
         # buttons
-        self.geekimg = Tk.PhotoImage(file="pics/bgg.png")
+        self.geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
         bggbtn = Tk.Button(insetframe, text="Edit Entry on BGG", command=self.openurl
             , bg=BGG_BTN_COLOR, compound=Tk.RIGHT, image=self.geekimg,  padx=15)
         bggbtn.pack(pady=5)
@@ -233,18 +233,22 @@ if __name__=="__main__":
     class fakeGame:
         def setsize(self, x, y, z, w): pass
 
+    class fakeApp:
+        pass
+
     fakegame = fakeGame()
+    fakeapp = fakeApp()
 
 
     #boximage = "pics/pic1993208_t.jpg"
-    boximage = "pics/pic1961827_t.jpg"
+    boximage = CACHE_DIR + "/pics/pic1961827_t.jpg"
     fakegame.hoverimgTk = ImageTk.PhotoImage(Image.open(boximage))
     fakegame.versionid = 13123
 
     fakegame.xraw = fakegame.yraw = fakegame.zraw = 10.125
     fakegame.wraw = 2.5
     fakegame.longname = "Castle of Mad King Ludwig"
-    s = Popup(root, fakegame)
+    s = Popup(root, fakegame, fakeapp)
     #s.top.lift()
     #root.wait_window(s.top)
 
