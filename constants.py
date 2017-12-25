@@ -19,6 +19,8 @@ FOUND_COLOR="#AFAF00"
 BTN_WIDTH=15
 BTN_HEIGHT=2 # in lines, just because
 
+TITLE_STRING = "GeekSort v0.5"
+
 RESORT_BTN_COLOR = "#E0E0FF"
 OK_BTN_COLOR = "darkseagreen1"
 CANCEL_BTN_COLOR = "#ffc0c0"

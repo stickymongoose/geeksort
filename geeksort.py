@@ -143,7 +143,7 @@ class App:
 
         self.tkWindow.config(menu=self.menu)
 
-        self.tkWindow.title("GeekSort")
+        self.tkWindow.title(TITLE_STRING)
 
 
         # make it last so it's on top of everything
@@ -366,8 +366,9 @@ class App:
 
         # print(("set title")
 
-        self.tkWindow.title("GeekSort Results {:.02f}/{:.02f} sqft {:.01f}%".format(
-            totalused*SQIN_TO_SQFEET
+        self.tkWindow.title("{} Results {:.02f}/{:.02f} sqft {:.01f}%".format(
+            TITLE_STRING
+            , totalused*SQIN_TO_SQFEET
             , totalarea*SQIN_TO_SQFEET
             , (totalused/totalarea)*100.0))
 

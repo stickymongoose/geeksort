@@ -18,6 +18,7 @@ class ScrollableList:
 
         self.tkList = Tk.Listbox(self.frm)
         self.tkList.bind("<Double-Button-1>", lambda evnt:actionfunc(evnt.widget.values[evnt.widget.curselection()[0]]))
+        self.tkList.bind("<Button-3>", self.onRClick)
         self.tkList.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
         self.tkList.bind("<Motion>", self.onHover)
 
@@ -28,7 +29,8 @@ class ScrollableList:
         self.tkList.config(yscrollcommand=scroll.set)
         scroll.config(command=self.tkList.yview)
 
-    def onHover(self, event):
+
+    def _convert_to_index(self, event):
         index = self.tkList.index("@{},{}".format(event.x, event.y))
 
         # there's seemingly a bug where it doesn't return out-of-range indices
@@ -39,7 +41,23 @@ class ScrollableList:
                 index = -1
 
         if index >= 0 and index < len(self.tkList.values):
-            game = self.tkList.values[index]
+            return self.tkList.values[index]
+
+        return None
+
+
+    def onRClick(self, event):
+        game = self._convert_to_index(event)
+        hover.Hover.inst.onClear(event)
+
+        if game is not None:
+            game.onRClick(event)
+
+
+    def onHover(self, event):
+        game = self._convert_to_index(event)
+
+        if game is not None:
             hover.Hover.inst.onMove(game, event)
         else:
             hover.Hover.inst.onClear(event)
