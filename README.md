@@ -10,11 +10,9 @@ This assumes that you have a [BoardGameGeek](www.boardgamegeek.com) account with
 ## For the impatient
 If you're raring to start sorting games onto your shelves and don't care about the most up-to-date version, this is for you.
 
-** These instructions aren't applicable just yet as there's no regular build process **
+1. **Download** the most recent build for your platform. Currently, just windows, [here](https://bitbucket.org/geeksort/geeksort/downloads/)
 
-1. **Download** the most recent build for your platform.
-
-2. **Unzip the package** into the appropriate place.
+2. **Unzip the package** into a place you like.
 
 3. Jump down to **Operating Instructions**.
 
