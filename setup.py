@@ -7,12 +7,17 @@ os.environ['TCL_LIBRARY'] = hacky_path + r'/tcl/tcl8.6'
 os.environ['TK_LIBRARY'] = hacky_path + r'/tcl/tk8.6'
 
 includes = []
-include_files = [hacky_path + r"/DLLs/tcl86t.dll", hacky_path + r"/DLLs/tk86t.dll"]
+include_files = [
+    hacky_path + r"/DLLs/tcl86t.dll",
+    hacky_path + r"/DLLs/tk86t.dll",
+    "README.md",
+    "shelves.txt"
+]
 
 subdirs = ["pics"]
 
 for dir in subdirs:
-    for files in os.listdir(dir):1
+    for files in os.listdir(dir):
         include_files.append( (dir + "/" + files, dir + "/" + files) )
 
 packages = ["os", "idna"]
