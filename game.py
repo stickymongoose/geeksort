@@ -19,6 +19,8 @@ VerticalShort = "zx"
 HorizLong = "xz"
 HorizShort = "yz"
 
+UNFOUND_GAME_NAME = "<Unknown>"
+
 # TODO: Adjust this message based on guesstimation method
 GUESSED_MESSAGE =\
 """Size approximated, based on the largest size in BGG.
@@ -89,7 +91,13 @@ class ActionMenu(Tk.Menu):
                          , command=self.to_bgg, underline=7)
         self.add_command(label="To Version List", image=geekimg, compound=Tk.LEFT
                          , command=self.to_version_selector, underline=15)
-        if game.versionid != 0:
+
+        if game.guesstimated:
+            self.add_command(label="To Guesstimated Version Entry", image=geekimg, compound=Tk.LEFT
+                             , command=self.to_version, underline=7)
+            self.add_command(label="To Guesstimated Version Editor", image=geekimg, compound=Tk.LEFT
+                             , command=self.to_version_edit, underline=7)
+        elif game.versionid != 0:
             self.add_command(label="To Version Entry", image=geekimg, compound=Tk.LEFT
                              , command=self.to_version, underline=7)
             self.add_command(label="To Version Editor", image=geekimg, compound=Tk.LEFT
@@ -232,12 +240,14 @@ class Game:
         self.wraw = self.w = self.density = 0.0
         self.hasbox = False
         self.versionid = 0
+        self.versionname = ""
         self.guesstimated = False
 
         try:
             versionitem = xmlfromcollection.find("version/item")
 
             self.versionid = int(versionitem.get("id"))
+            self.versionname = get_value(versionitem, "name", UNFOUND_GAME_NAME)
 
             self.set_size(get_valuef(versionitem, "width")
                           , get_valuef(versionitem, "length")
@@ -289,9 +299,11 @@ class Game:
             y = get_valuef(n, "length")
             z = get_valuef(n, "depth")
             w = get_valuef(n, "weight")
+            name = get_value(n, "name", UNFOUND_GAME_NAME)
+            id = int(n.get("id"))
 
             if x+y+z > 0:
-                rawobj  = (x, y, z, w)
+                rawobj  = {"size":(x, y, z, w), "name":name, "id":id}
                 sortobj = [ceilFraction(x, BOX_PRECISION)
                         , ceilFraction(y, BOX_PRECISION)
                         , ceilFraction(z, BOX_PRECISION)
@@ -301,11 +313,14 @@ class Game:
                 sizes.append((sortkey, rawobj))
 
         if len(sizes) > 0:
-            sizes.sort(reverse=True)
+            sizes.sort(reverse=True, key=lambda key: key[0])
             self.guesstimated = True
             if Game._sizepreference == SizePreference.Biggest:
-                print(self.name, sizes[0][1])
-                self.set_size(*(sizes[0][1]))
+                choice = sizes[0][1] # Top item, sortobj ([0] is the sort key)
+                print(self.name, choice)
+                self.set_size(*(choice["size"]))
+                self.versionname = choice["name"]
+                self.versionid = choice["id"]
 
             elif Game._sizepreference == SizePreference.MostCommon or Game._sizepreference == SizePreference.Average:
                 # TODO: Figure out how to do this...
@@ -428,7 +443,7 @@ class Game:
             self.hoverImgTk = None
 
     def make_lite_hover(self):
-        self.hovertext = "{self.longname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs".format(self=self)
+        self.hovertext = "{self.longname}\n{self.versionname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs".format(self=self)
 
     def make_widget(self, shelf, center=False):
         try:
@@ -436,7 +451,7 @@ class Game:
             self._make_box_art()
         except: pass
 
-        self.hovertext = "{self.longname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs\n{humdir} ({self.dir})".format(
+        self.hovertext = "{self.longname}\n{self.versionname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.get_human_dir())
 
         #color = "#{:06x}".format( self.color )
@@ -470,7 +485,7 @@ class Game:
                                 , relief=Tk.RAISED
                                 #, wraplength=(self.shelfwidth * IN_TO_PX)-2
                                 , borderwidth=border
-                                , bg="red"
+                                #, bg="red"
                                 #, bg=color
                                 , compound="center"
                                 #, fg=fontcolor

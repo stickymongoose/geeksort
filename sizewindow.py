@@ -16,6 +16,8 @@ UNIT_DATA = { Units.US_FRACTION:{"title":"Imperial, Fractions", "len":"in", "wei
             , Units.METRIC:     {"title":"Metric",              "len":"cm", "weight":"kg"}
             }
 
+GUESS_MESSAGE = "* Version was guesstimated, and may not be the one in your collection"
+
 class Popup:
 
     def __init__(self, master, game, app):
@@ -35,6 +37,8 @@ class Popup:
 
         # game name header
         Tk.Label(insetframe, text=game.longname, justify=Tk.CENTER, font=("Helvetica", 14), wraplength=270+CHUNK_PAD).pack(pady=0)
+        versionname = "{vn}{guess}".format(vn=game.versionname, guess="*" if game.guesstimated else "")
+        Tk.Label(insetframe, text=versionname, justify=Tk.CENTER, font=("Helvetica", 11), wraplength=270+CHUNK_PAD).pack(pady=0)
 
         # picture header
         headerframe = Tk.Frame(insetframe)
@@ -96,14 +100,18 @@ class Popup:
         cb.grid(row=4, column=1)
 
         # divider
-        d = Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="black")
-        d.pack(pady=8, fill=Tk.X, padx=2)
+        Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="grey").pack(pady=8, fill=Tk.X, padx=2)
 
         # buttons
         self.geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
         bggbtn = Tk.Button(insetframe, text="Edit Entry on BGG", command=self.openurl
             , bg=BGG_BTN_COLOR, compound=Tk.RIGHT, image=self.geekimg,  padx=15)
         bggbtn.pack(pady=5)
+        if game.guesstimated:
+            Tk.Label(insetframe, text=GUESS_MESSAGE, justify=Tk.CENTER, font=("Helvetica", 8), wraplength=180+CHUNK_PAD).pack(pady=0)
+
+        Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="grey").pack(pady=8, fill=Tk.X, padx=2)
+
         btnframe = Tk.Frame(insetframe)
         btnframe.pack(pady=5)
         okbtn  = Tk.Button(btnframe, text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.commit, bg=OK_BTN_COLOR)
@@ -244,6 +252,8 @@ if __name__=="__main__":
     boximage = CACHE_DIR + "/pics/pic1961827_t.jpg"
     fakegame.hoverimgTk = ImageTk.PhotoImage(Image.open(boximage))
     fakegame.versionid = 13123
+    fakegame.versionname = "Something"
+    fakegame.guesstimated = True
 
     fakegame.xraw = fakegame.yraw = fakegame.zraw = 10.125
     fakegame.wraw = 2.5
