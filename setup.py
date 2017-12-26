@@ -1,6 +1,7 @@
 import sys
 import os
 from cx_Freeze import setup, Executable
+from constants import GS_VERSION
 
 hacky_path = r'C:/Users/jtudisco/AppData/Local/Programs/Python/Python36-32'
 os.environ['TCL_LIBRARY'] = hacky_path + r'/tcl/tcl8.6'
@@ -42,7 +43,7 @@ executables = [
 ]
 
 setup(  name = "geeksort",
-        version = "0.5",
+        version = GS_VERSION,
         author= 'Jtudisco',
         description = "My GUI application!",
         options = {"build_exe": build_exe_options},
