@@ -20,6 +20,7 @@ import scrollable
 #import scrwindow
 import namebox
 from constants import *
+import functools
 
 ROW_SEARCH = 10
 ROW_PROGRESS = 10
@@ -244,10 +245,10 @@ class App:
         print("collection_fetch", threading.current_thread().name)
 
         def _realfetch(self:App, username, forcereload):
-            self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
+            #self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
             self.preferences.user = username
             game.Game._user = username
-            collection.set_user(username, forcereload)
+            collection.set_user(username, forcereload, workfunc=lambda s: self.start_work(s, type=WorkTypes.FETCH))
             root = collection.get_collection(game.Game._user)
 
             collectionNodes = root.findall("./item") # get all items

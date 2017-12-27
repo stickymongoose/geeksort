@@ -5,9 +5,10 @@ import time
 import os
 from constants import *
 import xml.etree.ElementTree as ET
+from http.client import responses
 
 # return a request, but wait some seconds and retry if error
-def _fetch(request):
+def _fetch(request, workfunc):
     timeout = 1.5
     while timeout <= 30.0:
         r = requests.get( request )
@@ -18,7 +19,13 @@ def _fetch(request):
             if r.status_code == 429:
                 timeout = timeout + 5
             else:
-                print( "Busy. Code: {} Trying again in {}".format(r.status_code, timeout ))
+                print( "Busy. Code: {} Trying again in {}".format(r.status_code, timeout))
+
+            if workfunc is not None:
+                if r.status_code == 202:
+                    workfunc("BGG has queued the request. Checking again in {:.1f} seconds".format(timeout))
+                else:
+                    workfunc("BGG says '{}'. Waiting {:.1f} seconds".format(responses[r.status_code], timeout))
             time.sleep(timeout)
             timeout = timeout * 1.5
             continue
@@ -26,7 +33,7 @@ def _fetch(request):
     raise Exception
 
 
-def get(filename, func, request, delay=0, canexpire=True):
+def get(filename, func, request, delay=0, canexpire=True, workfunc=None):
     for i in range(3):
         try:
             filetime = os.path.getmtime(filename)
@@ -40,7 +47,7 @@ def get(filename, func, request, delay=0, canexpire=True):
             try:
                 if i > 0:
                     print( "Contacting bgg, attempt: ", i+1 )
-                f = _fetch(request)
+                f = _fetch(request, workfunc)
                 with open(filename,"wb") as fh:
                     fh.write(f)
                 time.sleep(delay)

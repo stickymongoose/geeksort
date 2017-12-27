@@ -45,16 +45,22 @@ def shutdown():
     for t in _threads:
         t.join()
 
-def set_user(user, forcereload=False):
+def set_user(user, forcereload=False, workfunc=None):
     print("User set to", user)
     global _collection_xml, _game_xml
     print("Fetching collection data...")
+    if workfunc is not None:
+        workfunc("Fetching collection for {}...".format(user))
+
     collection_filename = pathlib.Path(CACHE_DIR) / "collection_{}.xml".format(user)
 
     if forcereload:
-        os.remove(collection_filename)
+        try:
+            os.remove(collection_filename)
+        except FileNotFoundError:
+            pass
 
-    _collection_xml = fetch.get(collection_filename, lambda: ET.parse(collection_filename), API_COLL_URL.format(id=user))
+    _collection_xml = fetch.get(collection_filename, lambda: ET.parse(collection_filename), API_COLL_URL.format(id=user), workfunc=workfunc)
 
     print("Fetching game data...")
     collection = _collection_xml.findall("./item")
@@ -64,9 +70,14 @@ def set_user(user, forcereload=False):
         game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
 
         if forcereload:
-            os.remove(game_filename)
+            try:
+                os.remove(game_filename)
+            except FileNotFoundError:
+                pass
 
-        _game_xml = fetch.get(game_filename, lambda:ET.parse(game_filename), API_GAME_URL.format(id=gameidstring))
+        if workfunc is not None:
+            workfunc("Fetching game data for {} games...".format(len(collection)))
+        _game_xml = fetch.get(game_filename, lambda:ET.parse(game_filename), API_GAME_URL.format(id=gameidstring), workfunc=workfunc)
 
         if _game_xml.getroot().tag == "div":
             print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
