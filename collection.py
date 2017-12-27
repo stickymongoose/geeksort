@@ -57,26 +57,30 @@ def set_user(user, forcereload=False):
     _collection_xml = fetch.get(collection_filename, lambda: ET.parse(collection_filename), API_COLL_URL.format(id=user))
 
     print("Fetching game data...")
-    gameids = [el.get("objectid") for el in _collection_xml.findall("./item")]
-    gameidstring = ",".join(sorted(gameids))
-    game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
+    collection = _collection_xml.findall("./item")
+    if len(collection) > 0:
+        gameids = [el.get("objectid") for el in collection]
+        gameidstring = ",".join(sorted(gameids))
+        game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
 
-    if forcereload:
-        os.remove(game_filename)
+        if forcereload:
+            os.remove(game_filename)
 
-    _game_xml = fetch.get(game_filename, lambda:ET.parse(game_filename), API_GAME_URL.format(id=gameidstring))
+        _game_xml = fetch.get(game_filename, lambda:ET.parse(game_filename), API_GAME_URL.format(id=gameidstring))
 
-    if _game_xml.getroot().tag == "div":
-        print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
-        set_user(user, True)
+        if _game_xml.getroot().tag == "div":
+            print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
+            set_user(user, True)
+        else:
+            returned_count = len(list(_game_xml.getroot()))
+            if len(gameids) != returned_count:
+                if not forcereload:
+                    print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
+                    set_user(user,True)
+                else:
+                    raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
     else:
-        returned_count = len(list(_game_xml.getroot()))
-        if len(gameids) != returned_count:
-            if not forcereload:
-                print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
-                set_user(user,True)
-            else:
-                raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
+        print("{} has no games in their collection.".format(user))
 
 def pump_queue():
     while True:
