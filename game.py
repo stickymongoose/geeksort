@@ -12,7 +12,7 @@ import hover
 import webbrowser
 import sizewindow
 import setlist
-import functools
+import numpy
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -20,11 +20,12 @@ HorizLong = "xz"
 HorizShort = "yz"
 
 UNFOUND_GAME_NAME = "<Unknown>"
+VERY_SMALL_STDDEV = 3 # stddev within 3 cubic inches = just fiiine
 
 # TODO: Adjust this message based on guesstimation method
 GUESSED_MESSAGE =\
 """Size approximated, based on the largest size in BGG.
-If it's too large, it's probably in the wrong units (cm instead of in)"""
+If it's too large, it probably selected a Jumbo Edition"""
 
 
 def get_text(node, path, default):
@@ -304,26 +305,50 @@ class Game:
 
             if x+y+z > 0:
                 rawobj  = {"size":(x, y, z, w), "name":name, "id":id}
-                sortobj = [ceilFraction(x, BOX_PRECISION)
-                        , ceilFraction(y, BOX_PRECISION)
-                        , ceilFraction(z, BOX_PRECISION)
-                          ]
-                sortobj.sort(reverse=True) # sort from big to small
-                sortkey = sortobj[0] * 1000000 + sortobj[1] * 1000 + sortobj[2]  # make a hashable key
+                #sortobj = [ceilFraction(x, BOX_PRECISION)
+                #        , ceilFraction(y, BOX_PRECISION)
+                #        , ceilFraction(z, BOX_PRECISION)
+                #          ]
+                #sortobj.sort(reverse=True) # sort from big to small
+                #sortkey = sortobj[0] * 1000000 + sortobj[1] * 1000 + sortobj[2]  # make a hashable key
+                sortkey = ceilFraction(x, BOX_PRECISION) * ceilFraction(y, BOX_PRECISION) * ceilFraction(z, BOX_PRECISION)
                 sizes.append((sortkey, rawobj))
 
         if len(sizes) > 0:
+            sizes.sort(reverse=True, key=lambda key: key[1]["size"][3]) # as a tie-breaker, prefer the heaviest
             sizes.sort(reverse=True, key=lambda key: key[0])
             self.guesstimated = True
             if Game._sizepreference == SizePreference.Biggest:
-                choice = sizes[0][1] # Top item, sortobj ([0] is the sort key)
-                print(self.name, choice)
+                # need to throw away some outliers, as some are just... busted
+                m = 2 # what's a good value for this?
+                just_weights, ignored = zip(*sizes)
+                stddev = numpy.std(just_weights)
+                # for s in sizes:
+                #     print(s)
+
+                # if the data is nearly perfectly in agreement, then just use the topmost
+                if stddev < VERY_SMALL_STDDEV:
+                    filter_sizes = sizes
+                else:
+                    mean = numpy.mean(just_weights)
+                    # outlier exclusion, filter away anything too far beyond the stddev
+                    filter_sizes = [s for s in sizes if abs(s[0] - mean) < m * stddev]
+
+                    if len(filter_sizes) == 0:
+                        # print("########")
+                        # print(self.name, stddev, mean)
+                        # for s in sizes:
+                        #     print(s)
+                        filter_sizes = sizes
+
+                choice = filter_sizes[0][1] # Top item, sortobj ([0] is the sort key)
+                print("##: Guesstimated:", self.name, choice)
                 self.set_size(*(choice["size"]))
                 self.versionname = choice["name"]
                 self.versionid = choice["id"]
 
             elif Game._sizepreference == SizePreference.MostCommon or Game._sizepreference == SizePreference.Average:
-                # TODO: Figure out how to do this...
+                # TODO: Figure out how to do this... Is volume truly the best way?
                 pass
 
     def set_size(self, x, y, z, w):
