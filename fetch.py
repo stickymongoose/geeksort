@@ -23,9 +23,9 @@ def _fetch(request, workfunc):
 
             if workfunc is not None:
                 if r.status_code == 202:
-                    workfunc("BGG has queued the request. Checking again in {:.1f} seconds".format(timeout))
+                    workfunc("BGG has queued the request.\nChecking again in {:.0f} seconds".format(timeout))
                 else:
-                    workfunc("BGG says '{}'. Waiting {:.1f} seconds".format(responses[r.status_code], timeout))
+                    workfunc("BGG says '{}'.\nWaiting {:.0f} seconds".format(responses[r.status_code], timeout))
             time.sleep(timeout)
             timeout = timeout * 1.5
             continue
