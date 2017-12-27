@@ -233,7 +233,7 @@ class GameStack:
 class Shelf:
     sortlist = []
 
-    def __init__(self,name,width,height,depth):
+    def __init__(self, name, width, height, depth):
         self.name = name
         self.maxwidth = width
         self.height = height
@@ -412,15 +412,15 @@ class Shelf:
         self.tkShelf.bind("<Button-1>", self.onClick)
 
         self.hovertext="""{name}-{row}
-{w} x {h} x {d}
-{usedwidth}/{w}
-{weight}{plus} lbs, ({wcnt}/{total})
-{used:3.0f}% Used""".format(
+{w}" x {h}" x {d}"
+{usedwidth}" / {w}" used by {total} games
+{used:3.0f}% of space utilized
+{weight}{plus} lbs, ({wcnt}/{total})""".format(
             name=self.name, row=row
-            , w=self.maxwidth, h=self.height, d=self.depth
-            , usedwidth=(self.maxwidth - self.widthleft)
+            , w=makeFraction(self.maxwidth), h=makeFraction(self.height), d=makeFraction(self.depth)
+            , usedwidth=makeFraction(self.maxwidth - self.widthleft)
             , plus="+" if self.wreported < len(self.games) else ""
-            , weight=round(self.weight, ROUND_PRECISION), wcnt=round(self.wreported, ROUND_PRECISION)
+            , weight=makeFraction(self.weight), wcnt=self.wreported
             , total=len(self.games)
             , used=(self.usedarea / self.totalarea)*100.0)
 

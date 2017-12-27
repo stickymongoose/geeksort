@@ -3,6 +3,7 @@
 
 import math
 import re
+from contrib.mixed_fractions import Mixed
 
 IN_TO_PX = 6
 IN_TO_CM = 2.54
@@ -44,6 +45,7 @@ SHELF_BORDER = 2
 BOOKCASE_BORDER = 2
 
 DENOM_LIMIT = 16 # for the display of fractional inches, let's go with 16ths
+VULGAR_LIMIT = 8 # for tighter display, gotta use 8ths
 BOX_PRECISION = 4 # boxes we'll round up to nearest 4th of an inch
 ROUND_PRECISION=3 # show 3 degrees of precision
 
@@ -63,20 +65,35 @@ CACHE_DIR = "__cache__"
 def ceilFraction(val, factor):
     return math.ceil(val*factor)/factor
 
+
 def roundFraction(val, factor):
     return round(val*factor)/factor
+
+
+def makeFraction(num):
+    asfrac = str(Mixed(roundFraction(num, VULGAR_LIMIT)).limit_denominator(VULGAR_LIMIT))
+    asfrac = asfrac.replace(" 1/8", u"⅛")
+    asfrac = asfrac.replace(" 1/4", u"¼")
+    asfrac = asfrac.replace(" 3/8", u"⅜")
+    asfrac = asfrac.replace(" 1/2", u"½")
+    asfrac = asfrac.replace(" 5/8", u"⅝")
+    asfrac = asfrac.replace(" 3/4", u"¾")
+    asfrac = asfrac.replace(" 7/8", u"⅞")
+    return asfrac
+
 
 # accessor to get the 'top' of a list-stack easily
 def top(l):
     if len(l) == 0:
         return None
 
-    return l[ len(l)-1]
+    return l[len(l)-1]
 
 
 def to_search(t):
     t = t.strip().lower()
     return re.sub(":| |-", "", t)
+
 
 def to_sort(t):
     t = t.strip().lower()

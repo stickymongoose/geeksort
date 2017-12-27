@@ -5,6 +5,7 @@ import tkinter as Tk
 from enum import IntEnum
 from PIL import Image, ImageTk
 from constants import *
+from contrib.mixed_fractions import Mixed
 import collection
 import averagecolor
 import hover
@@ -467,7 +468,12 @@ class Game:
             self.hoverimgTk = None
 
     def make_lite_hover(self):
-        self.hovertext = "{self.longname}\n{self.versionname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs".format(self=self)
+        self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs".format(self=self,
+                                        x=makeFraction(self.xraw),
+                                        y=makeFraction(self.yraw),
+                                        z=makeFraction(self.zraw),
+                                        w=makeFraction(self.wraw)
+                                        )
 
     def make_widget(self, shelf, center=False):
         try:
@@ -475,8 +481,12 @@ class Game:
             self._make_box_art()
         except: pass
 
-        self.hovertext = "{self.longname}\n{self.versionname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs\n{humdir} ({self.dir})".format(
-            self=self, humdir=self.get_human_dir())
+        self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs\n{humdir} ({self.dir})".format(
+            self=self, humdir=self.get_human_dir(),
+            x=makeFraction(self.xraw),
+            y=makeFraction(self.yraw),
+            z=makeFraction(self.zraw),
+            w=makeFraction(self.wraw))
 
         #color = "#{:06x}".format( self.color )
         border = GAME_BORDER
