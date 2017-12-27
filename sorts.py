@@ -1,6 +1,7 @@
 import game
 import tkinter as Tk
 import tkinter.ttk as ttk
+from PIL import Image, ImageTk
 import functools
 import operator
 import contrib.mixed_fractions as mixed_fractions
@@ -416,10 +417,10 @@ class FilterBuilderUI(Tk.Frame):
 
     @staticmethod
     def init():
-        FilterBuilderUI.addimg = Tk.PhotoImage(file="pics/add.png")
-        FilterBuilderUI.subimg = Tk.PhotoImage(file="pics/del.png")
-        FilterBuilderUI.upimg  = Tk.PhotoImage(file="pics/arrow_up.png")
-        FilterBuilderUI.dnimg  = Tk.PhotoImage(file="pics/arrow_dn.png")
+        FilterBuilderUI.addimg = ImageTk.PhotoImage(Image.open("pics/add.png"))
+        FilterBuilderUI.subimg = ImageTk.PhotoImage(Image.open("pics/del.png"))
+        FilterBuilderUI.upimg  = ImageTk.PhotoImage(Image.open("pics/arrow_up.png"))
+        FilterBuilderUI.dnimg  = ImageTk.PhotoImage(Image.open("pics/arrow_dn.png"))
 
     def __init__(self, owner, *args, **kwargs):
         Tk.Frame.__init__(self, owner, *args, **kwargs)

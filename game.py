@@ -3,8 +3,7 @@
 import unicodedata
 import tkinter as Tk
 from enum import IntEnum
-from PIL import Image
-from PIL import ImageTk
+from PIL import Image, ImageTk
 from constants import *
 import collection
 import averagecolor
@@ -84,7 +83,7 @@ class ActionMenu(Tk.Menu):
         else:
             self.add_command(label="Exclude from Sort", command=self.toggle_exclude, underline=1)
 
-        self.geekimg = geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
+        self.geekimg = geekimg = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
 
         self.add_command(label="Edit Size...", command=self.edit_size, underline=5)
         self.add_separator()
@@ -465,7 +464,7 @@ class Game:
         if self.hoverimgraw is not None:
             self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         else:
-            self.hoverImgTk = None
+            self.hoverimgTk = None
 
     def make_lite_hover(self):
         self.hovertext = "{self.longname}\n{self.versionname}\n{self.xraw} x {self.yraw} x {self.zraw}\n{self.w} lbs".format(self=self)

@@ -1,6 +1,6 @@
 import tkinter as Tk
-from PIL import Image
-from PIL import ImageTk
+from PIL import Image, ImageTk
+
 from contrib.mixed_fractions import Mixed
 import webbrowser
 from constants import *
@@ -103,7 +103,7 @@ class Popup:
         Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="grey").pack(pady=8, fill=Tk.X, padx=2)
 
         # buttons
-        self.geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
+        self.geekimg = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
         bggbtn = Tk.Button(insetframe, text="Edit Entry on BGG", command=self.openurl
             , bg=BGG_BTN_COLOR, compound=Tk.RIGHT, image=self.geekimg,  padx=15)
         bggbtn.pack(pady=5)

@@ -6,6 +6,7 @@
 import tkinter as Tk
 from tkinter import ttk
 from enum import IntEnum
+from PIL import Image, ImageTk
 import threading
 import collection
 import hover
@@ -125,7 +126,7 @@ class App:
 
 
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
-        self.geekimg = Tk.PhotoImage(file="pics/bgg_t.png")
+        self.geekimg = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
 
 
 
