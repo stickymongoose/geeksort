@@ -25,14 +25,10 @@ THREAD_COUNT = 3
 
 def init():
     try:
-        os.mkdir(pathlib.Path(CACHE_DIR))
-    except OSError:
-        pass
-
-    try:
-        os.mkdir(pathlib.Path(CACHE_DIR) / "pics")
-    except OSError:
-        pass
+        os.makedirs(pathlib.Path(CACHE_DIR) / "pics", exist_ok=True)
+    except Exception:
+        # assumption, exist_ok means we won't be getting OSError 17 (EEXIST)
+        raise
 
     for i in range(THREAD_COUNT):
         t = threading.Thread(target=pump_queue, name="Fetcher {}".format(i))
