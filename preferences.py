@@ -99,10 +99,43 @@ class PrefBundle(Tk.Frame):
         self.out_var = out_var
         self.wigglefunc = wigglefunc
 
+        self.make(text,values)
+
+    def make(self, text, values):
         ttk.Label(self, text=text, width=15)\
             .grid(row=0, column=0, sticky=Tk.E)
+
         ttk.OptionMenu(self, self.var, values[getattr(self.pref, self.out_var)], *values)\
             .grid(row=0, column=1, sticky=Tk.W)
+
+    def var_wiggle(self, *vars):
+        setattr(self.pref, self.out_var, self.values.index(self.var.get()))
+        self.wigglefunc()
+
+class PrefBundleRadio(PrefBundle):
+    def __init__(self, window, text, values, icons, pref, out_var, wigglefunc):
+        self.icons = icons
+        PrefBundle.__init__(self, window, text, values, pref, out_var, wigglefunc)
+
+    def make(self, text, values):
+        s = ttk.Style()
+
+
+        s.layout('TRadiobutton',
+                 [('Radiobutton.padding',
+                   {'children':
+                        [('Radiobutton.indicator', {'side': Tk.BOTTOM, 'sticky': ''}),
+                         # Just need to change indicator's 'side' value
+                         ('Radiobutton.focus', {'side': 'left',
+                                                'children':
+                                                    [('Radiobutton.label', {'sticky': 'nswe'})],
+                                                'sticky': ''})],
+                    'sticky': 'nswe'})])
+
+        for v, i in zip(values, self.icons):
+            ttk.Radiobutton(self, text=v, variable=self.var, value=v, image=i, compound=Tk.TOP).pack(side=Tk.LEFT)
+            Tk.Frame(self, border=2, relief=Tk.RIDGE, bg="lightgray", height=40) \
+                .pack(pady=2, fill=Tk.Y, padx=0, side=Tk.LEFT)
 
     def var_wiggle(self, *vars):
         setattr(self.pref, self.out_var, self.values.index(self.var.get()))
@@ -137,7 +170,13 @@ class PreferencesUI(Tk.Toplevel):
         self.filtWidget.pack(anchor=Tk.W)
         self.filtWidget.set(self.pref.filterFuncs)
 
-        PrefBundle(frm, "Shelving Choice:",   shelf.StoreStyle_names,    pref, "storeStyle", pref.set_prefs).pack()
+        self.vert_only_img = ImageTk.PhotoImage(Image.open("pics/vert_only.png"))
+        self.vert_first_img = ImageTk.PhotoImage(Image.open("pics/vert_first.png"))
+        self.horiz_first_img = ImageTk.PhotoImage(Image.open("pics/horiz_first.png"))
+        self.horiz_only_img = ImageTk.PhotoImage(Image.open("pics/horiz_only.png"))
+        images = [self.vert_only_img, self.vert_first_img, self.horiz_first_img, self.horiz_only_img]
+
+        PrefBundleRadio(frm, "Shelving Choice:",   shelf.StoreStyle_names,    images, pref, "storeStyle", pref.set_prefs).pack()
         PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
         PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort",  pref.set_prefs).pack()
 
