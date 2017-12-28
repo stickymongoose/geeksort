@@ -60,7 +60,7 @@ class Chord(Frame):
     RIGHT_ARROW_ICON = 'I2RlZmluZSBpbWFnZV93aWR0aCAxNwojZGVmaW5lIGltYWdlX2hlaWdodCAxNwpzdGF0aWMgY2hhciBpbWFnZV9iaXRzW10gPSB7CjB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLAoweDYwLDB4MDAsMHgwMCwweGUwLDB4MDAsMHgwMCwweGUwLDB4MDMsMHgwMCwweGUwLDB4MGYsMHgwMCwweGUwLDB4MDMsMHgwMCwKMHhlMCwweDAxLDB4MDAsMHg2MCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsCjB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwCn07'
     DOWN_ARROW_ICON = 'I2RlZmluZSBpbWFnZV93aWR0aCAxNwojZGVmaW5lIGltYWdlX2hlaWdodCAxNwpzdGF0aWMgY2hhciBpbWFnZV9iaXRzW10gPSB7CjB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLAoweDAwLDB4MDAsMHgwMCwweGUwLDB4MGYsMHgwMCwweGUwLDB4MGYsMHgwMCwweGMwLDB4MDcsMHgwMCwweGMwLDB4MDMsMHgwMCwKMHg4MCwweDAzLDB4MDAsMHgwMCwweDAxLDB4MDAsMHgwMCwweDAxLDB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwLDB4MDAsCjB4MDAsMHgwMCwweDAwLDB4MDAsMHgwMCwweDAwCn07'
 
-    def __init__(self, master, title, width, body_background="white", background="#f0f0f0", foreground="#333333", selected_background="#1ba1e2", selected_foreground="white", active_foreground="#0067cb", cursor="hand1"):
+    def __init__(self, master, title, width, body_background="white", background="#f0f0f0", foreground="#333333", selected_background="#1ba1e2", selected_foreground="white", active_foreground="#0067cb", cursor="hand1", image=""):
         Frame.__init__(self, master, background="white")
         self._title = title
         self._background = background
@@ -78,10 +78,10 @@ class Chord(Frame):
         self._caption.pack(fill=X, pady=(0,2))
         self._caption.pack_propagate(False)
 
-        self._icon_label = Label(self._caption, image=self._right_arrow_icon, background=background)
+        self._icon_label = Label(self._caption, image=self._right_arrow_icon, background=background, compound=LEFT)
         self._icon_label.pack(side=LEFT)
 
-        self._title_label = Label(self._caption, text=title, bg = background, fg=foreground)
+        self._title_label = Label(self._caption, text=title, bg = background, fg=foreground, image=image, compound=LEFT)
         self._title_label.pack(side=LEFT, padx=4, fill=X)
 
         self._caption.configure(height= self._title_label.winfo_reqheight())

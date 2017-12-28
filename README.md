@@ -94,3 +94,25 @@ which is linked at the [GeekSort BitBucket](https://bitbucket.org/geeksort/geeks
 ## I like this, I want to help!
 
 Check out the [Trello board](https://trello.com/b/GtFVkybB/issue-tracking) with steps on how to join/post. 
+
+# Attribution
+## Icons
+Icons attributed to https://material.io/icons/ under Apache License Version 2.0. 
+Icons have been modified a bit for color
+Not all icons are from Material.io; just the good looking ones.
+
+## Libraries
+All libraries in contrib/ are external to this project, but may have been modified to fix bugs or add features.
+
+### Accordion.py
+Author: Miguel Martinez Lopez
+Was forked from Revision 5
+MIT License
+[home]()http://code.activestate.com/recipes/580781-metro-accordion-for-tkinter/)
+
+### Mixed_fractions.py
+Mixed Fraction Class 1.0.3  by JB0x2D1 (Jeremy Beck)
+[home](https://sourceforge.net/projects/pythonmixedfractionsclass/)
+
+
+

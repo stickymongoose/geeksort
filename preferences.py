@@ -5,6 +5,7 @@ from constants import *
 import pickle
 import tkinter as Tk
 import tkinter.ttk as ttk
+from PIL import Image, ImageTk
 import contrib.accordion as accordion
 import sorts
 
@@ -117,17 +118,21 @@ class PreferencesUI(Tk.Toplevel):
 
         self.resort_func = resortfunc
 
+        self.sort_img = ImageTk.PhotoImage(Image.open("pics/sort.png"))
+        self.filter_img= ImageTk.PhotoImage(Image.open("pics/filter.png"))
+        self.resort_img = ImageTk.PhotoImage(Image.open("pics/resort.png"))
+
         frm = Tk.Frame(self, borderwidth=10)
         frm.pack(anchor=Tk.SW, side=Tk.LEFT)
 
         acc = accordion.Accordion(frm, sorts.FILTER_WIDTH)
         acc.pack(anchor=Tk.NW)
-        sortchord = acc.create_chord("Sorting Criteria", cursor=None).body
+        sortchord = acc.create_chord("Sorting Criteria", cursor=None, image=self.sort_img).body
         self.sortWidget = sorts.FilterBuilderUI(sortchord)
         self.sortWidget.pack(anchor=Tk.W)
         self.sortWidget.set(self.pref.sortFuncs)
 
-        filtchord = acc.create_chord("Filtering Criteria", cursor=None).body
+        filtchord = acc.create_chord("Filtering Criteria", cursor=None, image=self.filter_img).body
         self.filtWidget = sorts.FilterBuilderUI(filtchord)
         self.filtWidget.pack(anchor=Tk.W)
         self.filtWidget.set(self.pref.filterFuncs)
@@ -136,7 +141,7 @@ class PreferencesUI(Tk.Toplevel):
         PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
         PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort",  pref.set_prefs).pack()
 
-        btn = Tk.Button(frm, text="Re-Sort Games", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.resort, bg=RESORT_BTN_COLOR)
+        btn = ttk.Button(frm, text="Re-Sort Games", width=BTN_WIDTH, command=self.resort, image=self.resort_img, compound=Tk.LEFT)
         btn.bind("<Return>", btn["command"])
         btn.pack()
 

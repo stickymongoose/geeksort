@@ -437,7 +437,7 @@ class FilterBuilderUI(Tk.Frame):
         Tk.Frame(self, border=2, relief=Tk.RIDGE, bg=self["bg"], width=FILTER_WIDTH) \
             .pack(pady=0, fill=Tk.X, padx=2)
 
-        Tk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
+        ttk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
             .pack(side=Tk.LEFT, padx=(10, 0), anchor=Tk.W)
 
     def set(self, preload):
@@ -453,10 +453,10 @@ class FilterBuilderUI(Tk.Frame):
         frm = Tk.Frame(self.fbFrame, bg=self["bg"])
 
         subfrm = Tk.Frame(frm, bg=self["bg"])
-        killbtn     = Tk.Button(subfrm, image=FilterBuilderUI.subimg, height=28, command=functools.partial(self.__sub, frm))
-        frm.upbtn   = Tk.Button(subfrm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
-        frm.downbtn = Tk.Button(subfrm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
-        frm.reverbtn = Tk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm))
+        killbtn     = ttk.Button(subfrm, image=FilterBuilderUI.subimg, command=functools.partial(self.__sub, frm))
+        frm.upbtn   = ttk.Button(subfrm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
+        frm.downbtn = ttk.Button(subfrm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
+        frm.reverbtn = ttk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm))
 
         frm.spacer = Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", width=450)
 
@@ -518,8 +518,15 @@ class FilterBuilderUI(Tk.Frame):
             frm = self.list_items[i]
             frm.grid(row=i+10, sticky=Tk.NW, pady=(5,0))
 
-            frm.upbtn.configure(  state=Tk.NORMAL if length>1 and i>0        else Tk.DISABLED)
-            frm.downbtn.configure(state=Tk.NORMAL if length>1 and i<length-1 else Tk.DISABLED)
+            FilterBuilderUI.__config_btn(frm.upbtn,  length > 1 and i > 0)
+            FilterBuilderUI.__config_btn(frm.downbtn, length > 1 and i < length-1)
+
+    @staticmethod
+    def __config_btn(btn, enabled):
+        if enabled:
+            btn.configure(state=Tk.NORMAL)
+        else:
+            btn.configure(state=Tk.DISABLED)
 
     def get_actions(self):
         return [ a.entry.action() +(a.reversed,) for a in self.list_items ]
