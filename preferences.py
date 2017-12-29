@@ -9,6 +9,8 @@ from PIL import Image, ImageTk
 import contrib.accordion as accordion
 import sorts
 
+VERT_STYLE = "Vert.TRadiobutton"
+
 class Preferences:
     def __init__(self):
         self.sortFuncs = [(sorts.Size, sorts.identity, [], False)] # default, sort by size
@@ -110,6 +112,7 @@ class PrefBundle(Tk.Frame):
 
     def var_wiggle(self, *vars):
         setattr(self.pref, self.out_var, self.values.index(self.var.get()))
+        print(getattr(self.pref, self.out_var))
         self.wigglefunc()
 
 class PrefBundleRadio(PrefBundle):
@@ -117,34 +120,54 @@ class PrefBundleRadio(PrefBundle):
         self.icons = icons
         PrefBundle.__init__(self, window, text, values, pref, out_var, wigglefunc)
 
-    def make(self, text, values):
+    @staticmethod
+    def init():
         s = ttk.Style()
+        s.layout(VERT_STYLE,
+                 [
+                     ('Radiobutton.padding',
+                      {'children':
+                           [('Radiobutton.indicator', {'side': Tk.BOTTOM, 'sticky': ''}),
+                            # Just need to change indicator's 'side' value
+                            ('Radiobutton.focus', {'side': Tk.LEFT,
+                                                   'children':
+                                                       [('Radiobutton.label', {'sticky': Tk.NSEW})],
+                                                   'sticky': ''})],
+                       'sticky': Tk.NSEW}
+                      )
+                 ]
+                 )
 
+        s.map(VERT_STYLE,
+              #              foreground=[('disabled', 'yellow'),
+              #                          ('pressed', 'red'),
+              #                          ('active', 'blue')],
+              background=[('selected', '#A8E4B3'),
+                          ('active', '#D3E2D5')],
+              #              highlightcolor=[('focus', 'green'),
+              #                              ('!focus', 'red')],
+              #             relief=[('pressed', 'groove'),
+              #                     ('!pressed', 'ridge')]
+              )
 
-        s.layout('TRadiobutton',
-                 [('Radiobutton.padding',
-                   {'children':
-                        [('Radiobutton.indicator', {'side': Tk.BOTTOM, 'sticky': ''}),
-                         # Just need to change indicator's 'side' value
-                         ('Radiobutton.focus', {'side': 'left',
-                                                'children':
-                                                    [('Radiobutton.label', {'sticky': 'nswe'})],
-                                                'sticky': ''})],
-                    'sticky': 'nswe'})])
+    def make(self, text, values):
+        frm = ttk.LabelFrame(self, text=text)
+        frm.pack()
+        for value, icon, index in zip(values, self.icons, range(len(self.icons), 0, -1)):
 
-        for v, i in zip(values, self.icons):
-            ttk.Radiobutton(self, text=v, variable=self.var, value=v, image=i, compound=Tk.TOP).pack(side=Tk.LEFT)
-            Tk.Frame(self, border=2, relief=Tk.RIDGE, bg="lightgray", height=40) \
-                .pack(pady=2, fill=Tk.Y, padx=0, side=Tk.LEFT)
-
-    def var_wiggle(self, *vars):
-        setattr(self.pref, self.out_var, self.values.index(self.var.get()))
-        self.wigglefunc()
+            ttk.Radiobutton(frm, style=VERT_STYLE, text=value, variable=self.var, value=value, image=icon, compound=Tk.TOP).pack(side=Tk.LEFT)
+            # divider
+            if index > 1:
+                Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", height=40) \
+                    .pack(pady=2, fill=Tk.Y, padx=5, side=Tk.LEFT)
 
 
 class PreferencesUI(Tk.Toplevel):
     def __init__(self, window, pref:Preferences, resortfunc):
         Tk.Toplevel.__init__(self, window)
+
+        PrefBundleRadio.init()
+
         self.title("Preferences")
         self.focus_force()
         self.pref = pref
