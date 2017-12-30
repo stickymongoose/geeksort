@@ -101,7 +101,7 @@ class PrefBundle(Tk.Frame):
         self.out_var = out_var
         self.wigglefunc = wigglefunc
 
-        self.make(text,values)
+        self.make(text, values)
 
     def make(self, text, values):
         ttk.Label(self, text=text, width=15)\
@@ -117,8 +117,13 @@ class PrefBundle(Tk.Frame):
 
 class PrefBundleRadio(PrefBundle):
     def __init__(self, window, text, values, icons, pref, out_var, wigglefunc):
-        self.icons = icons
+        self.icons = []
+        for i in icons:
+            image = ImageTk.PhotoImage(Image.open(i))
+            self.icons.append(image)
+        # has to happen afterwards so that make() works
         PrefBundle.__init__(self, window, text, values, pref, out_var, wigglefunc)
+        self.var.set(values[getattr(self.pref, self.out_var)])
 
     @staticmethod
     def init():
@@ -127,17 +132,16 @@ class PrefBundleRadio(PrefBundle):
                  [
                      ('Radiobutton.padding',
                       {'children':
-                           [('Radiobutton.indicator', {'side': Tk.BOTTOM, 'sticky': ''}),
+                           [('Radiobutton.indicator', {'side': Tk.BOTTOM, 'sticky': Tk.S}),
                             # Just need to change indicator's 'side' value
-                            ('Radiobutton.focus', {'side': Tk.LEFT,
+                            ('Radiobutton.focus', {'side': Tk.BOTTOM,
                                                    'children':
-                                                       [('Radiobutton.label', {'sticky': Tk.NSEW})],
-                                                   'sticky': ''})],
-                       'sticky': Tk.NSEW}
-                      )
-                 ]
-                 )
-
+                                                       [('Radiobutton.label', {'sticky': Tk.NSEW, 'side' : Tk.BOTTOM})],
+                                                   'sticky': Tk.S})
+                            ],
+                       'sticky': Tk.NSEW, 'side' : Tk.BOTTOM}),
+                     #('Radiobutton.label', {'justify' : Tk.CENTER})
+                 ])
         s.map(VERT_STYLE,
               #              foreground=[('disabled', 'yellow'),
               #                          ('pressed', 'red'),
@@ -151,11 +155,11 @@ class PrefBundleRadio(PrefBundle):
               )
 
     def make(self, text, values):
-        frm = ttk.LabelFrame(self, text=text)
+        frm = ttk.LabelFrame(self, text=text, padding=5)
         frm.pack()
         for value, icon, index in zip(values, self.icons, range(len(self.icons), 0, -1)):
-
-            ttk.Radiobutton(frm, style=VERT_STYLE, text=value, variable=self.var, value=value, image=icon, compound=Tk.TOP).pack(side=Tk.LEFT)
+            ttk.Radiobutton(frm, style=VERT_STYLE, text=value, variable=self.var, value=value, image=icon, compound=Tk.TOP)\
+                .pack(side=Tk.LEFT)
             # divider
             if index > 1:
                 Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", height=40) \
@@ -177,6 +181,7 @@ class PreferencesUI(Tk.Toplevel):
         self.sort_img = ImageTk.PhotoImage(Image.open("pics/sort.png"))
         self.filter_img= ImageTk.PhotoImage(Image.open("pics/filter.png"))
         self.resort_img = ImageTk.PhotoImage(Image.open("pics/resort.png"))
+        self.setting_img = ImageTk.PhotoImage(Image.open("pics/settings.png"))
 
         frm = Tk.Frame(self, borderwidth=10)
         frm.pack(anchor=Tk.SW, side=Tk.LEFT)
@@ -193,15 +198,19 @@ class PreferencesUI(Tk.Toplevel):
         self.filtWidget.pack(anchor=Tk.W)
         self.filtWidget.set(self.pref.filterFuncs)
 
-        self.vert_only_img = ImageTk.PhotoImage(Image.open("pics/vert_only.png"))
-        self.vert_first_img = ImageTk.PhotoImage(Image.open("pics/vert_first.png"))
-        self.horiz_first_img = ImageTk.PhotoImage(Image.open("pics/horiz_first.png"))
-        self.horiz_only_img = ImageTk.PhotoImage(Image.open("pics/horiz_only.png"))
-        images = [self.vert_only_img, self.vert_first_img, self.horiz_first_img, self.horiz_only_img]
+        setchord = acc.create_chord("Settings", cursor=None, image=self.setting_img).body
 
-        PrefBundleRadio(frm, "Shelving Choice:",   shelf.StoreStyle_names,    images, pref, "storeStyle", pref.set_prefs).pack()
-        PrefBundle(frm, "Vertical Rotation:", game.SidePreference_names, pref, "sideStyle",  pref.set_prefs).pack()
-        PrefBundle(frm, "Stack Sort:",        shelf.StackSort_names,     pref, "stackSort",  pref.set_prefs).pack()
+        PrefBundleRadio(setchord, "Shelving Choice", shelf.StoreStyle_names, shelf.StoreStyle_pics, pref, "storeStyle", pref.set_prefs)\
+            .pack(pady=5)
+
+        subfrm = Tk.Frame(setchord, bg="white")
+        subfrm.pack(pady=5)
+        PrefBundleRadio(subfrm, "Vertical Rotation", game.SidePreference_names, game.SidePreference_pics, pref, "sideStyle",  pref.set_prefs)\
+            .pack(padx=10, side=Tk.LEFT)
+        PrefBundleRadio(subfrm, "Stack Sort", shelf.StackSort_names, shelf.StackSort_pics, pref, "stackSort", pref.set_prefs)\
+            .pack(padx=10, side=Tk.RIGHT)
+
+        Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray").pack(pady=8, fill=Tk.X, padx=2)
 
         btn = ttk.Button(frm, text="Re-Sort Games", width=BTN_WIDTH, command=self.resort, image=self.resort_img, compound=Tk.LEFT)
         btn.bind("<Return>", btn["command"])

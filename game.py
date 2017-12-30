@@ -74,6 +74,8 @@ class SizePreference(IntEnum):
     Average = 2
 
 SidePreference_names = ["Left", "Right"]
+SidePreference_pics = ["pics/ori_left.png", "pics/ori_right.png"]
+
 
 class ActionMenu(Tk.Menu):
     def __init__(self, root, game):

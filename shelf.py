@@ -19,6 +19,7 @@ class StoreStyle(IntEnum):
     StackOnly   = 3
 
 StoreStyle_names = ["Vertical Only", "Prefer Vertical", "Prefer Horizontal", "Horizontal Only"]
+StoreStyle_pics = ["pics/vert_only.png", "pics/vert_first.png", "pics/horiz_first.png", "pics/horiz_only.png"]
 
 
 class StackSort(IntEnum):
@@ -26,7 +27,7 @@ class StackSort(IntEnum):
     Size   = 1
 
 StackSort_names = ["Weight", "Size"]
-
+StackSort_pics = ["pics/weight.png", "pics/size.png"]
 
 class Bookcase:
     def __init__(self, line, ismetric):
