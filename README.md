@@ -108,7 +108,7 @@ All libraries in contrib/ are external to this project, but may have been modifi
 Author: Miguel Martinez Lopez
 Was forked from Revision 5
 MIT License
-[home]()http://code.activestate.com/recipes/580781-metro-accordion-for-tkinter/)
+[home](http://code.activestate.com/recipes/580781-metro-accordion-for-tkinter/)
 
 ### Mixed_fractions.py
 Mixed Fraction Class 1.0.3  by JB0x2D1 (Jeremy Beck)
