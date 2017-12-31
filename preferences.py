@@ -112,7 +112,7 @@ class PrefBundle(Tk.Frame):
 
     def var_wiggle(self, *vars):
         setattr(self.pref, self.out_var, self.values.index(self.var.get()))
-        print(getattr(self.pref, self.out_var))
+        #print(getattr(self.pref, self.out_var))
         self.wigglefunc()
 
 class PrefBundleRadio(PrefBundle):
