@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 from cx_Freeze import setup, Executable
 from constants import GS_VERSION
 
@@ -21,7 +22,7 @@ for dir in subdirs:
     for files in os.listdir(dir):
         include_files.append( (dir + "/" + files, dir + "/" + files) )
 
-packages = ["os", "idna"]
+packages = ["os", "numpy", "idna"]
 path = sys.path+['modules']
 
 # Dependencies are automatically detected, but it might need fine tuning.
@@ -41,6 +42,8 @@ if sys.platform == "win32":
 executables = [
     Executable('geeksort.py', base=base)
 ]
+
+shutil.rmtree("build", ignore_errors=True )
 
 setup(  name = "geeksort",
         version = GS_VERSION,
