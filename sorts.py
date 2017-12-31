@@ -129,11 +129,13 @@ class FieldFactory_SelMenu(FieldFactory_Base):
         menuBtn.pack(side=Tk.LEFT, anchor=Tk.W)
         tkWidgets.append(menuBtn)
 
-        for d in sorted(self.data):
+        # sort by occurrence of item
+        #prioritysorted = sorted(self.data.items(), key=lambda val: (-val[1], val[0]))
+        for key in sorted(self.data):
             v = Tk.StringVar(menu, value=EMPTY)
-            menu.add_checkbutton(label=d, variable=v
+            menu.add_checkbutton(label=key, variable=v
                                  , command=functools.partial(FieldFactory_SelMenu.post_menu, menuBtn, menu)
-                                 , onvalue=d, offvalue=EMPTY)
+                                 , onvalue=key, offvalue=EMPTY)
             vars.append(v)
 
         menu.vars = vars
@@ -456,9 +458,9 @@ class FilterBuilderUI(Tk.Frame):
         killbtn     = ttk.Button(subfrm, image=FilterBuilderUI.subimg, command=functools.partial(self.__sub, frm))
         frm.upbtn   = ttk.Button(subfrm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
         frm.downbtn = ttk.Button(subfrm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
-        frm.reverbtn = ttk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm))
+        frm.reverbtn = ttk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm), width=6)
 
-        frm.spacer = Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", width=450)
+        frm.spacer = Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", width=FILTER_WIDTH)
 
         new = FilterEntryUI(subfrm, bg=self["bg"])
         frm.reversed = False
@@ -467,6 +469,7 @@ class FilterBuilderUI(Tk.Frame):
         killbtn.grid(column=0, row=0, rowspan=2, sticky=Tk.W, padx=(10, 0))
         frm.upbtn.grid(column=1, row=0, sticky=Tk.NW)
         frm.downbtn.grid(column=1, row=1, sticky=Tk.SW)
+        frm.reverbtn.grid(column=3, row=0, rowspan=2, sticky=Tk.W)
         new.grid(column=2, row=0, rowspan=2, sticky=Tk.W)
 
         subfrm.pack(anchor=Tk.NW, pady=5)
@@ -507,9 +510,9 @@ class FilterBuilderUI(Tk.Frame):
     def __toggle(self, frame):
         frame.reversed = not frame.reversed
         if frame.reversed:
-            frame.reverbtn.configure(text="▼Z-A", relief=Tk.SUNKEN)
+            frame.reverbtn.configure(text="▼Z-A")
         else:
-            frame.reverbtn.configure(text="▲A-Z", relief=Tk.RAISED)
+            frame.reverbtn.configure(text="▲A-Z")
 
 
     def __reorder(self):
@@ -560,8 +563,7 @@ if __name__=="__main__":
     fbui = FilterBuilderUI(root)
     fbui.pack()
 
-    setlist.Publishers.add("A")
-    setlist.Publishers.add("B")
+    setlist.append(setlist.Publishers, ["A", "B"])
 
     Tk.Button(root, text="Compute", command=do_it).pack()
 

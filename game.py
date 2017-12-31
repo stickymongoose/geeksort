@@ -274,13 +274,13 @@ class Game:
             pass
 
         # now that we're done with all the possible adding, add each to the set list
-        setlist.Types.update(self.types)
-        setlist.Categories.update(self.categories)
-        setlist.Mechanics.update(self.mechanics)
-        setlist.Families.update(self.families)
-        setlist.Designers.update(self.designers)
-        setlist.Artists.update(self.artists)
-        setlist.Publishers.update(self.publishers)
+        setlist.append(setlist.Types, self.types)
+        setlist.append(setlist.Categories, self.categories)
+        setlist.append(setlist.Mechanics, self.mechanics)
+        setlist.append(setlist.Families, self.families)
+        setlist.append(setlist.Designers, self.designers)
+        setlist.append(setlist.Artists, self.artists)
+        setlist.append(setlist.Publishers, self.publishers)
 
     def set_image(self, url):
         self.hoverimgurl = url
