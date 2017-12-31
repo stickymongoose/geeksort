@@ -235,6 +235,8 @@ class App:
             self.searchBox.unregister(c)
             c.clear_widgets()
 
+        self.stackUnplaced.clear_games()
+
     def _make_shelf_widgets(self):
         print("_make_shelf_widgets", threading.current_thread().name)
 
@@ -261,9 +263,6 @@ class App:
             savedcases, savedstack = shelf.load(username, self.games)
             if savedcases is not None or savedstack is not None:
                 self.clear_shelves()
-
-                self.searchBox.unregister(self.stackUnplaced)
-                self.stackUnplaced.clear_games()
 
                 self.cases = savedcases
                 self.stackUnplaced = savedstack
