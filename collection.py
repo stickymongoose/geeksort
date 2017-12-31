@@ -77,13 +77,13 @@ def set_user(user, forcereload=False, workfunc=None):
 
         if _game_xml.getroot().tag == "div":
             print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
-            set_user(user, True)
+            set_user(user, forcereload=True, workfunc=workfunc)
         else:
             returned_count = len(list(_game_xml.getroot()))
             if len(gameids) != returned_count:
                 if not forcereload:
                     print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
-                    set_user(user,True)
+                    set_user(user, forcereload=True, workfunc=workfunc)
                 else:
                     raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
     else:
