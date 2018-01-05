@@ -391,7 +391,7 @@ class Game:
             #link = VERSION_URL.format(id=self.versionid)
             #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
             pass
-        print(self.name, self.x, self.y, self.z, self.hasbox)
+        #print(self.name, self.x, self.y, self.z, self.hasbox)
 
     def set_size_and_adjust(self,x,y,z,w):
         self.set_size(x, y, z, w)

@@ -7,6 +7,8 @@ import tkinter as Tk
 from tkinter import ttk
 from enum import IntEnum
 from PIL import Image, ImageTk
+import contrib.scrollwindow as scrollwindow
+import contrib.scrollingframe as scrollframe
 import threading
 import collection
 import hover
@@ -116,10 +118,12 @@ class App:
         self.tkWindow = Tk.Tk()
         game.Game._app = self
         game.Game.init()
-        
 
-        self.tkFrame = Tk.Frame(self.tkWindow, border=15)
-        self.tkFrame.grid(column=0, row=ROW_SHELVES, sticky=(Tk.W, Tk.E, Tk.S, Tk.N), columnspan=2)
+        self.tkScroll = scrollframe.Scrolling_Area(self.tkWindow)
+
+        self.tkScroll.grid(column=0, row=ROW_SHELVES, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
+        self.tkFrame = self.tkScroll.innerframe
+
         self.tkSideNotebook = None
         self.tkWindow.columnconfigure(0, weight=1)
         self.tkWindow.rowconfigure(ROW_SHELVES, weight=1)
@@ -173,6 +177,7 @@ class App:
         topframe.grid(column=0, row=ROW_SEARCH, pady=10, sticky=Tk.W, padx=5)
         self.searchBox = searchbox.SearchBox(topframe)
         self.searchBox.grid(column=0, row=0)
+        self.searchBox.bind("<Motion>", self.hover.onClear)
 
         self.progressPct = Tk.DoubleVar(0.0)
         self.tkProgressActives = {}
@@ -405,9 +410,11 @@ class App:
         # only add versionless shelf if we need it
         if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) + len(self.games.filtered) > 0:
             if self.tkSideNotebook is None:
-                self.tkSideNotebook = ttk.Notebook(self.tkFrame)
-                self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
+                self.tkSideNotebook = ttk.Notebook(self.tkWindow)
+                #self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
+                self.tkSideNotebook.grid(column=2, row=ROW_SHELVES, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
                 self.tkSideNotebook.bind("<Motion>", hover.Hover.inst.onClear)
+                hover.Hover.inst.lift()
 
             self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
                                                     self.open_size_editor)

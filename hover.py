@@ -65,6 +65,9 @@ class Hover:
     def unblock(self):
         self.blocked = False
 
+    def lift(self):
+        self.tkFrame.lift()
+
     def onMove(self, caller, event):
         if self.blocked:
             self.onClear(event)
