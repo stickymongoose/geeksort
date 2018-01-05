@@ -237,10 +237,10 @@ class Game:
             pass
 
         # dimensions
-        self.xraw = self.x = 0.0
-        self.yraw = self.y = 0.0
-        self.zraw = self.z = 0.0
-        self.wraw = self.w = self.density = 0.0
+        self.xrounded = self.x = 0.0
+        self.yrounded = self.y = 0.0
+        self.zrounded = self.z = 0.0
+        self.wrounded = self.w = self.density = 0.0
         self.hasbox = False
         self.versionid = 0
         self.versionname = ""
@@ -290,7 +290,7 @@ class Game:
         try:
             self.make_image()
             self._make_box_art()
-            self.set_size_and_adjust(self.xraw, self.yraw, self.zraw, self.wraw)
+            self.set_size_and_adjust(self.x, self.y, self.z, self.w)
             self.set_highlighted(self.highlighted)
         except:
             pass
@@ -354,14 +354,14 @@ class Game:
                 pass
 
     def set_size(self, x, y, z, w):
-        self.xraw = x
-        self.yraw = y
-        self.zraw = z
-        self.wraw = w
-        self.x = ceilFraction(x, BOX_PRECISION)
-        self.y = ceilFraction(y, BOX_PRECISION)
-        self.z = ceilFraction(z, BOX_PRECISION)
-        self.w = ceilFraction(w, BOX_PRECISION)
+        self.x = x
+        self.y = y
+        self.z = z
+        self.w = w
+        self.xrounded = ceilFraction(x, BOX_PRECISION)
+        self.yrounded = ceilFraction(y, BOX_PRECISION)
+        self.zrounded = ceilFraction(z, BOX_PRECISION)
+        self.wrounded = ceilFraction(w, BOX_PRECISION)
         self.density = 0
         # if somebody goofed on the 'depth', switch it
         if self.z > max(self.x,self.y):
@@ -384,13 +384,14 @@ class Game:
                 pass
 
         try:
-            self.hasbox = (self.x + self.y + self.z) > 0.0
-            self.density = self.w/(self.z * min(self.x,self.y))
+            self.hasbox = self.x > 0.0 and self.y > 0.0 and self.z > 0.0
+            self.density = self.w/(self.z * min(self.x, self.y))
         except ArithmeticError as e:
             #print(self.name, e)
             #link = VERSION_URL.format(id=self.versionid)
             #print("Zero size for",  self.name,  self.x, self.y, self.z, link)
             pass
+        print(self.name, self.x, self.y, self.z, self.hasbox)
 
     def set_size_and_adjust(self,x,y,z,w):
         self.set_size(x, y, z, w)
@@ -471,10 +472,10 @@ class Game:
 
     def make_lite_hover(self):
         self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs".format(self=self,
-                                        x=makeFraction(self.xraw),
-                                        y=makeFraction(self.yraw),
-                                        z=makeFraction(self.zraw),
-                                        w=makeFraction(self.wraw)
+                                        x=makeFraction(self.x),
+                                        y=makeFraction(self.y),
+                                        z=makeFraction(self.z),
+                                        w=makeFraction(self.w)
                                         )
 
     def make_widget(self, shelf, center=False):
@@ -485,10 +486,10 @@ class Game:
 
         self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.get_human_dir(),
-            x=makeFraction(self.xraw),
-            y=makeFraction(self.yraw),
-            z=makeFraction(self.zraw),
-            w=makeFraction(self.wraw))
+            x=makeFraction(self.x),
+            y=makeFraction(self.y),
+            z=makeFraction(self.z),
+            w=makeFraction(self.w))
 
         #color = "#{:06x}".format( self.color )
         border = GAME_BORDER
@@ -505,10 +506,11 @@ class Game:
             border -= 1
 
             if border == -1:
-                border = 0
-                self.lblwidth = max(1, self.lblwidth)
-                self.lblheight = max(1, self.lblheight)
-                break
+                return # don't actually add it
+                # border = 0
+                # self.lblwidth = max(1, self.lblwidth)
+                # self.lblheight = max(1, self.lblheight)
+                # break
 
         self.lblwidth  = int(self.lblwidth+1)
         self.lblheight = int(self.lblheight+1)

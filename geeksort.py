@@ -77,7 +77,7 @@ class GameFilters:
         class FailedFilter(Exception): pass
 
         if len(filterfuncs) > 0:
-            for agame in self.sorted:
+            for agame in self.inBoxes:
                 try:
                     for func, op, values, rev in filterfuncs:
                         # some filters may return non-binary values
@@ -92,7 +92,7 @@ class GameFilters:
                 # passed all filters, success!
                 sortedboxes.append(agame)
         else:
-            sortedboxes = self.sorted
+            sortedboxes = self.inBoxes
 
 
 

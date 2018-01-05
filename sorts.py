@@ -42,7 +42,7 @@ def Name(g):
     return g.sortname
 
 def Size(g):
-    return -(g.x * g.y * g.z)
+    return -(g.xrounded * g.yrounded * g.zrounded)
 
 def Brightness(g):
     return game.color_brightness(g.color)

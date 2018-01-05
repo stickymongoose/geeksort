@@ -5,7 +5,7 @@ import math
 import re
 from contrib.mixed_fractions import Mixed
 
-IN_TO_PX = 6
+IN_TO_PX = 8
 IN_TO_CM = 2.54
 CM_TO_IN = 1/IN_TO_CM
 
@@ -43,6 +43,7 @@ SQIN_TO_SQFEET = (1/(12*12))
 GAME_BORDER = 1
 SHELF_BORDER = 2
 BOOKCASE_BORDER = 2
+SHELF_FUDGE_WIDTH = 9 # Not sure why we need this, but without, shelves are too narrow
 
 DENOM_LIMIT = 16 # for the display of fractional inches, let's go with 16ths
 VULGAR_LIMIT = 8 # for tighter display, gotta use 8ths

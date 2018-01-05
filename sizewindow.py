@@ -255,8 +255,8 @@ if __name__=="__main__":
     fakegame.versionname = "Something"
     fakegame.guesstimated = True
 
-    fakegame.xraw = fakegame.yraw = fakegame.zraw = 10.125
-    fakegame.wraw = 2.5
+    fakegame.x = fakegame.y = fakegame.z = 10.125
+    fakegame.w = 2.5
     fakegame.longname = "Castle of Mad King Ludwig"
     s = Popup(root, fakegame, fakeapp)
     #s.top.lift()

@@ -397,7 +397,7 @@ class Shelf:
         border = SHELF_BORDER
 
         height = (self.height * IN_TO_PX) + (border * 2.0)
-        self.frmwidth = (self.maxwidth * IN_TO_PX) + (border * 2.0)
+        self.frmwidth = int((self.maxwidth * IN_TO_PX) + (border * 2.0) + 1 + SHELF_FUDGE_WIDTH)
         #print(self.name, self.frmwidth, height)
         self.tkShelf = Tk.Frame(case
                                 , height=height
@@ -458,6 +458,7 @@ class Shelf:
     def onClick(self, event):
         total_width = 0.0
         total_realwidth = 0.0
+        print("###", self.name)
         for st in self.stacks:
             print(st.name,  st.games[0].lblwidth, st.games[0].shelfwidth)
             total_width += st.games[0].lblwidth
@@ -472,7 +473,7 @@ class Shelf:
             total_realwidth += g.shelfwidth
 
         print(total_width, self.frmwidth, total_realwidth, self.maxwidth)
-
+        print("###", self.name)
 
 def read(filename):
     cases = []
