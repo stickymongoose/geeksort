@@ -7,7 +7,6 @@ import tkinter as Tk
 from tkinter import ttk
 from enum import IntEnum
 from PIL import Image, ImageTk
-import contrib.scrollwindow as scrollwindow
 import contrib.scrollingframe as scrollframe
 import threading
 import collection
