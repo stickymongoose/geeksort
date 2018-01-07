@@ -19,10 +19,9 @@ import sorts
 import preferences
 import sizewindow
 import scrollable
-#import scrwindow
 import namebox
 from constants import *
-import functools
+
 
 ROW_SEARCH = 10
 ROW_PROGRESS = 10
@@ -119,8 +118,8 @@ class App:
         game.Game.init()
 
         self.tkScroll = scrollframe.Scrolling_Area(self.tkWindow)
-
         self.tkScroll.grid(column=0, row=ROW_SHELVES, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
+
         self.tkFrame = self.tkScroll.innerframe
 
         self.tkSideNotebook = None
@@ -158,6 +157,12 @@ class App:
 
         self.tkFrame.bind("<Motion>", self.hover.onClear)
 
+        for c in self.tkScroll.get_chrome():
+            try:
+                c.bind("<Motion>", self.hover.onClear)
+            except Exception as e:
+                print(c, e)
+
         # mf.columnconfigure(0,weight=1)
         # mf.rowconfigure(0,weight=1)
         self.stackUnplaced = shelf.GameStack("Overflow", 300, 1000)
@@ -180,7 +185,16 @@ class App:
 
         self.progressPct = Tk.DoubleVar(0.0)
         self.tkProgressActives = {}
-        self.tkProgressFrm = ttk.Frame(topframe)
+
+
+        # Gotta set aside some space so the screen doesn't resize when we show/hide the progress bar
+        spaceholder = ttk.Frame(topframe, width=240, height=60)
+        spaceholder.grid(column=1, row=0, sticky=Tk.W, padx=10)
+        spaceholder.grid_propagate(False)
+        spaceholder.bind("<Motion>", self.hover.onClear)
+        topframe.bind("<Motion>", self.hover.onClear)
+
+        self.tkProgressFrm = ttk.Frame(spaceholder)
         self.tkProgressLabel = ttk.Label(self.tkProgressFrm)
         self.tkProgressLabel.pack()
         self.tkProgressBar = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200
@@ -245,8 +259,8 @@ class App:
         print("_make_shelf_widgets", threading.current_thread().name)
 
         for bc in self.cases:
-          self.searchBox.register(bc)
-          bc.make_shelf_widgets(self.tkFrame)
+            self.searchBox.register(bc)
+            bc.make_shelf_widgets(self.tkFrame)
 
     def collection_fetch(self, username, forcereload=False):
         print("collection_fetch", threading.current_thread().name)
@@ -412,7 +426,7 @@ class App:
                 self.tkSideNotebook = ttk.Notebook(self.tkWindow)
                 #self.tkSideNotebook.pack(side=Tk.RIGHT, anchor=Tk.SW, padx=5)
                 self.tkSideNotebook.grid(column=2, row=ROW_SHELVES, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
-                self.tkSideNotebook.bind("<Motion>", hover.Hover.inst.onClear)
+                self.tkSideNotebook.bind("<Motion>", self.hover.inst.onClear)
                 hover.Hover.inst.lift()
 
             self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
@@ -489,10 +503,10 @@ class App:
                 self.tkProgressBar.start()
 
             self.tkProgressLabel.configure(text=label)
-            self.tkProgressFrm.grid(column=1, row=0, sticky=Tk.W)
+            self.tkProgressFrm.pack(anchor=Tk.CENTER, expand=True)
         # progressActives is empty, so turn off the progress bar
         except ValueError:
-            self.tkProgressFrm.grid_forget()
+            self.tkProgressFrm.pack_forget()
             self.tkProgressBar.stop()
 
 

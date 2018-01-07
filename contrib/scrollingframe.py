@@ -166,6 +166,8 @@ class Scrolling_Area(Frame, object):
         if use_sizegrip:
             self.resizer = Sizegrip(self)
             self.resizer.grid(row=1, column=1)
+        else:
+            self.resizer = None
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
@@ -217,6 +219,9 @@ class Scrolling_Area(Frame, object):
         self.mouse_cursor_changed = False
         self.innerframe.configure(cursor="")
 
+    def get_chrome(self):
+        return [self.xscrollbar, self.yscrollbar, self.resizer]
+
     #End GeekSort Edit
 
     def _on_canvas_configure(self, event):
@@ -247,8 +252,6 @@ class Scrolling_Area(Frame, object):
         self.canvas.configure(scrollregion="0 0 %s %s" % (window_width, window_height), width=canvas_width,
                               height=canvas_height)
         self.canvas.itemconfigure("inner_frame", width=window_width, height=window_height)
-
-        print(window_width, window_height)
 
 
 if __name__ == '__main__':
