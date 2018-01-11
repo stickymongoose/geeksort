@@ -28,7 +28,7 @@ You want the cutting edge. Or maybe you want to help push the edge further. Well
 
 1. **Create a directory** to work out of. Say, Desktop/geeksort
 
-2. Click the plus (+) on the leftmost toolbar of Bitbucket and Click **Clone This Repository** and copy the link. [Plus Location](web/sidepanel.png)
+2. Click the plus (+) on the leftmost toolbar of Bitbucket and Click **Clone This Repository** and copy the link. ![Plus Location](web/sidepanel.png)
 
 3. Open up **a command window** in the directory you just made.
 
