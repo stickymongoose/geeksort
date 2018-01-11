@@ -20,13 +20,15 @@ If you're raring to start sorting games onto your shelves and don't care about t
 You want the cutting edge. Or maybe you want to help push the edge further. Well, brave traveler, you're going to need to get source.
 
 0. You'll need Python 3.6.4...ish to run GeekSort from source.
-For Windows folks, get it [here](https://www.python.org/downloads/)
-For Mac Folks... [here?](https://www.python.org/downloads/mac-osx/), unless it's installed already...
-For Linux Users, run your appropriate package getter to get the latest version, break your kernel, and have to reinstall ;)
+* For Windows folks, get it [here](https://www.python.org/downloads/)
+* For Mac Folks... [here?](https://www.python.org/downloads/mac-osx/), unless it's installed already...
+* For Linux Users, run your appropriate package getter to get the latest version.
+
+0. Create a BitBucket account [here](https://bitbucket.org/account/signup/) or [log in](https://bitbucket.org/account/signin/)
 
 1. **Create a directory** to work out of. Say, Desktop/geeksort
 
-2. Click the plus (+) to the left and Click **Clone This Repository** and copy the link.
+2. Click the plus (+) on the leftmost toolbar of Bitbucket and Click **Clone This Repository** and copy the link. [Plus Location](web/sidepanel.png)
 
 3. Open up **a command window** in the directory you just made.
 
@@ -38,7 +40,7 @@ For Linux Users, run your appropriate package getter to get the latest version, 
 
 7. Wait.
 
-8. Run Geeksort with `python geeksort.py`.
+8. Run Geeksort with `python3 geeksort.py`. **Note**: Your setup may not have python3 installed as `python3`, and you may need to use `python` instead.
 
 
 # Operating Instructions
@@ -55,10 +57,11 @@ For Linux Users, run your appropriate package getter to get the latest version, 
 
 6. WAIT. This step can take a long time, depending on how overloaded the BGG servers are. Can easily take several minutes.
 
-7. Once everything's ready, it'll populate your shelves in a default manner!
+7. Once everything's ready, it'll populate your shelves in a default manner.
 
 8. At this point, you can experiment with different sorting methods in the Preferences tab, or edit some games.
 
+9. Right-clicking on a game on the shelves or the overflow list to the right opens up more options, such as visiting BGG to edit or review, or excluding (temporarily) from being shelved.
 
 ## Some of my games have blue question marks!
 
@@ -109,6 +112,11 @@ Author: Miguel Martinez Lopez
 Was forked from Revision 5
 MIT License
 [home](http://code.activestate.com/recipes/580781-metro-accordion-for-tkinter/)
+
+### Scrolling Frame
+Author: Miguel Martinez Lopez
+Version 0.22
+[home](https://github.com/ActiveState/code/blob/master/recipes/Python/580640_Scrolling_frame_mouse_wheel/recipe-580640.py)
 
 ### Mixed_fractions.py
 Mixed Fraction Class 1.0.3  by JB0x2D1 (Jeremy Beck)
