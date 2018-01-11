@@ -1,7 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#requires pillow
+import sys
+if sys.version_info[0] < 3:
+    raise Exception("Python 3+ is required. Try re-running with python3 instead of python.")
 
 import tkinter as Tk
 from tkinter import ttk
@@ -265,7 +267,7 @@ class App:
     def collection_fetch(self, username, forcereload=False):
         print("collection_fetch", threading.current_thread().name)
 
-        def _realfetch(self:App, username, forcereload):
+        def _realfetch(self, username, forcereload):
             #self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
             self.preferences.user = username
             game.Game._user = username
@@ -472,7 +474,7 @@ class App:
     def open_version_picker(self, game):
         webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
 
-    def start_work(self, label: str, type, progress=False):
+    def start_work(self, label, type, progress=False):
         """Queues up a progress bar, with priority given to higher-numbered types"""
         # print((threading.current_thread().name, "starts", type, label)
         self.tkProgressActives[type] = (label,progress)
