@@ -13,6 +13,7 @@ import webbrowser
 import sizewindow
 import setlist
 import numpy
+import sys
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -546,7 +547,12 @@ class Game:
         self.tkLabel.bind("<Motion>", self.onMove)
 
         self.tkLabel.bind("<Button-1>", self.onClick)
-        self.tkLabel.bind("<Button-3>", self.onRClick)
+        if sys.platform == "darwin":
+            self.tkLabel.bind("<Button-2>", self.onRClick)
+            self.tkLabel.bind("<Control-Button-1>", self.onRClick)
+        else:
+            self.tkLabel.bind("<Button-3>", self.onRClick)
+
 
         if center:
             self.tkLabel.pack(side=Tk.BOTTOM, anchor=Tk.S)
