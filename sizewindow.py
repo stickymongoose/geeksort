@@ -126,8 +126,7 @@ class Popup:
         else:
             btnframe.pack(pady=5)
             okbtn  = Tk.Button(btnframe, text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.commit, bg=OK_BTN_COLOR)
-            n
-            okbtn = Tk.Button(btnframe, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.close, bg=CANCEL_BTN_COLOR)
+            nokbtn = Tk.Button(btnframe, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.close, bg=CANCEL_BTN_COLOR)
 
             okbtn.pack(side=Tk.LEFT, padx=20)
             nokbtn.pack(side=Tk.RIGHT, padx=20)
