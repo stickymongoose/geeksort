@@ -1,4 +1,6 @@
 import tkinter as Tk
+import tkinter.ttk as ttk
+import sys
 from PIL import Image, ImageTk
 
 from contrib.mixed_fractions import Mixed
@@ -22,6 +24,7 @@ class Popup:
 
     def __init__(self, master, game, app):
         self.top = Tk.Toplevel(master)
+        self.top.tk_setPalette(background="#f0f0f0")
         self.top.title( "Editing Dimensions")
         self.top.focus_force()
         self.target = game
@@ -79,7 +82,7 @@ class Popup:
             var.set(getattr(game, val+"raw")) # pull the raw data off the game
 
             widget = Tk.Entry(midframe,  textvariable=var, width=18, justify=Tk.RIGHT
-                    , validate="focusout", highlightthickness=1, highlightbackground="white")
+                    , validate="focusout", highlightthickness=1, highlightbackground="white", background="white")
 
             widget.config(validatecommand=(widget.register(self.validateentry), "%P", "%W"))
             widget.grid(row=i, column=1, padx=0, pady=2)
@@ -96,7 +99,7 @@ class Popup:
         self.unitchange(unitdata['title'])
 
         cb = Tk.OptionMenu(midframe,  self.unitstr,  *[u['title'] for u in UNIT_DATA.values()],  command=self.unitchange)
-        cb.config(justify=Tk.LEFT, width=15)
+        cb.config(justify=Tk.LEFT, width=20 if sys.platform=="darwin" else 15)
         cb.grid(row=4, column=1)
 
         # divider
@@ -113,13 +116,21 @@ class Popup:
         Tk.Frame(insetframe, border=2, relief=Tk.RIDGE, bg="grey").pack(pady=8, fill=Tk.X, padx=2)
 
         btnframe = Tk.Frame(insetframe)
-        btnframe.pack(pady=5)
-        okbtn  = Tk.Button(btnframe, text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.commit, bg=OK_BTN_COLOR)
-        nokbtn = Tk.Button(btnframe, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.close, bg=CANCEL_BTN_COLOR)
+        if sys.platform == "darwin":
+            btnframe.pack(pady=5, anchor=Tk.E)
+            okbtn = ttk.Button(btnframe, text="OK", command=self.commit, default=Tk.ACTIVE)
+            nokbtn = ttk.Button(btnframe, text="Cancel", command=self.close)
 
+            okbtn.pack(side=Tk.RIGHT, padx=10)
+            nokbtn.pack(side=Tk.LEFT, padx=10)
+        else:
+            btnframe.pack(pady=5)
+            okbtn  = Tk.Button(btnframe, text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.commit, bg=OK_BTN_COLOR)
+            n
+            okbtn = Tk.Button(btnframe, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.close, bg=CANCEL_BTN_COLOR)
 
-        okbtn.pack(side=Tk.LEFT, padx=20)
-        nokbtn.pack(side=Tk.RIGHT, padx=20)
+            okbtn.pack(side=Tk.LEFT, padx=20)
+            nokbtn.pack(side=Tk.RIGHT, padx=20)
 
         master.wait_window(self.top)
 
@@ -255,8 +266,8 @@ if __name__=="__main__":
     fakegame.versionname = "Something"
     fakegame.guesstimated = True
 
-    fakegame.x = fakegame.y = fakegame.z = 10.125
-    fakegame.w = 2.5
+    fakegame.xraw = fakegame.yraw = fakegame.zraw = 10.125
+    fakegame.wraw = 2.5
     fakegame.longname = "Castle of Mad King Ludwig"
     s = Popup(root, fakegame, fakeapp)
     #s.top.lift()

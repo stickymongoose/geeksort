@@ -1,4 +1,5 @@
 import game
+import sys
 import tkinter as Tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
@@ -528,8 +529,9 @@ class FilterBuilderUI(Tk.Frame):
     def __config_btn(btn, enabled):
         if enabled:
             btn.configure(state=Tk.NORMAL)
-        else:
+        elif sys.platform != "darwin": # Macs we getting salty with this
             btn.configure(state=Tk.DISABLED)
+            pass
 
     def get_actions(self):
         return [ a.entry.action() +(a.reversed,) for a in self.list_items ]

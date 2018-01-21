@@ -1,5 +1,5 @@
 import shelf
-import game
+import game, sys
 import pathlib
 from constants import *
 import pickle
@@ -8,6 +8,7 @@ import tkinter.ttk as ttk
 from PIL import Image, ImageTk
 import contrib.accordion as accordion
 import sorts
+
 
 VERT_STYLE = "Vert.TRadiobutton"
 
@@ -128,6 +129,8 @@ class PrefBundleRadio(PrefBundle):
     @staticmethod
     def init():
         s = ttk.Style()
+        if sys.platform == "darwin":
+            s.theme_use("alt")
         s.layout(VERT_STYLE,
                  [
                      ('Radiobutton.padding',
@@ -183,27 +186,27 @@ class PreferencesUI(Tk.Toplevel):
         self.resort_img = ImageTk.PhotoImage(Image.open("pics/resort.png"))
         self.setting_img = ImageTk.PhotoImage(Image.open("pics/settings.png"))
 
-        frm = Tk.Frame(self, borderwidth=10)
-        frm.pack(anchor=Tk.SW, side=Tk.LEFT)
+        frm = Tk.Frame(self, borderwidth=10, bg="#f0f0f0")
+        frm.pack(anchor=Tk.SW, side=Tk.LEFT, fill=Tk.BOTH, expand=1)
 
         acc = accordion.Accordion(frm, sorts.FILTER_WIDTH)
-        acc.pack(anchor=Tk.NW)
+        acc.pack(anchor=Tk.NW, fill=Tk.X, expand=1)
         sortchord = acc.create_chord("Sorting Criteria", cursor=None, image=self.sort_img).body
-        self.sortWidget = sorts.FilterBuilderUI(sortchord)
-        self.sortWidget.pack(anchor=Tk.W)
+        self.sortWidget = sorts.FilterBuilderUI(sortchord, bg="#f0f0f0")
+        self.sortWidget.pack(anchor=Tk.W, fill=Tk.BOTH, expand=1)
         self.sortWidget.set(self.pref.sortFuncs)
 
         filtchord = acc.create_chord("Filtering Criteria", cursor=None, image=self.filter_img).body
-        self.filtWidget = sorts.FilterBuilderUI(filtchord)
-        self.filtWidget.pack(anchor=Tk.W)
+        self.filtWidget = sorts.FilterBuilderUI(filtchord, bg="#f0f0f0")
+        self.filtWidget.pack(anchor=Tk.W, fill=Tk.BOTH, expand=1)
         self.filtWidget.set(self.pref.filterFuncs)
 
-        setchord = acc.create_chord("Settings", cursor=None, image=self.setting_img).body
+        setchord = acc.create_chord("Settings", cursor=None, image=self.setting_img, background="lightgray").body
 
         PrefBundleRadio(setchord, "Shelving Choice", shelf.StoreStyle_names, shelf.StoreStyle_pics, pref, "storeStyle", pref.set_prefs)\
             .pack(pady=5)
 
-        subfrm = Tk.Frame(setchord, bg="white")
+        subfrm = Tk.Frame(setchord, bg="lightgray")
         subfrm.pack(pady=5)
         PrefBundleRadio(subfrm, "Vertical Rotation", game.SidePreference_names, game.SidePreference_pics, pref, "sideStyle",  pref.set_prefs)\
             .pack(padx=10, side=Tk.LEFT)

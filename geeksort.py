@@ -116,13 +116,15 @@ class App:
         self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
+        self.tkWindow.config(bg="#f0f0f0")
         game.Game._app = self
         game.Game.init()
 
-        self.tkScroll = scrollframe.Scrolling_Area(self.tkWindow)
+        self.tkScroll = scrollframe.Scrolling_Area(self.tkWindow, background="#f0f0f0")
         self.tkScroll.grid(column=0, row=ROW_SHELVES, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
 
         self.tkFrame = self.tkScroll.innerframe
+        self.tkFrame.config(bg="#f0f0f0")
 
         self.tkSideNotebook = None
         self.tkWindow.columnconfigure(0, weight=1)
@@ -179,7 +181,7 @@ class App:
 
         self.tkWindow.after(100,func=self.prompt_name)
 
-        topframe = Tk.Frame(self.tkWindow)
+        topframe = ttk.Frame(self.tkWindow)
         topframe.grid(column=0, row=ROW_SEARCH, pady=10, sticky=Tk.W, padx=5)
         self.searchBox = searchbox.SearchBox(topframe)
         self.searchBox.grid(column=0, row=0)

@@ -1,14 +1,15 @@
 import tkinter as Tk
+import tkinter.ttk as ttk
 from constants import *
 
 class SearchBox(Tk.LabelFrame):
     def __init__(self, window):
-        Tk.LabelFrame.__init__(self, window, text="Search Function")
-        self.box = Tk.Entry(self,  width=100)
+        Tk.LabelFrame.__init__(self, window, text="Search Function", bg="#f0f0f0")
+        self.box = ttk.Entry(self,  width=100)
         self.box.pack(side=Tk.LEFT,  anchor=Tk.NW, pady=5, padx=5)
         self.requestid = 0
 
-        self.results = Tk.Label(self, width=15)
+        self.results = Tk.Label(self, width=15, bg="#f0f0f0")
         self.results.pack(side=Tk.LEFT, anchor=Tk.NW, pady=5, padx=2)
 
         self.box.bind("<Key>", self.typed)

@@ -1,11 +1,13 @@
 import tkinter as Tk
 import tkinter.ttk as ttk
+import sys
 from constants import *
 
 
 class NameBox(Tk.Toplevel):
     def __init__(self, window, app, pref):
         Tk.Toplevel.__init__(self, window)
+        self.config(bg="#f0f0f0")
         self.title("User Name")
         self.focus_force()
         label = ttk.Label(self, text="BGG Username:", font="Sans 12 bold")
@@ -18,13 +20,21 @@ class NameBox(Tk.Toplevel):
         self.box.bind("<Return>", self.set_name)
         self.box.focus_force()
 
-        frm =  Tk.Frame(self)
-        frm.grid(pady=15, padx=10)
-        okbtn = Tk.Button(frm,  text="OK",     width=BTN_WIDTH, height=BTN_HEIGHT, command=self.set_name, bg=OK_BTN_COLOR)
-        nokbtn = Tk.Button(frm, text="Cancel", width=BTN_WIDTH, height=BTN_HEIGHT, command=self.destroy,  bg=CANCEL_BTN_COLOR)
+        frm = ttk.Frame(self, bg="#f0f0f0")
+        if sys.platform == "darwin":
+            frm.grid(pady=15, padx=10, sticky=Tk.E)
+            okbtn = ttk.Button(frm,  text="OK", command=self.set_name, default=Tk.ACTIVE )#,     width=BTN_WIDTH, height=BTN_HEIGHT, bg=OK_BTN_COLOR)
+            nokbtn = ttk.Button(frm, text="Cancel", command=self.destroy)#, width=BTN_WIDTH, height=BTN_HEIGHT,  bg=CANCEL_BTN_COLOR)
 
-        okbtn.pack(side=Tk.LEFT, padx=20)
-        nokbtn.pack(side=Tk.RIGHT, padx=20)
+            okbtn.pack(side=Tk.RIGHT, padx=10)
+            nokbtn.pack(side=Tk.LEFT, padx=10)
+        else:
+            frm.grid(pady=15, padx=10)
+            okbtn = Tk.Button(frm, text="OK", command=self.set_name, width=BTN_WIDTH, height=BTN_HEIGHT, bg=OK_BTN_COLOR)
+            nokbtn = Tk.Button(frm, text="Cancel", command=self.destroy, width=BTN_WIDTH, height=BTN_HEIGHT,  bg=CANCEL_BTN_COLOR)
+
+            okbtn.pack(side=Tk.LEFT, padx=20)
+            nokbtn.pack(side=Tk.RIGHT, padx=20)
 
         okbtn.bind("<Return>",  okbtn["command"])
         nokbtn.bind("<Return>", nokbtn["command"])
@@ -47,7 +57,11 @@ if __name__ == "__main__":
         def collection_fetch(self,text):
             print("Fetching:", text)
 
-    s = NameBox(root, fakeApp(),"user")
+    class fakePref:
+        def __init__(self):
+            self.user = 'test'
+
+    s = NameBox(root, fakeApp(), fakePref())
     # s.top.lift()
     # root.wait_window(s.top)
 
