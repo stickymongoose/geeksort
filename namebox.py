@@ -20,7 +20,7 @@ class NameBox(Tk.Toplevel):
         self.box.bind("<Return>", self.set_name)
         self.box.focus_force()
 
-        frm = ttk.Frame(self, bg="#f0f0f0")
+        frm = Tk.Frame(self, bg="#f0f0f0")
         if sys.platform == "darwin":
             frm.grid(pady=15, padx=10, sticky=Tk.E)
             okbtn = ttk.Button(frm,  text="OK", command=self.set_name, default=Tk.ACTIVE )#,     width=BTN_WIDTH, height=BTN_HEIGHT, bg=OK_BTN_COLOR)
