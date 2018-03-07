@@ -335,6 +335,7 @@ class App:
 
 
     def resort_games(self):
+        
         def _real_resort(self):
             self.games.make_lists()
             self.clear_games()
@@ -344,7 +345,8 @@ class App:
             print("Waiting to resort", threading.current_thread().name)
             self.workerThread.join()
             print("Done", threading.current_thread().name)
-        self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
+        #self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
+        _real_resort(self)
 
     def sort_games(self):
         # print(("sort_games", threading.current_thread().name)
