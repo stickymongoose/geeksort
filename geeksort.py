@@ -24,9 +24,9 @@ import scrollable
 import namebox
 from constants import *
 
-
+ROW_ICON_MENU = 0
 ROW_SEARCH = 10
-ROW_PROGRESS = 10
+ROW_PROGRESS = 0
 ROW_SHELVES = 20
 
 class WorkTypes(IntEnum):
@@ -130,9 +130,34 @@ class App:
         self.tkWindow.columnconfigure(0, weight=1)
         self.tkWindow.rowconfigure(ROW_SHELVES, weight=1)
 
+        self.resort_img = ImageTk.PhotoImage(Image.open("pics/resort.png"))
+        self.geek_img = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
+        self.shelves_img = ImageTk.PhotoImage(Image.open("pics/shelves.png"))
+        self.search_img = ImageTk.PhotoImage(Image.open("pics/search.png"))
 
+        self.iconMenu = Tk.Frame(self.tkWindow, background="#f0f0f0")
+
+        self.iconMenu.grid(column=0, row=ROW_ICON_MENU, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
+
+        style = ttk.Style()
+        style.configure("My.TButton", borderwidth=2)
+        style.map("My.TButton",
+                  relief=[("pressed", "sunken"),("selected", "sunken"), ("!selected", "raised")],
+                  highlightbackground=[("selected", "#A8E4B3"), ("!selected", "blue")]
+                  )
+
+        ttk.Button(self.iconMenu, text="Change\nUser...", width=10, command=self.prompt_name, image=self.geek_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Reload\nCollection", width=10, command=self.reload_games, image=self.geek_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Reload\nShelves", width=10, command=self.reload_shelves, image=self.shelves_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Sort...", width=10, command=self.prompt_prefs, image=self.resort_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        self.searchbtn = ttk.Button(self.iconMenu, text="Search", width=10, command=self.toggle_search, image=self.search_img,
+                   compound=Tk.TOP, style="My.TButton")
+        self.searchbtn.pack(side=Tk.LEFT, fill=Tk.Y)
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
-        self.geekimg = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
 
 
 
@@ -140,14 +165,14 @@ class App:
         self.menu.add_cascade(menu=filemenu, label="File", underline=0)
         filemenu.add_command(label="Change User", command=self.prompt_name, underline=0)
         filemenu.add_command(label="Reload Collection from BGG", command=self.reload_games
-                             , image=self.geekimg, underline=7, compound=Tk.RIGHT)
+                             , image=self.geek_img, underline=7, compound=Tk.RIGHT)
         filemenu.add_command(label="Reload Shelves.txt", command=self.reload_shelves, underline=7)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.exit, underline=1)
 
-        sorting = Tk.Menu(self.menu, tearoff=0)
-        self.menu.add_cascade(menu=sorting, label="Sorting", underline=0)
-        sorting.add_command(label="Change Criteria...", command=self.prompt_prefs, underline=0)
+        sortingmenu = Tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(menu=sortingmenu, label="Sorting", underline=0)
+        sortingmenu.add_command(label="Change Criteria...", command=self.prompt_prefs, underline=0)
 
         self.tkWindow.config(menu=self.menu)
 
@@ -184,16 +209,17 @@ class App:
         topframe = ttk.Frame(self.tkWindow)
         topframe.grid(column=0, row=ROW_SEARCH, pady=10, sticky=Tk.W, padx=5)
         self.searchBox = searchbox.SearchBox(topframe)
-        self.searchBox.grid(column=0, row=0)
+        #self.searchBox.grid(column=0, row=0)
         self.searchBox.bind("<Motion>", self.hover.onClear)
+        self.search_shown = False
 
         self.progressPct = Tk.DoubleVar(0.0)
         self.tkProgressActives = {}
 
 
         # Gotta set aside some space so the screen doesn't resize when we show/hide the progress bar
-        spaceholder = ttk.Frame(topframe, width=240, height=60)
-        spaceholder.grid(column=1, row=0, sticky=Tk.W, padx=10)
+        spaceholder = ttk.Frame(self.tkWindow, width=240, height=60)
+        spaceholder.grid(column=1, row=ROW_PROGRESS, sticky=Tk.W, padx=10)
         spaceholder.grid_propagate(False)
         spaceholder.bind("<Motion>", self.hover.onClear)
         topframe.bind("<Motion>", self.hover.onClear)
@@ -245,7 +271,14 @@ class App:
         for b in reversed(self.cases):
             b.clear_games()
 
-
+    def toggle_search(self):
+        self.search_shown = not self.search_shown
+        if self.search_shown:
+            self.searchBox.grid(column=0, row=0)
+            self.searchbtn.state(("selected",))
+        else:
+            self.searchBox.grid_forget()
+            self.searchbtn.state(("!selected",))
 
     # TODO: make this customizable and possibly with a UI
     def make_shelves(self):
