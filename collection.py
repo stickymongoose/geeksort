@@ -7,21 +7,29 @@ import errno
 import functools
 import pathlib
 import time
+import numpy
 from constants import *
 import queue
 import threading
 #import concurrent.futures
 
+import sys
 _q = queue.Queue()
 _q_continue = True
 _q_blocked = False
 _queued_cnt = 0
 _threads = []
 
+_blacklist = []
 _collection_xml = None
 _game_xml = None
 
 THREAD_COUNT = 3
+
+
+def chunks(ls, n):
+    return numpy.array_split(ls, n)
+
 
 def init():
     try:
@@ -35,15 +43,15 @@ def init():
         t.start()
         _threads.append(t)
 
+
 def shutdown():
     global _q_continue
     _q_continue = False
     for t in _threads:
         t.join()
 
-def set_user(user, forcereload=False, workfunc=None):
-    print("User set to", user)
-    global _collection_xml, _game_xml
+
+def _fetch_collection(user, forcereload=False, workfunc=None):
     print("Fetching collection data...")
     if workfunc is not None:
         workfunc("Fetching collection for {}...".format(user))
@@ -56,38 +64,100 @@ def set_user(user, forcereload=False, workfunc=None):
         except FileNotFoundError:
             pass
 
-    _collection_xml = fetch.get(collection_filename, lambda: ET.parse(collection_filename), API_COLL_URL.format(id=user), workfunc=workfunc)
+    return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfunc=workfunc)
 
-    print("Fetching game data...")
-    collection = _collection_xml.findall("./item")
-    if len(collection) > 0:
-        gameids = [el.get("objectid") for el in collection]
-        gameidstring = ",".join(sorted(gameids))
-        game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
 
-        if forcereload:
-            try:
-                os.remove(game_filename)
-            except FileNotFoundError:
-                pass
+def _filter_games(gameIds):
+    gameidstrings = ",".join(gameIds)
+    getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
+    fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
+                               workfunc=workfunc)
 
-        if workfunc is not None:
-            workfunc("Fetching game data for {} games...".format(len(collection)))
-        _game_xml = fetch.get(game_filename, lambda:ET.parse(game_filename), API_GAME_URL.format(id=gameidstring), workfunc=workfunc)
+    ET.dump(fetchedxml)
 
-        if _game_xml.getroot().tag == "div":
-            print("Data fetch went bad. Reason: {}. Trying again.".format(_game_xml.getroot().text.strip()))
-            set_user(user, forcereload=True, workfunc=workfunc)
-        else:
-            returned_count = len(list(_game_xml.getroot()))
-            if len(gameids) != returned_count:
-                if not forcereload:
-                    print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
-                    set_user(user, forcereload=True, workfunc=workfunc)
-                else:
-                    raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
-    else:
+
+def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcount=1):
+    if len(collectionXml) == 0:
         print("{} has no games in their collection.".format(user))
+        return []
+
+    game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
+    if forcereload:
+        try:
+            os.remove(game_filename)
+        except FileNotFoundError:
+            pass
+    if workfunc is not None:
+        workfunc("Fetching game data for {} games...".format(len(collectionXml)))
+    allgameids = sorted([el.get("objectid") for el in collectionXml], key=int)
+
+    # URIs might get too long, attempt to batch it
+    while True:
+        try:
+            temp_xml = None
+            for gameids in chunks(allgameids, chunkcount):
+                gameidstrings = ",".join(gameids)
+                getrequest = API_GAME_URL.format(ids=gameidstrings)
+                if chunkcount == 1:
+                    print("Attempting cache fetch")
+                    fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfunc=workfunc)
+                else:
+                    print("Attempting piecemeal fetch, {} of {}".format(len(gameids), len(allgameids)))
+                    print(getrequest)
+                    fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
+                                               workfunc=workfunc)
+
+                if fetchedxml.getroot().tag == "div":
+
+                    print("Data fetch went bad. Reason: {}. Trying again.".format(fetchedxml.getroot().text.strip()))
+                    ET.dump(fetchedxml)
+                    filteredcol, badids = _filter_games(gameids)
+                    global _blacklist
+                    _blacklist += badids
+                    return _fetch_games(collectionXml, user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
+                else:
+                    returned_count = len(list(fetchedxml.getroot()))
+                    if True:  # len(gameids) == returned_count:
+                        print("Requested and received {} games.".format(returned_count))
+                        # got the right stuff
+                        if temp_xml is None:
+                            # first fetch start it off
+                            temp_xml = fetchedxml
+                            print("no temp, it's now {}".format(returned_count))
+                        else:
+                            # subsequent fetches get appended
+                            for kid in fetchedxml.getroot():
+                                temp_xml.getroot().append(kid)
+                            print("had a temp, it's now {}".format(len(temp_xml.getroot())))
+                    # else:
+                    #     # wrong number of elements (rare?)
+                    #     if not forcereload:
+                    #         # this branch is bit smelly, but at this time I'm not sure why we'd get such results
+                    #         print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
+                    #         return set_user(user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
+                    #     else:
+                    #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
+
+        except fetch.URITooLongError:
+            chunkcount <<= 1
+            print("URI was too long ({} bytes, {} games). Trying again in {} chunks".format(len(gameidstrings),
+                                                                                            len(gameids),
+                                                                                            chunkcount))
+        else:
+            break  # out of the while True
+
+    # we've successfully read everything
+    temp_xml.write(game_filename)
+    print("Read a total of {} games".format(len(temp_xml.getroot())))
+    return temp_xml
+
+
+def set_user(user, forcereload=False, workfunc=None):
+    print("User set to", user)
+    global _collection_xml, _game_xml
+    _collection_xml = _fetch_collection(user, forcereload, workfunc)
+    print("Fetching game data...")
+    _game_xml = _fetch_games(_collection_xml.findall("./item"), forcereload, workfunc)
 
 def pump_queue():
     while True:
@@ -162,7 +232,7 @@ def url_to_local(imgurl):
 def get_img_specific(imgurl):
     localimg = url_to_local(imgurl) # trim out just the file name
     # ensure the image exists, but don't use any part of it
-    fetch.get(localimg, lambda: validate_file(localimg), imgurl)
+    fetch.get_cached(localimg, validate_file, imgurl)
     return localimg
 
 
@@ -186,7 +256,9 @@ def get_img(user, id):
 
 if __name__ == "__main__":
 
-    print(get_img("jadthegerbil", 114903))
+    _filter_games([35,36,37])
+
+#    print(get_img("jadthegerbil", 114903))
 #
 #    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
 #        pile = {executor.submit(gamedata.get, g, 1.2): g for g in gameids}

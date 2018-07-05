@@ -1,0 +1,1 @@
+git log v0.5.4...HEAD --pretty=format:"%s" --reverse | clip
