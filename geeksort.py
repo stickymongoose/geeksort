@@ -140,7 +140,7 @@ class App:
         self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
-        self.tkWindow.geometry("600x400")
+        self.tkWindow.geometry("800x600")
         self.tkWindow.config(bg="#f0f0f0")
         game.Game._app = self
         game.Game.init()
