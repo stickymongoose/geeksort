@@ -70,13 +70,18 @@ def _fetch_collection(user, forcereload=False, workfunc=None):
     return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfunc=workfunc)
 
 
-def _filter_games(gameIds):
+def _filter_games(gameIds,workfunc):
     gameidstrings = ",".join(gameIds)
     getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
     fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
                                workfunc=workfunc)
+    # TODO: Implement error-checking from this
+    with open(pathlib.Path(CACHE_DIR) / "piecemeal.xml", "w") as f:
+        f.write(fetchedxml)
+    fetchedxml.getroot()
 
-    ET.dump(fetchedxml)
+    #ET.dump(fetchedxml)
+    return gameIds, []
 
 
 def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcount=1):
@@ -92,7 +97,8 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
             pass
     if workfunc is not None:
         workfunc("Fetching game data for {} games...".format(len(collectionXml)))
-    allgameids = sorted([el.get("objectid") for el in collectionXml], key=int)
+    allgameids = sorted(set([el.get("objectid") for el in collectionXml]), key=int)
+
 
     # URIs might get too long, attempt to batch it
     while True:
@@ -113,9 +119,9 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
 
                 if fetchedxml.getroot().tag == "div":
 
-                    logger.warning("Data fetch went bad. Reason: %s. Trying again.", fetchedxml.getroot().text.strip())
+                    logger.warning("Data fetch went bad. Reason: %s. Pivoting to ID-filter.", fetchedxml.getroot().text.strip())
                     ET.dump(fetchedxml)
-                    filteredcol, badids = _filter_games(gameids)
+                    filteredcol, badids = _filter_games(gameids, workfunc)
                     global _blacklist
                     _blacklist += badids
                     return _fetch_games(collectionXml, user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)

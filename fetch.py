@@ -82,7 +82,7 @@ def get_cached(filename, func, request, delay=0, canexpire=True, workfunc=None):
             def cache_file(data, filen, fnc):
                 with open(filen, "wb") as fh:
                     fh.write(data)
-                fnc(filen)
+                return fnc(filen)
 
             return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, workfunc)
     else:

@@ -24,7 +24,8 @@
       "class": "logging.FileHandler",
       "formatter": "standard",
       "filename" : "geeksort.log",
-      "mode" : "w"
+      "mode" : "w",
+      "encoding":"utf-8"
     }
   },
   "loggers": {
