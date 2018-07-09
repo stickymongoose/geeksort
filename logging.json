@@ -3,7 +3,7 @@
   "disable_existing_loggers": "False",
   "formatters": {
     "standard": {
-      "format": "{asctime} - {levelname:>5} {module}.{funcName}:{lineno}:\t{message}",
+      "format": "{asctime} - {name} {levelname:>5} {module}.{funcName}:{lineno}:\t{message}",
       "datefmt": "%m:%d %H:%M:%S",
       "style": "{"
     },
@@ -42,6 +42,11 @@
       "propagate": false
     },
     "game.size" : {
+      "level":"DEBUG",
+      "handlers" : ["file"],
+      "propagate": false
+    },
+    "game.img" : {
       "level":"DEBUG",
       "handlers" : ["file"],
       "propagate": false

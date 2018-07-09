@@ -17,6 +17,7 @@ import sys
 import logging
 logger = logging.getLogger(__name__)
 sizelogger = logger.getChild("size")
+imglogger = logger.getChild("img")
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -271,6 +272,8 @@ class Game:
             self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
             self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
             sizelogger.debug("Version found for %s %s", self.name, GAME_URL.format(id=self.id))
+            if self.x == self.y == self.z == 0:
+                self.set_size_by_guess(gd.findall("versions/item"))
 
         except Exception as e:
             # no version data, best guess it.
@@ -326,6 +329,7 @@ class Game:
             sizes.sort(reverse=True, key=lambda key: key[1]["size"][3]) # as a tie-breaker, prefer the heaviest
             sizes.sort(reverse=True, key=lambda key: key[0])
             self.guesstimated = True
+
             if Game._sizepreference == SizePreference.Biggest:
                 # need to throw away some outliers, as some are just... busted
                 m = 2 # what's a good value for this?
@@ -468,8 +472,10 @@ class Game:
 
     def make_image(self):
         if self.hoverimgraw is not None:
+            imglogger.debug("Making image for %d %s", self.id, self.longname)
             self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         else:
+            imglogger.debug("No image for %d %s", self.id, self.longname)
             self.hoverimgTk = None
 
     def make_lite_hover(self):

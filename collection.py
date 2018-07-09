@@ -54,7 +54,7 @@ def shutdown():
         t.join()
 
 
-def _fetch_collection(user, forcereload=False, workfunc=None):
+def _fetch_collection(user, forcereload=False, workfunc=None) -> ET.ElementTree:
     logger.info("Fetching collection data...")
     if workfunc is not None:
         workfunc("Fetching collection for {}...".format(user))
@@ -166,6 +166,7 @@ def set_user(user, forcereload=False, workfunc=None):
     logger.info("User set to %s", user)
     global _collection_xml, _game_xml
     _collection_xml = _fetch_collection(user, forcereload, workfunc)
+    logger.info("Received %s games", _collection_xml.getroot().get("totalitems").strip())
     logger.info("Fetching game data...")
     _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfunc)
 
