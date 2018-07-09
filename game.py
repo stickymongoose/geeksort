@@ -26,6 +26,8 @@ HorizShort = "yz"
 
 UNFOUND_GAME_NAME = "<Unknown>"
 VERY_SMALL_STDDEV = 3 # stddev within 3 cubic inches = just fiiine
+HUGE_BOX_SIZE = 3300 # Ogre: Huge Edition is 3,216 cubic inches, so anything bigger than that is DEFINITELY broken
+DEBUG_ID = 0#239942
 
 # TODO: Adjust this message based on guesstimation method
 GUESSED_MESSAGE =\
@@ -304,6 +306,34 @@ class Game:
         except:
             pass
 
+
+    @staticmethod
+    def isStoredAsMM(val):
+        val = round(val * IN_TO_CM,3)
+        return val == int(val)
+
+    @staticmethod
+    def sanitizesize(x,y,z, id, name):
+        # there are seemingly two common sizing mistakes:
+        # Values entered in cm, but stored as inches (ie, 36.90 x 25.90 x 4.80 in, or 93.7 x 65.8 x 12.2 cm)
+        # or values entered as mm, but stored as cm (116.93 x 35.43 x 116.93 in, or 297.0 x 90 x 297.0 cm)
+        # we'll attempt now to sanitize them
+
+        if x * y * z >= HUGE_BOX_SIZE:
+            if Game.isStoredAsMM(x) and Game.isStoredAsMM(y) and Game.isStoredAsMM(z):
+                sizelogger.warning("%d %s was likely stored as mm (%4.4fx%4.4fx%4.4f in), (%4.3fx%4.3fx%4.3f cm)"
+                                   , id, name, x,y,z, x*IN_TO_CM,y*IN_TO_CM,z*IN_TO_CM)
+                x /= 10.0
+                y /= 10.0
+                z /= 10.0
+            else:
+                sizelogger.warning("%d %s was likely stored as cm (%4.4fx%4.4fx%4.4f in) (%4.3fx%4.3fx%4.3f cm)"
+                                   , id, name, x, y, z, x*IN_TO_CM,y*IN_TO_CM,z*IN_TO_CM)
+                x *= CM_TO_IN
+                y *= CM_TO_IN
+                z *= CM_TO_IN
+        return x, y, z
+
     def set_size_by_guess(self, nodes):
         sizes = []
         for n in nodes:
@@ -315,6 +345,8 @@ class Game:
             id = int(n.get("id"))
 
             if x+y+z > 0:
+                x,y,z = Game.sanitizesize(x,y,z, id, name)
+
                 rawobj  = {"size":(x, y, z, w), "name":name, "id":id}
                 #sortobj = [ceilFraction(x, BOX_PRECISION)
                 #        , ceilFraction(y, BOX_PRECISION)
@@ -345,11 +377,18 @@ class Game:
                     mean = numpy.mean(just_weights)
                     # outlier exclusion, filter away anything too far beyond the stddev
                     filter_sizes = [s for s in sizes if abs(s[0] - mean) < m * stddev]
-
+                    # further check, if the toppest one is
                     if len(filter_sizes) == 0:
                         filter_sizes = sizes
 
+
                 choice = filter_sizes[0][1] # Top item, sortobj ([0] is the sort key)
+                if self.id == DEBUG_ID:
+                    print("stddev: ", stddev, "mean ", mean)
+                    for fs in filter_sizes:
+                        print("{}: {}".format(fs[0], fs[1]))
+                    print("====", choice)
+                    print("===============")
                 sizelogger.debug("Guesstimated: %s %s", self.name, choice)
                 self.set_size(*(choice["size"]))
                 self.versionname = choice["name"]
@@ -360,6 +399,7 @@ class Game:
                 pass
 
     def set_size(self, x, y, z, w):
+        x,y,z = Game.sanitizesize(x,y,z, self.id, self.name)
         self.x = x
         self.y = y
         self.z = z
