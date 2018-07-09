@@ -14,6 +14,9 @@ import sizewindow
 import setlist
 import numpy
 import sys
+import logging
+logger = logging.getLogger(__name__)
+sizelogger = logger.getChild("size")
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -267,11 +270,13 @@ class Game:
             self.designers  = get_node_values(versionitem, "boardgamedesigner", self.designers)
             self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
             self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
+            sizelogger.debug("Version found for %s %s", self.name, GAME_URL.format(id=self.id))
+
         except Exception as e:
             # no version data, best guess it.
             self.set_size_by_guess(gd.findall("versions/item"))
 
-            #print("No version for",  self.name,  GAME_URL.format(id=self.id))
+            sizelogger.debug("No version for %s %s", self.name, GAME_URL.format(id=self.id))
             pass
 
         # now that we're done with all the possible adding, add each to the set list
@@ -338,14 +343,10 @@ class Game:
                     filter_sizes = [s for s in sizes if abs(s[0] - mean) < m * stddev]
 
                     if len(filter_sizes) == 0:
-                        # print("########")
-                        # print(self.name, stddev, mean)
-                        # for s in sizes:
-                        #     print(s)
                         filter_sizes = sizes
 
                 choice = filter_sizes[0][1] # Top item, sortobj ([0] is the sort key)
-                print("##: Guesstimated:", self.name, choice)
+                sizelogger.debug("Guesstimated: %s %s", self.name, choice)
                 self.set_size(*(choice["size"]))
                 self.versionname = choice["name"]
                 self.versionid = choice["id"]

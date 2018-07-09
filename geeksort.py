@@ -5,6 +5,29 @@ import sys
 if sys.version_info[0] < 3:
     raise Exception("Python 3+ is required. Try re-running with python3 instead of python.")
 
+import logging
+import logging.config
+import os
+import json
+
+def setup_logging( path='logging.json', default_level=logging.INFO ):
+    """Setup logging configuration
+    """
+
+    # load configuration
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = json.load(f)
+
+        logging.config.dictConfig(config)
+        print("Logging configured from file", path)
+    else:
+        logging.basicConfig(level=default_level)
+        print("Logging configured by default, as no file", path)
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 import tkinter as Tk
 from tkinter import ttk
 from enum import IntEnum
@@ -22,6 +45,7 @@ import preferences
 import sizewindow
 import scrollable
 import namebox
+
 from constants import *
 
 ROW_ICON_MENU = 0
@@ -116,6 +140,7 @@ class App:
         self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
+        self.tkWindow.geometry("600x400")
         self.tkWindow.config(bg="#f0f0f0")
         game.Game._app = self
         game.Game.init()
@@ -550,8 +575,11 @@ class App:
 
 
 threading.current_thread().setName("mainThread")
+
+logger.info("Starting App")
 a = App()
 a.mainloop()
+logger.info("Left Mainloop")
 
 
 

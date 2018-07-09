@@ -8,6 +8,9 @@ import webbrowser
 from constants import *
 import enum
 
+import logging
+logger = logging.getLogger(__name__)
+
 class Units(enum.IntEnum):
     US_FRACTION = 0
     US_DECIMAL = 1
@@ -160,10 +163,10 @@ class Popup:
             widget.config(highlightbackground="white") # assumption: this is the default color
 
             self.formatwidget(widget, v)
-
+            logger.info("  Valid entry: %d", v)
             return True
         except Exception as e:
-            print(e)
+            logger.info("Invalid entry: {}".format(e), exc_info=True)
             widget.config(highlightbackground="red")
             return False
 

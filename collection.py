@@ -11,6 +11,9 @@ import numpy
 from constants import *
 import queue
 import threading
+import logging
+logger = logging.getLogger(__name__)
+pumplogger = logging.getLogger("pumpthreads")
 #import concurrent.futures
 
 import sys
@@ -52,7 +55,7 @@ def shutdown():
 
 
 def _fetch_collection(user, forcereload=False, workfunc=None):
-    print("Fetching collection data...")
+    logger.info("Fetching collection data...")
     if workfunc is not None:
         workfunc("Fetching collection for {}...".format(user))
 
@@ -78,7 +81,7 @@ def _filter_games(gameIds):
 
 def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcount=1):
     if len(collectionXml) == 0:
-        print("{} has no games in their collection.".format(user))
+        logger.warning("%s has no games in their collection.", user)
         return []
 
     game_filename = pathlib.Path(CACHE_DIR) / "games_{}.xml".format(user)
@@ -99,17 +102,18 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
                 gameidstrings = ",".join(gameids)
                 getrequest = API_GAME_URL.format(ids=gameidstrings)
                 if chunkcount == 1:
-                    print("Attempting cache fetch")
+                    logger.info("Attempting cache fetch")
+                    logger.debug(getrequest)
                     fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfunc=workfunc)
                 else:
-                    print("Attempting piecemeal fetch, {} of {}".format(len(gameids), len(allgameids)))
-                    print(getrequest)
+                    logger.info("Attempting piecemeal fetch, %d of %d", len(gameids), len(allgameids))
+                    logging.debug(getrequest)
                     fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
                                                workfunc=workfunc)
 
                 if fetchedxml.getroot().tag == "div":
 
-                    print("Data fetch went bad. Reason: {}. Trying again.".format(fetchedxml.getroot().text.strip()))
+                    logger.warning("Data fetch went bad. Reason: %d. Trying again.", fetchedxml.getroot().text.strip())
                     ET.dump(fetchedxml)
                     filteredcol, badids = _filter_games(gameids)
                     global _blacklist
@@ -118,46 +122,46 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
                 else:
                     returned_count = len(list(fetchedxml.getroot()))
                     if True:  # len(gameids) == returned_count:
-                        print("Requested and received {} games.".format(returned_count))
+                        logger.info("Requested and received %d games.", returned_count)
                         # got the right stuff
                         if temp_xml is None:
                             # first fetch start it off
                             temp_xml = fetchedxml
-                            print("no temp, it's now {}".format(returned_count))
+                            logger.info("no temp, it's now %d", returned_count)
                         else:
                             # subsequent fetches get appended
                             for kid in fetchedxml.getroot():
                                 temp_xml.getroot().append(kid)
-                            print("had a temp, it's now {}".format(len(temp_xml.getroot())))
+                            logger.info("had a temp, it's now %d", len(temp_xml.getroot()))
                     # else:
                     #     # wrong number of elements (rare?)
                     #     if not forcereload:
                     #         # this branch is bit smelly, but at this time I'm not sure why we'd get such results
-                    #         print("Did not receive enough game ids! Expected {}, but got {}. Trying again forcefully".format(len(gameids), returned_count))
+                    #         logger.warnig("Did not receive enough game ids! Expected %d, but got %d. Trying again forcefully", len(gameids), returned_count))
                     #         return set_user(user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
                     #     else:
                     #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
 
         except fetch.URITooLongError:
             chunkcount <<= 1
-            print("URI was too long ({} bytes, {} games). Trying again in {} chunks".format(len(gameidstrings),
+            logger.warning("URI was too long (%d bytes, %d games). Trying again in %d chunks", len(gameidstrings),
                                                                                             len(gameids),
-                                                                                            chunkcount))
+                                                                                            chunkcount)
         else:
             break  # out of the while True
 
     # we've successfully read everything
     temp_xml.write(game_filename)
-    print("Read a total of {} games".format(len(temp_xml.getroot())))
+    logger.info("Read a total of %d games", len(temp_xml.getroot()))
     return temp_xml
 
 
 def set_user(user, forcereload=False, workfunc=None):
-    print("User set to", user)
+    logger.info("User set to %s", user)
     global _collection_xml, _game_xml
     _collection_xml = _fetch_collection(user, forcereload, workfunc)
-    print("Fetching game data...")
-    _game_xml = _fetch_games(_collection_xml.findall("./item"), forcereload, workfunc)
+    logger.info("Fetching game data...")
+    _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfunc)
 
 def pump_queue():
     while True:
@@ -166,20 +170,20 @@ def pump_queue():
             continue
 
         try:
-            #print(threading.current_thread().name, "tried")
+            pumplogger.debug("%s tried", threading.current_thread().name)
             user, game = _q.get(timeout=1)
-            #print(threading.current_thread().name, "got", game.name)
+            pumplogger.debug("%s got %s", threading.current_thread().name, game.name)
             game.set_image(get_img(user, game.id))
             _q.task_done()
             #time.sleep(0.01)
         except queue.Empty:
             if _q_continue:
-                #print(threading.current_thread().name, "idled")
+                pumplogger.debug("%s idled", threading.current_thread().name)
                 continue
-            #print(threading.current_thread().name, "bailed!")
+            pumplogger.debug("%s bailed!", threading.current_thread().name)
             break
 
-    #print(threading.current_thread().name, "done pumping")
+    pumplogger.debug("%s done pumping", threading.current_thread().name)
 
 
 def queue_img(user, game):
@@ -190,11 +194,11 @@ def queue_img(user, game):
 def done_adding(func, progressfunc):
     def _done_adding(func_, progressfunc_):
         #_q.join()
-        print("Done Adding..", _queued_cnt, _q.qsize(), threading.current_thread().getName())
+        logging.info("Done Adding.. %d %d %s", _queued_cnt, _q.qsize(), threading.current_thread().getName())
         while not _q.empty():
             progressfunc_(get_progress())
             time.sleep(0.05)
-        print("Finished it up")
+        logger.info("Finished it up")
 
         func_()
 
@@ -246,11 +250,16 @@ def get_img(user, id):
             if thumb is None:
                 raise ModuleNotFoundError()
 
+        # for some reason, some games have no text in the thumbnail field.
+        # how vexing!
+        if thumb.text is None:
+            return "pics/noimage.jpg"
+
         return get_img_specific(thumb.text)
     except ModuleNotFoundError:
-        print("No Thumbnail or version for", id)
+        logger.warning("No Thumbnail or version for %d", id)
     except Exception as e:
-        print("Root failed", e, id)
+        logger.warning("Root failed id {}: {}".format(id, e), exc_info=True)
     return "pics/noimage.jpg"
 
 
@@ -269,7 +278,7 @@ if __name__ == "__main__":
 #                print("<--", gid)
 #            except Exception as e:
 #                print('%r generated an exception: %s' % (id, e))
-    print("Done.")
+#    print("Done.")
     #gamedata.getids(gameids)
     #getimgs("jadthegerbil", g)
 

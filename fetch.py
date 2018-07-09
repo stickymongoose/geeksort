@@ -7,6 +7,9 @@ from constants import *
 import xml.etree.ElementTree as ET
 from http.client import responses
 
+import logging
+logger = logging.getLogger(__name__)
+
 class URITooLongError(Exception):
     pass
 
@@ -15,17 +18,17 @@ def _fetch(request, workfunc):
     timeout = 5
     while timeout <= 45.0:
         r = requests.get( request )
-        #print( "Response: ", r.status_code )
+        logger.debug( "Response: %d", r.status_code )
         if r.status_code == 200:  # value returned
             return r.content
         if r.status_code == 414 or r.status_code == 500:  # request URI too long (or "busy" with XMLAPI1)
-            print("URI was too long ({})".format(len(request)))
+            logger.warning("URI was too long (%d)", len(request))
             raise URITooLongError
         else:
             if r.status_code == 429:
                 timeout = timeout + 5
             else:
-                print( "Busy. Code: {} Trying again in {}".format(r.status_code, timeout))
+                logger.info( "Busy. Code: %d Trying again in %d", r.status_code, timeout)
 
             if workfunc is not None:
                 if r.status_code == 202:
@@ -35,7 +38,7 @@ def _fetch(request, workfunc):
             time.sleep(timeout)
             timeout = timeout * 1.5
             continue
-    print("Timeout exceeded")
+    logger.info("Timeout exceeded")
     raise Exception("Timeout exceeded")
 
 
@@ -45,19 +48,20 @@ def _one_attempt(func, request, delay=0, workfunc=None):
         time.sleep(delay)
         return func(f)
     except URITooLongError as e:
+        logger.info("URI was too long")
         raise e  # toss this on on up
     except Exception as e:
-        print(e)
+        logger.exception("one attempt: {}".format(e))
 
 
 def get_raw(func, request, delay=0, workfunc=None):
     """attempts to get raw data from the internet, without caching it like get_cached does"""
     for i in range(3):
         if i > 0:
-            print("Contacting bgg, attempt: ", i + 1)
+            logger.info("Contacting bgg, attempt: %d", i)
         return _one_attempt(func, request, delay, workfunc)
     else:
-        print( "Too many errors")
+        logger.warning( "Too many errors")
         raise IOError
 
 
@@ -74,7 +78,7 @@ def get_cached(filename, func, request, delay=0, canexpire=True, workfunc=None):
 
             return func(filename)
         except (FileNotFoundError, ET.ParseError, TimeoutError) as e:
-            #print("Handled Error: ", e)
+            logger.info("Handled Error: {}".format(e))
             def cache_file(data, filen, fnc):
                 with open(filen, "wb") as fh:
                     fh.write(data)
@@ -82,6 +86,6 @@ def get_cached(filename, func, request, delay=0, canexpire=True, workfunc=None):
 
             return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, workfunc)
     else:
-        print( "Too many errors")
+        logger.warning("Too many errors")
         raise IOError
 
