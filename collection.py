@@ -113,7 +113,7 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
 
                 if fetchedxml.getroot().tag == "div":
 
-                    logger.warning("Data fetch went bad. Reason: %d. Trying again.", fetchedxml.getroot().text.strip())
+                    logger.warning("Data fetch went bad. Reason: %s. Trying again.", fetchedxml.getroot().text.strip())
                     ET.dump(fetchedxml)
                     filteredcol, badids = _filter_games(gameids)
                     global _blacklist
