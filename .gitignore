@@ -5,3 +5,4 @@ contrib/__pycache__/*
 .idea/*
 dist/*
 _eric6project/*
+geeksort.log
