@@ -166,7 +166,10 @@ def set_user(user, forcereload=False, workfunc=None):
     logger.info("User set to %s", user)
     global _collection_xml, _game_xml
     _collection_xml = _fetch_collection(user, forcereload, workfunc)
-    logger.info("Received %s games", _collection_xml.getroot().get("totalitems").strip())
+    if _collection_xml is not None:
+        logger.info("Received %s games", _collection_xml.getroot().get("totalitems").strip())
+    else:
+        logger.warning("Received no games. Possibly an invalid user, or something went wrong. ")
     logger.info("Fetching game data...")
     _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfunc)
 
