@@ -35,13 +35,16 @@ class ScrollableList:
 
         # there's seemingly a bug where it doesn't return out-of-range indices
         # at the bottom of the window, so we gotta cheat a bit
-        if index == len(self.tkList.values)-1:
-            (x,y,w,h) = self.tkList.bbox(index)
-            if event.y > y+h:
-                index = -1
+        # but first, rather than catch the potentially nebulous "AttributeError"
+        # let's do a bit of looking-before-leaping and check if tkList's values are set up
+        if hasattr(self.tkList, "values"):
+            if index == len(self.tkList.values)-1:
+                (x,y,w,h) = self.tkList.bbox(index)
+                if event.y > y+h:
+                    index = -1
 
-        if index >= 0 and index < len(self.tkList.values):
-            return self.tkList.values[index]
+            if index >= 0 and index < len(self.tkList.values):
+                return self.tkList.values[index]
 
         return None
 

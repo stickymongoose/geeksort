@@ -8,7 +8,8 @@ import tkinter.ttk as ttk
 from PIL import Image, ImageTk
 import contrib.accordion as accordion
 import sorts
-
+import logging
+logger = logging.getLogger(__name__)
 
 VERT_STYLE = "Vert.TRadiobutton"
 
@@ -79,7 +80,7 @@ def load(app):
         p = Preferences()
 
     except pickle.UnpicklingError as e:
-        print(e)
+        logger.exception("Pickle error: {}".format(e))
         p = Preferences()
 
     p.set_app(app)
@@ -92,15 +93,15 @@ def save(pref):
 
 
 class PrefBundle(Tk.Frame):
-    def __init__(self, window, text, values, pref, out_var, wigglefunc):
+    def __init__(self, window, text, values, pref, out_var, adjustFunc):
         Tk.Frame.__init__(self, window, width=220, height=25)
         self.grid_propagate(False)
         self.var = Tk.StringVar(self)
-        self.var.trace('w', self.var_wiggle)
+        self.var.trace('w', self.onVarAdjust)
         self.values = values
         self.pref = pref
         self.out_var = out_var
-        self.wigglefunc = wigglefunc
+        self.adjustFunc = adjustFunc
 
         self.make(text, values)
 
@@ -111,19 +112,19 @@ class PrefBundle(Tk.Frame):
         ttk.OptionMenu(self, self.var, values[getattr(self.pref, self.out_var)], *values)\
             .grid(row=0, column=1, sticky=Tk.W)
 
-    def var_wiggle(self, *vars):
+    def onVarAdjust(self, *vars):
         setattr(self.pref, self.out_var, self.values.index(self.var.get()))
         #print(getattr(self.pref, self.out_var))
-        self.wigglefunc()
+        self.adjustFunc()
 
 class PrefBundleRadio(PrefBundle):
-    def __init__(self, window, text, values, icons, pref, out_var, wigglefunc):
+    def __init__(self, window, text, values, icons, pref, out_var, adjustFunc):
         self.icons = []
         for i in icons:
             image = ImageTk.PhotoImage(Image.open(i))
             self.icons.append(image)
         # has to happen afterwards so that make() works
-        PrefBundle.__init__(self, window, text, values, pref, out_var, wigglefunc)
+        PrefBundle.__init__(self, window, text, values, pref, out_var, adjustFunc)
         self.var.set(values[getattr(self.pref, self.out_var)])
 
     @staticmethod

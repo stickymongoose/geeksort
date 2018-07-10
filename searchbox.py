@@ -17,6 +17,9 @@ class SearchBox(Tk.LabelFrame):
 
         self.searchlist = []
 
+    def focus(self):
+        self.box.focus()
+
     def register(self, searchable):
         self.searchlist.append(searchable)
 

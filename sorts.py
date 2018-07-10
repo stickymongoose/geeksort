@@ -8,6 +8,7 @@ import operator
 import contrib.mixed_fractions as mixed_fractions
 import setlist
 from constants import top
+import platform
 
 FILTER_WIDTH = 450
 
@@ -417,6 +418,8 @@ class FilterBuilderUI(Tk.Frame):
     subimg = None
     upimg = None
     dnimg = None
+    sortascimg = None
+    sortdescimg = None
 
     @staticmethod
     def init():
@@ -424,6 +427,8 @@ class FilterBuilderUI(Tk.Frame):
         FilterBuilderUI.subimg = ImageTk.PhotoImage(Image.open("pics/del.png"))
         FilterBuilderUI.upimg  = ImageTk.PhotoImage(Image.open("pics/arrow_up.png"))
         FilterBuilderUI.dnimg  = ImageTk.PhotoImage(Image.open("pics/arrow_dn.png"))
+        FilterBuilderUI.sortascimg  = ImageTk.PhotoImage(Image.open("pics/sortasc.png"))
+        FilterBuilderUI.sortdescimg  = ImageTk.PhotoImage(Image.open("pics/sortdesc.png"))
 
     def __init__(self, owner, *args, **kwargs):
         Tk.Frame.__init__(self, owner, *args, **kwargs)
@@ -459,7 +464,7 @@ class FilterBuilderUI(Tk.Frame):
         killbtn     = ttk.Button(subfrm, image=FilterBuilderUI.subimg, command=functools.partial(self.__sub, frm))
         frm.upbtn   = ttk.Button(subfrm, image=FilterBuilderUI.upimg, command=functools.partial(self.__up, frm))
         frm.downbtn = ttk.Button(subfrm, image=FilterBuilderUI.dnimg, command=functools.partial(self.__down, frm))
-        frm.reverbtn = ttk.Button(subfrm, text="▲A-Z", command=functools.partial(self.__toggle, frm), width=6)
+        frm.reverbtn = ttk.Button(subfrm, image=FilterBuilderUI.sortascimg, command=functools.partial(self.__toggle, frm), width=6)
 
         frm.spacer = Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray", width=FILTER_WIDTH)
 
@@ -511,9 +516,9 @@ class FilterBuilderUI(Tk.Frame):
     def __toggle(self, frame):
         frame.reversed = not frame.reversed
         if frame.reversed:
-            frame.reverbtn.configure(text="▼Z-A")
+            frame.reverbtn.configure(image=FilterBuilderUI.sortdescimg)
         else:
-            frame.reverbtn.configure(text="▲A-Z")
+            frame.reverbtn.configure(image=FilterBuilderUI.sortascimg)
 
 
     def __reorder(self):

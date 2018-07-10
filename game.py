@@ -14,6 +14,10 @@ import sizewindow
 import setlist
 import numpy
 import sys
+import logging
+logger = logging.getLogger(__name__)
+sizelogger = logger.getChild("size")
+imglogger = logger.getChild("img")
 
 VerticalLong = "zy"
 VerticalShort = "zx"
@@ -22,6 +26,8 @@ HorizShort = "yz"
 
 UNFOUND_GAME_NAME = "<Unknown>"
 VERY_SMALL_STDDEV = 3 # stddev within 3 cubic inches = just fiiine
+HUGE_BOX_SIZE = 3300 # Ogre: Huge Edition is 3,216 cubic inches, so anything bigger than that is DEFINITELY broken
+DEBUG_ID = 0#239942
 
 # TODO: Adjust this message based on guesstimation method
 GUESSED_MESSAGE =\
@@ -267,11 +273,15 @@ class Game:
             self.designers  = get_node_values(versionitem, "boardgamedesigner", self.designers)
             self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
             self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
+            sizelogger.debug("Version found for %s %s", self.name, GAME_URL.format(id=self.id))
+            if self.x == self.y == self.z == 0:
+                self.set_size_by_guess(gd.findall("versions/item"))
+
         except Exception as e:
             # no version data, best guess it.
             self.set_size_by_guess(gd.findall("versions/item"))
 
-            #print("No version for",  self.name,  GAME_URL.format(id=self.id))
+            sizelogger.debug("No version for %s %s", self.name, GAME_URL.format(id=self.id))
             pass
 
         # now that we're done with all the possible adding, add each to the set list
@@ -296,6 +306,34 @@ class Game:
         except:
             pass
 
+
+    @staticmethod
+    def isStoredAsMM(val):
+        val = round(val * IN_TO_CM,3)
+        return val == int(val)
+
+    @staticmethod
+    def sanitizesize(x,y,z, id, name):
+        # there are seemingly two common sizing mistakes:
+        # Values entered in cm, but stored as inches (ie, 36.90 x 25.90 x 4.80 in, or 93.7 x 65.8 x 12.2 cm)
+        # or values entered as mm, but stored as cm (116.93 x 35.43 x 116.93 in, or 297.0 x 90 x 297.0 cm)
+        # we'll attempt now to sanitize them
+
+        if x * y * z >= HUGE_BOX_SIZE:
+            if Game.isStoredAsMM(x) and Game.isStoredAsMM(y) and Game.isStoredAsMM(z):
+                sizelogger.warning("%d %s was likely stored as mm (%4.4fx%4.4fx%4.4f in), (%4.3fx%4.3fx%4.3f cm)"
+                                   , id, name, x,y,z, x*IN_TO_CM,y*IN_TO_CM,z*IN_TO_CM)
+                x /= 10.0
+                y /= 10.0
+                z /= 10.0
+            else:
+                sizelogger.warning("%d %s was likely stored as cm (%4.4fx%4.4fx%4.4f in) (%4.3fx%4.3fx%4.3f cm)"
+                                   , id, name, x, y, z, x*IN_TO_CM,y*IN_TO_CM,z*IN_TO_CM)
+                x *= CM_TO_IN
+                y *= CM_TO_IN
+                z *= CM_TO_IN
+        return x, y, z
+
     def set_size_by_guess(self, nodes):
         sizes = []
         for n in nodes:
@@ -307,6 +345,8 @@ class Game:
             id = int(n.get("id"))
 
             if x+y+z > 0:
+                x,y,z = Game.sanitizesize(x,y,z, id, name)
+
                 rawobj  = {"size":(x, y, z, w), "name":name, "id":id}
                 #sortobj = [ceilFraction(x, BOX_PRECISION)
                 #        , ceilFraction(y, BOX_PRECISION)
@@ -321,6 +361,7 @@ class Game:
             sizes.sort(reverse=True, key=lambda key: key[1]["size"][3]) # as a tie-breaker, prefer the heaviest
             sizes.sort(reverse=True, key=lambda key: key[0])
             self.guesstimated = True
+
             if Game._sizepreference == SizePreference.Biggest:
                 # need to throw away some outliers, as some are just... busted
                 m = 2 # what's a good value for this?
@@ -336,16 +377,19 @@ class Game:
                     mean = numpy.mean(just_weights)
                     # outlier exclusion, filter away anything too far beyond the stddev
                     filter_sizes = [s for s in sizes if abs(s[0] - mean) < m * stddev]
-
+                    # further check, if the toppest one is
                     if len(filter_sizes) == 0:
-                        # print("########")
-                        # print(self.name, stddev, mean)
-                        # for s in sizes:
-                        #     print(s)
                         filter_sizes = sizes
 
+
                 choice = filter_sizes[0][1] # Top item, sortobj ([0] is the sort key)
-                print("##: Guesstimated:", self.name, choice)
+                if self.id == DEBUG_ID:
+                    print("stddev: ", stddev, "mean ", mean)
+                    for fs in filter_sizes:
+                        print("{}: {}".format(fs[0], fs[1]))
+                    print("====", choice)
+                    print("===============")
+                sizelogger.debug("Guesstimated: %s %s", self.name, choice)
                 self.set_size(*(choice["size"]))
                 self.versionname = choice["name"]
                 self.versionid = choice["id"]
@@ -355,6 +399,7 @@ class Game:
                 pass
 
     def set_size(self, x, y, z, w):
+        x,y,z = Game.sanitizesize(x,y,z, self.id, self.name)
         self.x = x
         self.y = y
         self.z = z
@@ -467,8 +512,10 @@ class Game:
 
     def make_image(self):
         if self.hoverimgraw is not None:
+            imglogger.debug("Making image for %d %s", self.id, self.longname)
             self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
         else:
+            imglogger.debug("No image for %d %s", self.id, self.longname)
             self.hoverimgTk = None
 
     def make_lite_hover(self):

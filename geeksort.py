@@ -5,6 +5,29 @@ import sys
 if sys.version_info[0] < 3:
     raise Exception("Python 3+ is required. Try re-running with python3 instead of python.")
 
+import logging
+import logging.config
+import os
+import json
+
+def setup_logging( path='logging.json', default_level=logging.INFO ):
+    """Setup logging configuration
+    """
+
+    # load configuration
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = json.load(f)
+
+        logging.config.dictConfig(config)
+        print("Logging configured from file", path)
+    else:
+        logging.basicConfig(level=default_level)
+        print("Logging configured by default, as no file", path)
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 import tkinter as Tk
 from tkinter import ttk
 from enum import IntEnum
@@ -22,11 +45,12 @@ import preferences
 import sizewindow
 import scrollable
 import namebox
+
 from constants import *
 
-
+ROW_ICON_MENU = 0
 ROW_SEARCH = 10
-ROW_PROGRESS = 10
+ROW_PROGRESS = 0
 ROW_SHELVES = 20
 
 class WorkTypes(IntEnum):
@@ -116,6 +140,7 @@ class App:
         self.preferences.set_prefs()
 
         self.tkWindow = Tk.Tk()
+        self.tkWindow.geometry("800x600")
         self.tkWindow.config(bg="#f0f0f0")
         game.Game._app = self
         game.Game.init()
@@ -130,9 +155,34 @@ class App:
         self.tkWindow.columnconfigure(0, weight=1)
         self.tkWindow.rowconfigure(ROW_SHELVES, weight=1)
 
+        self.resort_img = ImageTk.PhotoImage(Image.open("pics/resort.png"))
+        self.geek_img = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
+        self.shelves_img = ImageTk.PhotoImage(Image.open("pics/shelves.png"))
+        self.search_img = ImageTk.PhotoImage(Image.open("pics/search.png"))
 
+        self.iconMenu = Tk.Frame(self.tkWindow, background="#f0f0f0")
+
+        self.iconMenu.grid(column=0, row=ROW_ICON_MENU, sticky=Tk.NSEW, columnspan=2, padx=5, pady=5)
+
+        style = ttk.Style()
+        style.configure("My.TButton", borderwidth=2)
+        style.map("My.TButton",
+                  relief=[("pressed", "sunken"),("selected", "sunken"), ("!selected", "raised")],
+                  highlightbackground=[("selected", "#A8E4B3"), ("!selected", "blue")]
+                  )
+
+        ttk.Button(self.iconMenu, text="Change\nUser...", width=10, command=self.prompt_name, image=self.geek_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Reload\nCollection", width=10, command=self.reload_games, image=self.geek_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Reload\nShelves", width=10, command=self.reload_shelves, image=self.shelves_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        ttk.Button(self.iconMenu, text="Sort...", width=10, command=self.prompt_prefs, image=self.resort_img,
+                   compound=Tk.TOP).pack(side=Tk.LEFT, fill=Tk.Y)
+        self.searchbtn = ttk.Button(self.iconMenu, text="Search", width=10, command=self.toggle_search, image=self.search_img,
+                   compound=Tk.TOP, style="My.TButton")
+        self.searchbtn.pack(side=Tk.LEFT, fill=Tk.Y)
         self.menu = Tk.Menu(self.tkWindow, tearoff=0)
-        self.geekimg = ImageTk.PhotoImage(Image.open("pics/bgg_t.png"))
 
 
 
@@ -140,14 +190,14 @@ class App:
         self.menu.add_cascade(menu=filemenu, label="File", underline=0)
         filemenu.add_command(label="Change User", command=self.prompt_name, underline=0)
         filemenu.add_command(label="Reload Collection from BGG", command=self.reload_games
-                             , image=self.geekimg, underline=7, compound=Tk.RIGHT)
+                             , image=self.geek_img, underline=7, compound=Tk.RIGHT)
         filemenu.add_command(label="Reload Shelves.txt", command=self.reload_shelves, underline=7)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.exit, underline=1)
 
-        sorting = Tk.Menu(self.menu, tearoff=0)
-        self.menu.add_cascade(menu=sorting, label="Sorting", underline=0)
-        sorting.add_command(label="Change Criteria...", command=self.prompt_prefs, underline=0)
+        sortingmenu = Tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(menu=sortingmenu, label="Sorting", underline=0)
+        sortingmenu.add_command(label="Change Criteria...", command=self.prompt_prefs, underline=0)
 
         self.tkWindow.config(menu=self.menu)
 
@@ -184,16 +234,17 @@ class App:
         topframe = ttk.Frame(self.tkWindow)
         topframe.grid(column=0, row=ROW_SEARCH, pady=10, sticky=Tk.W, padx=5)
         self.searchBox = searchbox.SearchBox(topframe)
-        self.searchBox.grid(column=0, row=0)
+        #self.searchBox.grid(column=0, row=0)
         self.searchBox.bind("<Motion>", self.hover.onClear)
+        self.search_shown = False
 
         self.progressPct = Tk.DoubleVar(0.0)
         self.tkProgressActives = {}
 
 
         # Gotta set aside some space so the screen doesn't resize when we show/hide the progress bar
-        spaceholder = ttk.Frame(topframe, width=240, height=60)
-        spaceholder.grid(column=1, row=0, sticky=Tk.W, padx=10)
+        spaceholder = ttk.Frame(self.tkWindow, width=240, height=60)
+        spaceholder.grid(column=1, row=ROW_PROGRESS, sticky=Tk.W, padx=10)
         spaceholder.grid_propagate(False)
         spaceholder.bind("<Motion>", self.hover.onClear)
         topframe.bind("<Motion>", self.hover.onClear)
@@ -245,7 +296,15 @@ class App:
         for b in reversed(self.cases):
             b.clear_games()
 
-
+    def toggle_search(self):
+        self.search_shown = not self.search_shown
+        if self.search_shown:
+            self.searchBox.grid(column=0, row=0)
+            self.searchBox.focus()
+            self.searchbtn.state(("selected",))
+        else:
+            self.searchBox.grid_forget()
+            self.searchbtn.state(("!selected",))
 
     # TODO: make this customizable and possibly with a UI
     def make_shelves(self):
@@ -335,6 +394,7 @@ class App:
 
 
     def resort_games(self):
+        
         def _real_resort(self):
             self.games.make_lists()
             self.clear_games()
@@ -344,7 +404,8 @@ class App:
             print("Waiting to resort", threading.current_thread().name)
             self.workerThread.join()
             print("Done", threading.current_thread().name)
-        self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
+        #self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
+        _real_resort(self)
 
     def sort_games(self):
         # print(("sort_games", threading.current_thread().name)
@@ -515,8 +576,11 @@ class App:
 
 
 threading.current_thread().setName("mainThread")
+
+logger.info("Starting App")
 a = App()
 a.mainloop()
+logger.info("Left Mainloop")
 
 
 

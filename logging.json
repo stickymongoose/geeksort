@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "disable_existing_loggers": "False",
+  "formatters": {
+    "standard": {
+      "format": "{asctime} - {name} {levelname:>5} {module}.{funcName}:{lineno}:\t{message}",
+      "datefmt": "%m:%d %H:%M:%S",
+      "style": "{"
+    },
+    "lite": {
+      "format": "{asctime} - {name} {levelname:>5}: {message}",
+      "datefmt": "%H:%M:%S",
+      "style": "{"
+    }
+  },
+  "handlers" : {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "lite",
+      "stream": "ext://sys.stdout",
+      "level":"WARNING"
+    },
+    "file": {
+      "class": "logging.FileHandler",
+      "formatter": "standard",
+      "filename" : "geeksort.log",
+      "mode" : "w",
+      "encoding":"utf-8"
+    }
+  },
+  "loggers": {
+    "pumpthreads": {
+      "level": "INFO",
+      "propagate": false
+    },
+    "PIL.PngImagePlugin" : {
+      "level" : "INFO"
+    },
+    "shelf.verbose" : {
+      "level":"DEBUG",
+      "handlers" : ["file"],
+      "propagate": false
+    },
+    "game.size" : {
+      "level":"DEBUG",
+      "handlers" : ["file"],
+      "propagate": false
+    },
+    "game.img" : {
+      "level":"DEBUG",
+      "handlers" : ["file"],
+      "propagate": false
+    }
+  },
+  "root": {
+    "level": "DEBUG",
+    "handlers": ["console", "file"]
+  }
+}

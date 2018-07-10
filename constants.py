@@ -20,7 +20,7 @@ FOUND_COLOR="#AFAF00"
 BTN_WIDTH=15
 BTN_HEIGHT=2 # in lines, just because
 
-GS_VERSION = "0.5.5"
+GS_VERSION = "0.5.6"
 TITLE_STRING = "GeekSort v" + GS_VERSION
 
 RESORT_BTN_COLOR = "#E0E0FF"
@@ -58,8 +58,10 @@ VERSION_URL = "https://boardgamegeek.com/item/boardgameversion/{id}/xxx"
 VERSION_EDIT_URL = "https://boardgamegeek.com/item/correction/boardgameversion/{id}"
 GAME_URL    = "https://boardgamegeek.com/boardgame/{id}"
 GAME_VERSIONS_URL = "https://boardgamegeek.com/boardgame/{id}/xxx/versions"
-API_COLL_URL    = 'http://www.boardgamegeek.com/xmlapi2/collection?username={id}&own=1&version=1&stats=1'
-API_GAME_URL    = 'http://www.boardgamegeek.com/xmlapi2/thing?id={id}&stats=1&versions=1'
+API_COLL_URL    = 'https://www.boardgamegeek.com/xmlapi2/collection?username={id}&own=1&version=1&stats=1'
+API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi2/thing?id={ids}&stats=1&versions=1'
+OLD_API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi/boardgame/{ids}'
+
 
 CACHE_DIR = "__cache__"
 

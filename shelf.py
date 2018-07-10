@@ -6,6 +6,10 @@ import game
 import pathlib
 import pickle
 import sorts
+import logging
+logger = logging.getLogger(__name__)
+verboselogger = logger.getChild("verbose")
+
 from contrib.mixed_fractions import Mixed
 
 
@@ -135,7 +139,7 @@ class GameStack:
         self.heightleft = self.maxheight
         self.games = []
         self.tkFrame = None
-        self.vprint("{}w {}h".format(w, h) )
+        self.vprint("created {}w {}h".format(w, h) )
 
     def __getstate__(self):
         s = self.__dict__.copy()
@@ -154,8 +158,7 @@ class GameStack:
 
 
     def vprint(self, *args,  **kwargs):
-        if _verbose:
-            print(self.name,  ":", args,  **kwargs)
+        verboselogger.debug("%s:%s", self.name, " ".join(str(s) for s in args))
 
     def try_box(self, box: game.Game):
         # if the box is too tall, just bail
@@ -266,8 +269,7 @@ class Shelf:
             s.thaw(gamedb)
 
     def vprint(self, *args,  **kwargs):
-        if _verbose:
-            print(self.name,  ":", args,  **kwargs)
+        verboselogger.debug("%s:%s", self.name, " ".join(str(s) for s in args))
 
     def add_box_lite(self, box):
         self.usedarea += (box.shelfwidth * box.shelfheight)
@@ -509,7 +511,7 @@ def load(user, gamedb):
         pass
 
     except pickle.UnpicklingError as e:
-        print(e)
+        logger.exception("Pickle error {}".format(e))
 
     return None, None
 
