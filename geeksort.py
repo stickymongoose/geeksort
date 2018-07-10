@@ -300,6 +300,7 @@ class App:
         self.search_shown = not self.search_shown
         if self.search_shown:
             self.searchBox.grid(column=0, row=0)
+            self.searchBox.focus()
             self.searchbtn.state(("selected",))
         else:
             self.searchBox.grid_forget()
