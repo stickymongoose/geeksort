@@ -77,7 +77,7 @@ def _filter_games(gameIds,workfunc):
                                workfunc=workfunc)
     # TODO: Implement error-checking from this
     with open(pathlib.Path(CACHE_DIR) / "piecemeal.xml", "w") as f:
-        f.write(fetchedxml)
+        fetchedxml.write(f)
     fetchedxml.getroot()
 
     #ET.dump(fetchedxml)
@@ -116,8 +116,11 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
                     logging.debug(getrequest)
                     fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
                                                workfunc=workfunc)
-
-                if fetchedxml.getroot().tag == "div":
+                                               
+                if fetchedxml is None:
+                    logger.warning("Data fetch for chunk count %i returned no XML. Not sure what to do, so, bailing", chunkcount)
+                    return ET.ElementTree()
+                elif fetchedxml.getroot().tag == "div":
 
                     logger.warning("Data fetch went bad. Reason: %s. Pivoting to ID-filter.", fetchedxml.getroot().text.strip())
                     ET.dump(fetchedxml)

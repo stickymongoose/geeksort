@@ -16,7 +16,7 @@ class URITooLongError(Exception):
 # return a request, but wait some seconds and retry if error
 def _fetch(request, workfunc):
     timeout = 5
-    while timeout <= 45.0:
+    while True: #timeout <= 45.0: # unclear if an arbitrary timeout is good or not...
         r = requests.get( request )
         logger.debug( "Response: %d", r.status_code )
         if r.status_code == 200:  # value returned
