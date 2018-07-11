@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 pumplogger = logging.getLogger("pumpthreads")
 #import concurrent.futures
 
+MAX_URI_LENGTH = 7000 # absolutely a guess
+
 class UserError(Exception):
     pass
 
@@ -25,7 +27,6 @@ _q_blocked = False
 _queued_cnt = 0
 _threads = []
 
-_blacklist = []
 _collection_xml = None
 _game_xml = None
 
@@ -84,6 +85,9 @@ def _filter_games(allgameIds, workfuncs):
             for gameIds in chunks(list(remaining), chunkcount):
                 gameidstrings = ",".join(gameIds)
                 getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
+                if len(getrequest) >= MAX_URI_LENGTH:
+                    raise fetch.URITooLongError()
+                
                 fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
                                            workfuncs=workfuncs)
 
@@ -128,6 +132,9 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
                 while True: # we need some way to re-enter after filtering
                     gameidstrings = ",".join(gameids)
                     getrequest = API_GAME_URL.format(ids=gameidstrings)
+                    if len(getrequest) >= MAX_URI_LENGTH:
+                        raise fetch.URITooLongError()
+                    
                     if chunkcount == 1:
                         logger.info("Attempting cache fetch")
                         logger.debug(getrequest)
