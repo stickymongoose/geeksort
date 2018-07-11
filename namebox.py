@@ -11,9 +11,11 @@ class NameBox(Tk.Toplevel):
         self.title("User Name")
         self.focus_force()
         label = ttk.Label(self, text="BGG Username:", font="Sans 12 bold")
-        label.grid(sticky=Tk.SW, pady=10, padx=10)
+        label.grid(sticky=Tk.SW, pady=10, padx=10, row=0, column=0)
+        errorlbl = Tk.Label(self,text=errorMessage, font="Sans 12 bold", fg="red")
+        errorlbl.grid(sticky=Tk.SW, pady=10, padx=10,row=0, column=1)
         self.box = ttk.Entry(self,  width=32, font="Sans 16 bold")
-        self.box.grid(sticky=Tk.NSEW, pady=0, padx=10)
+        self.box.grid(sticky=Tk.NSEW, pady=0, padx=10,row=1, column=0, columnspan=2)
 
         self.box.insert(0,pref.user)
         self.app = app
@@ -22,14 +24,14 @@ class NameBox(Tk.Toplevel):
 
         frm = Tk.Frame(self, bg="#f0f0f0")
         if sys.platform == "darwin":
-            frm.grid(pady=15, padx=10, sticky=Tk.E)
+            frm.grid(pady=15, padx=10, sticky=Tk.E, columnspan=2)
             okbtn = ttk.Button(frm,  text="OK", command=self.set_name, default=Tk.ACTIVE )#,     width=BTN_WIDTH, height=BTN_HEIGHT, bg=OK_BTN_COLOR)
             nokbtn = ttk.Button(frm, text="Cancel", command=self.destroy)#, width=BTN_WIDTH, height=BTN_HEIGHT,  bg=CANCEL_BTN_COLOR)
 
             okbtn.pack(side=Tk.RIGHT, padx=10)
             nokbtn.pack(side=Tk.LEFT, padx=10)
         else:
-            frm.grid(pady=15, padx=10)
+            frm.grid(pady=15, padx=10,columnspan=2)
             okbtn = Tk.Button(frm, text="OK", command=self.set_name, width=BTN_WIDTH, height=BTN_HEIGHT, bg=OK_BTN_COLOR)
             nokbtn = Tk.Button(frm, text="Cancel", command=self.destroy, width=BTN_WIDTH, height=BTN_HEIGHT,  bg=CANCEL_BTN_COLOR)
 
@@ -61,7 +63,7 @@ if __name__ == "__main__":
         def __init__(self):
             self.user = 'test'
 
-    s = NameBox(root, fakeApp(), fakePref())
+    s = NameBox(root, fakeApp(), fakePref(), "Invalid User Name")
     # s.top.lift()
     # root.wait_window(s.top)
 
