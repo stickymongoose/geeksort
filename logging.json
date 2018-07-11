@@ -18,7 +18,7 @@
       "class": "logging.StreamHandler",
       "formatter": "lite",
       "stream": "ext://sys.stdout",
-      "level":"WARNING"
+      "level":"INFO"
     },
     "file": {
       "class": "logging.FileHandler",
@@ -37,17 +37,17 @@
       "level" : "INFO"
     },
     "shelf.verbose" : {
-      "level":"DEBUG",
+      "level":"INFO",
       "handlers" : ["file"],
       "propagate": false
     },
     "game.size" : {
-      "level":"DEBUG",
+      "level":"INFO",
       "handlers" : ["file"],
       "propagate": false
     },
     "game.img" : {
-      "level":"DEBUG",
+      "level":"INFO",
       "handlers" : ["file"],
       "propagate": false
     },

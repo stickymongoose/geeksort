@@ -27,10 +27,10 @@ def setup_logging( path='logging.json', default_level=logging.INFO ):
 
 setup_logging()
 logger = logging.getLogger(__name__)
+progresslogger = logging.getLogger("progressBar")
 
 import tkinter as Tk
 from tkinter import ttk
-from enum import IntEnum
 from PIL import Image, ImageTk
 import contrib.scrollingframe as scrollframe
 import threading
@@ -53,9 +53,6 @@ ROW_SEARCH = 10
 ROW_PROGRESS = 0
 ROW_SHELVES = 20
 
-class WorkTypes(IntEnum):
-    PROGRESS = 1
-    FETCH = 2
 
 
 
@@ -135,7 +132,7 @@ class App:
 
     def __init__(self):
         collection.init()
-		
+
         self.preferences = preferences.load(self)
         self.preferences.set_prefs()
 
@@ -215,7 +212,7 @@ class App:
             try:
                 c.bind("<Motion>", self.hover.onClear)
             except Exception as e:
-                print(c, e)
+                logger.exception("{}: {}".format(c,e))
 
         # mf.columnconfigure(0,weight=1)
         # mf.rowconfigure(0,weight=1)
@@ -255,6 +252,8 @@ class App:
         self.tkProgressBar = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200
                                              , variable=self.progressPct)
         self.tkProgressBar.pack()
+        self.tkProgressMsg = ttk.Label(self.tkProgressFrm)
+        self.tkProgressMsg.pack()
 
         self.workerThread = None
         self.pref_window = None
@@ -262,8 +261,8 @@ class App:
     def exit(self):
         self.tkWindow.destroy()
 
-    def prompt_name(self):
-        namebox.NameBox(self.tkWindow, self, self.preferences)
+    def prompt_name(self, errorMessage=None):
+        namebox.NameBox(self.tkWindow, self, self.preferences, errorMessage)
 
     def prompt_prefs(self):
         if self.pref_window is None:
@@ -319,25 +318,32 @@ class App:
         self.stackUnplaced.clear_games()
 
     def _make_shelf_widgets(self):
-        print("_make_shelf_widgets", threading.current_thread().name)
+        logger.info("_make_shelf_widgets: %s", threading.current_thread().name)
 
         for bc in self.cases:
             self.searchBox.register(bc)
             bc.make_shelf_widgets(self.tkFrame)
 
     def collection_fetch(self, username, forcereload=False):
-        print("collection_fetch", threading.current_thread().name)
+        logger.info("collection_fetch: %s", threading.current_thread().name)
 
         def _realfetch(self, username, forcereload):
-            #self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.FETCH)
+            #self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.IMAGE_FETCH)
             self.preferences.user = username
             game.Game._user = username
-            collection.set_user(username, forcereload, workfunc=lambda s: self.start_work(s, type=WorkTypes.FETCH))
+            workBlob = {"Start":self.start_work, "Progress":self.set_progress
+                , "Stop":self.stop_work }
+            try:
+                collection.set_user(username, forcereload, workfuncs = workBlob )
+            except collection.UserError as e:
+                logger.warning("Invalid user: %s", username)
+                self.tkWindow.after(0, lambda: self.prompt_name("Invalid User"))
+
             root = collection.get_collection(game.Game._user)
 
             collectionNodes = root.findall("./item") # get all items
 
-            self.start_work("Fetching data for games...", type=WorkTypes.FETCH, progress=True)
+            self.start_work("Fetching images for games...", type=WorkTypes.IMAGE_FETCH, progress=True)
             self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
 
             # collection game in, so load the shelf collection
@@ -364,18 +370,14 @@ class App:
         self.games = None
 
         if self.workerThread is not None:
-            print("Waiting to fetch", threading.current_thread().name)
+            logger.info("%s Waiting to fetch", threading.current_thread().name)
             self.workerThread.join()
-            print("Done", threading.current_thread().name)
+            logger.info("%s Done", threading.current_thread().name)
         self.workerThread = threading.Thread(target=_realfetch, args=(self, username, forcereload), name="Fetcher")
         self.workerThread.start()
 
-    def set_progress(self, pct):
-        #print("Progress", pct, threading.current_thread().getName())
-        self.progressPct.set( pct * 100.0 )
-
     def game_fetch_complete(self):
-        self.stop_work(WorkTypes.FETCH)
+        self.stop_work(WorkTypes.IMAGE_FETCH)
 
     def reload_games(self):
         self.collection_fetch(self.preferences.user, True)
@@ -387,9 +389,9 @@ class App:
             self.sort_games()
 
         if self.workerThread is not None:
-            print("Waiting to reload", threading.current_thread().name)
+            logger.info("%s Waiting to reload", threading.current_thread().name)
             self.workerThread.join()
-            print("Done ", threading.current_thread().name)
+            logger.info("%s Done", threading.current_thread().name)
         self.workerThread = threading.Thread(target=_real_reload, args=(self,), name="Reloader").start()
 
 
@@ -401,9 +403,9 @@ class App:
             self.sort_games()
 
         if self.workerThread is not None:
-            print("Waiting to resort", threading.current_thread().name)
+            logger.info("%s Waiting to resort", threading.current_thread().name)
             self.workerThread.join()
-            print("Done", threading.current_thread().name)
+            logger.info("%s Done", threading.current_thread().name)
         #self.workerThread = threading.Thread(target=_real_resort, args=(self,), name="Resorter").start()
         _real_resort(self)
 
@@ -415,7 +417,7 @@ class App:
 
         # do all the sorting/placing
         self.games.unplaced = []
-        self.start_work("Organizing shelves...", type=WorkTypes.PROGRESS)
+        self.start_work("Organizing shelves...", type=WorkTypes.SORT_GAMES)
         for g in sgames:
             try:
                 #shelf._verbose = True
@@ -429,7 +431,7 @@ class App:
             except GamePlaced:
                 continue
 
-        self.start_work("Fixing up...",type=WorkTypes.PROGRESS)
+        self.start_work("Fixing up...", type=WorkTypes.SORT_GAMES)
         #do post-sort fixing
         for bc in self.cases:
             bc.finish()
@@ -510,7 +512,7 @@ class App:
             self.tkSideNotebook.pack_forget()
 
         # print(("stop work")
-        self.stop_work(WorkTypes.PROGRESS)
+        self.stop_work(WorkTypes.SORT_GAMES)
 
 
     def _make_scroller(self, scroller, name, height, list, func):
@@ -527,7 +529,7 @@ class App:
 
     # add a bunch of widgets for leftover things
     def unexclude(self, game):
-        print("Unexcluded", game.longname )
+        logger.info("%s Unexcluded", game.longname )
         game.excluded = False
         self.resort_games()
 
@@ -540,12 +542,24 @@ class App:
     def start_work(self, label, type, progress=False):
         """Queues up a progress bar, with priority given to higher-numbered types"""
         # print((threading.current_thread().name, "starts", type, label)
-        self.tkProgressActives[type] = (label,progress)
-        self.tkProgressBar.after(0, self._update_work)
+        progresslogger.info("Start %i %s, %s", type, label, progress)
+        if type == WorkTypes.MESSAGE:
+            self.tkProgressMsg.configure(text=label)
+        else:
+            self.tkProgressActives[type] = (label,progress)
+            self.tkProgressBar.after(0, self._update_work)
         #self._update_work()
+
+    def set_progress(self, pct):
+        #print("Progress", pct, threading.current_thread().getName())
+        progresslogger.debug("Percent: %0.4f", pct)
+        self.progressPct.set( pct * 100.0 )
 
     def stop_work(self, type):
         # print((threading.current_thread().name, "stops", type)
+        progresslogger.info("Stop %i", type)
+        if type == WorkTypes.MESSAGE:
+            self.tkProgressMsg.configure(text="")
         try:
             self.tkProgressActives.pop(type)
         except KeyError:

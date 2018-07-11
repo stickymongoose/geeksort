@@ -293,6 +293,9 @@ class Game:
         setlist.append(setlist.Artists, self.artists)
         setlist.append(setlist.Publishers, self.publishers)
 
+    def __str__(self):
+        return "{} id: {}, versionid: {}".format(self.longname, self.id, self.versionid)
+
     def set_image(self, url):
         self.hoverimgurl = url
         self.hoverimgraw = Image.open(self.hoverimgurl)
@@ -511,12 +514,15 @@ class Game:
 
 
     def make_image(self):
-        if self.hoverimgraw is not None:
-            imglogger.debug("Making image for %d %s", self.id, self.longname)
-            self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
-        else:
-            imglogger.debug("No image for %d %s", self.id, self.longname)
-            self.hoverimgTk = None
+        try:
+            if self.hoverimgraw is not None:
+                imglogger.debug("Making image for %d %s", self.id, self.longname)
+                self.hoverimgTk = ImageTk.PhotoImage(image=self.hoverimgraw)
+            else:
+                imglogger.debug("No image for %d %s", self.id, self.longname)
+                self.hoverimgTk = None
+        except AttributeError as e:
+            logger.warning("Handled Attribute Error (sometimes is fine?) %s", e)
 
     def make_lite_hover(self):
         self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs".format(self=self,

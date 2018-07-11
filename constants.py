@@ -4,6 +4,7 @@
 import math
 import re
 from contrib.mixed_fractions import Mixed
+from enum import IntEnum
 
 IN_TO_PX = 8
 IN_TO_CM = 2.54
@@ -61,6 +62,16 @@ GAME_VERSIONS_URL = "https://boardgamegeek.com/boardgame/{id}/xxx/versions"
 API_COLL_URL    = 'https://www.boardgamegeek.com/xmlapi2/collection?username={id}&own=1&version=1&stats=1'
 API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi2/thing?id={ids}&stats=1&versions=1'
 OLD_API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi/boardgame/{ids}'
+
+
+# A priority list of actions being taken
+class WorkTypes(IntEnum):
+    SORT_GAMES = 1
+    COLLECTION_FETCH = 2
+    IMAGE_FETCH = 3
+    GAME_DATA = 4
+    FILTER_FETCH = 5
+    MESSAGE = 6
 
 
 CACHE_DIR = "__cache__"

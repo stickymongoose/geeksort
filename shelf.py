@@ -359,7 +359,7 @@ class Shelf:
 
         # if the box didn't fit on its side, we can reject if it won't fit by height
 
-        self.vprint(box,  "failed")
+        self.vprint("couldn't fit", box)
         return False
 
     def finish(self):

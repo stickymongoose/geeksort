@@ -5,7 +5,7 @@ from constants import *
 
 
 class NameBox(Tk.Toplevel):
-    def __init__(self, window, app, pref):
+    def __init__(self, window, app, pref, errorMessage=None):
         Tk.Toplevel.__init__(self, window)
         self.config(bg="#f0f0f0")
         self.title("User Name")
