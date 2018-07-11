@@ -122,8 +122,10 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
     chunkcount = 1
     # URIs might get too long, attempt to batch it
     while True:
-        workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA
-                           , progress=chunkcount > 1)
+        if chunkcount == 1:
+            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA)
+        else:
+            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA_PIECEMEAL, progress=True)
         try:
             temp_xml = None
             chunkindex = 0
@@ -133,7 +135,7 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
                     gameidstrings = ",".join(gameids)
                     getrequest = API_GAME_URL.format(ids=gameidstrings)
                     if len(getrequest) >= MAX_URI_LENGTH:
-                        raise fetch.URITooLongError()
+                        raise fetch.URITooLongError("Self-selected")
                     
                     if chunkcount == 1:
                         logger.info("Attempting cache fetch")
@@ -181,9 +183,9 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
                         #     else:
                         #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
                 chunkindex += 1
-        except fetch.URITooLongError:
+        except fetch.URITooLongError as e:
             chunkcount <<= 1
-            logger.warning("URI was too long (%d bytes, %d games). Trying again in %d chunks", len(gameidstrings),
+            logger.warning("%s URI was too long (%d bytes, %d games). Trying again in %d chunks", e, len(gameidstrings),
                                                                                             len(gameids),
                                                                                             chunkcount)
         else:
@@ -211,13 +213,15 @@ def set_user(user, forcereload=False, workfuncs=None):
     else:
         logger.warning("Received no games. Possibly an invalid user, or something went wrong. ")
 
-    logger.info("Fetching game data...")
+    logger.info("+++Fetching game data...")
     _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfuncs=workfuncs)
+    logger.info("---Fetched game data...")
     workfuncs["Stop"](WorkTypes.GAME_DATA)
+    workfuncs["Stop"](WorkTypes.GAME_DATA_PIECEMEAL)
 
 
 def pump_queue():
-    while True:
+    while _q_continue:
         if _q_blocked:
             time.sleep(0.02)
             continue
@@ -248,14 +252,18 @@ def done_adding(func, progressfunc):
     def _done_adding(func_, progressfunc_):
         #_q.join()
         logging.info("Done Adding.. %d %d %s", _queued_cnt, _q.qsize(), threading.current_thread().getName())
-        while not _q.empty():
-            progressfunc_(get_progress())
+        lastprogress = 0.0
+        while not _q.empty() and _q_continue:
+            lastprogress = max(get_progress(), lastprogress)
+            progressfunc_(lastprogress)
             time.sleep(0.05)
         logger.info("Finished it up")
 
         func_()
 
-    threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder").start()
+    t = threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder")
+    t.start()
+    _threads.append(t)
 
 def block_pumping():
     global _q_blocked

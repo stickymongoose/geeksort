@@ -18,12 +18,12 @@ def _fetch(request, workfuncs):
     timeout = 5
     while True: #timeout <= 45.0: # unclear if an arbitrary timeout is good or not...
         r = requests.get( request )
-        logger.debug( "Response: %d", r.status_code )
         if r.status_code == 200:  # value returned
             return r.content
+        logger.info( "Response: %d", r.status_code )
         if r.status_code == 414 or r.status_code == 500:  # request URI too long (or "busy" with XMLAPI1)
             logger.warning("URI was too long (%d)", len(request))
-            raise URITooLongError
+            raise URITooLongError("BGG-specified")
         else:
             if r.status_code == 429:
                 timeout = timeout + 5
@@ -77,12 +77,12 @@ def get_cached(filename, func, request, delay=0, canexpire=True, workfuncs=None)
             now = time.time()
             # if file is too old
             if canexpire and (now - filetime) >= MAX_CACHE_AGE:
-                raise TimeoutError("File too old")
+                raise TimeoutError("File {} too old ({} >= {})".format(filename, now-filetime, MAX_CACHE_AGE))
 
             #logger.info("Loaded %s from cache", filename)
             return func(filename)
         except (FileNotFoundError, ET.ParseError, TimeoutError) as e:
-            logger.info("Handled Error: %s", e)
+            logger.info("Handled: %s", e)
             def cache_file(data, filen, fnc):
                 with open(filen, "wb") as fh:
                     fh.write(data)

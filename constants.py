@@ -66,12 +66,13 @@ OLD_API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi/boardgame/{ids}'
 
 # A priority list of actions being taken
 class WorkTypes(IntEnum):
-    SORT_GAMES = 1
-    COLLECTION_FETCH = 2
-    IMAGE_FETCH = 3
-    GAME_DATA = 4
-    FILTER_FETCH = 5
-    MESSAGE = 6
+    SORT_GAMES = 5
+    COLLECTION_FETCH = 10
+    IMAGE_FETCH = 15
+    GAME_DATA = 20
+    GAME_DATA_PIECEMEAL = 21
+    FILTER_FETCH = 25
+    MESSAGE = 100
 
 
 CACHE_DIR = "__cache__"
