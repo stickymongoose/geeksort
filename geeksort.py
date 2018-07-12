@@ -123,6 +123,36 @@ class GameFilters:
         return sortedboxes
 
 
+class InfiniteStacks():
+    def __init__(self):
+        self.stacks = []
+
+    def _add_stack(self, searchbox):
+        self.stacks.append( shelf.GameStack("Overflow_{}".format(len(self.stacks)+1), 300, 120))
+        self.searchbox.register( top(self.stacks) )
+
+    def add_boxes(self, parent, boxlist, searchbox):
+        self._add_stack(searchbox)
+
+        for box in boxlist:
+            while not top(self.stacks).try_box_lite(box):
+                self.add_stack(searchbox)
+
+        for s in self.stacks:
+            s.finish()
+            s.make_widgets(parent)
+
+    def clear_games(self):
+        for f in self.stacks:
+            f.clear_games()
+            f.destroy()
+
+        self.stacks = []
+
+    def hide(self):
+        for s in self.stacks:
+            s.hide()
+
 
 class App:
 
@@ -212,7 +242,7 @@ class App:
 
         # mf.columnconfigure(0,weight=1)
         # mf.rowconfigure(0,weight=1)
-        self.stackUnplaced = shelf.GameStack("Overflow", 300, 1000)
+        self.stackUnplaced = InfiniteStacks()
         self.scrollNoDims = None
         self.scrollExclude = None
         self.scrollFilter = None
@@ -474,15 +504,7 @@ class App:
         # only add an overflow shelf if we need it
         if checkUnplaced:
             if len(self.games.unplaced) > 0:
-                self.searchBox.register(self.stackUnplaced)
-                for b in self.games.unplaced:
-                    if b.x >= b.y:
-                        self.stackUnplaced.add_box(b, game.HorizLong)
-                    else:
-                        self.stackUnplaced.add_box(b, game.HorizShort)
-
-                self.stackUnplaced.finish()
-                self.stackUnplaced.make_widgets(self.tkFrame)
+                self.stackUnplaced.add_boxes(self.games.unplaced, self.tkFrame, self.searchBox)
             else:
                 self.stackUnplaced.hide()
 
