@@ -197,6 +197,12 @@ class GameStack:
         self.vprint(box.name, "didn't fit ",  self.name)
         return False
 
+    def try_box_lite(self, box):
+        if box.z <= self.heightleft:
+            self.add_box( box, game.HorizLong if box.x >= box.y else game.HorizShort )
+            return True
+        return False
+
     def add_box(self, box, dir):
         box.set_dir(dir)
         self.games.append(box)
