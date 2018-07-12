@@ -439,14 +439,15 @@ class FilterBuilderUI(Tk.Frame):
         self.list_items = []
 
         self.fbFrame = Tk.Frame(self)
-        self.fbFrame.pack(anchor=Tk.NW, fill=Tk.X, expand=1)
+        self.fbFrame.grid(row=0, columnspan=2, sticky=Tk.NSEW)
+
 
         # divider/width-enforcer
         Tk.Frame(self, border=2, relief=Tk.RIDGE, bg=self["bg"], width=FILTER_WIDTH) \
-            .pack(pady=0, fill=Tk.X, padx=2, expand=1)
+            .grid(row=5, pady=0, sticky=Tk.EW, padx=2, columnspan=2)
 
         ttk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
-            .pack(side=Tk.LEFT, padx=(10, 0), anchor=Tk.W)
+            .grid(row=10, column=0, padx=(10, 0), sticky=Tk.W)
 
     def set(self, preload):
         for func, op, values, reversed in preload:
@@ -459,6 +460,7 @@ class FilterBuilderUI(Tk.Frame):
 
     def __add(self):
         frm = Tk.Frame(self.fbFrame, bg=self["bg"])
+        self.fbFrame.grid(row=0, columnspan=2, sticky=Tk.NSEW)
 
         subfrm = Tk.Frame(frm, bg=self["bg"])
         killbtn     = ttk.Button(subfrm, image=FilterBuilderUI.subimg, command=functools.partial(self.__sub, frm))
@@ -493,6 +495,10 @@ class FilterBuilderUI(Tk.Frame):
         frame.destroy()
         self.list_items.remove(frame)
         self.__reorder()
+
+        if len(self.list_items) == 0:
+            self.fbFrame.grid_forget()
+
         try:
             self.master.master.update_height()
         except AttributeError:
