@@ -439,11 +439,11 @@ class FilterBuilderUI(Tk.Frame):
         self.list_items = []
 
         self.fbFrame = Tk.Frame(self)
-        self.fbFrame.pack(anchor=Tk.NW)
+        self.fbFrame.pack(anchor=Tk.NW, fill=Tk.X, expand=1)
 
         # divider/width-enforcer
         Tk.Frame(self, border=2, relief=Tk.RIDGE, bg=self["bg"], width=FILTER_WIDTH) \
-            .pack(pady=0, fill=Tk.X, padx=2)
+            .pack(pady=0, fill=Tk.X, padx=2, expand=1)
 
         ttk.Button(self, image=FilterBuilderUI.addimg, command=self.__add)\
             .pack(side=Tk.LEFT, padx=(10, 0), anchor=Tk.W)
@@ -478,7 +478,7 @@ class FilterBuilderUI(Tk.Frame):
         frm.reverbtn.grid(column=3, row=0, rowspan=2, sticky=Tk.W)
         new.grid(column=2, row=0, rowspan=2, sticky=Tk.W)
 
-        subfrm.pack(anchor=Tk.NW, pady=5)
+        subfrm.pack(anchor=Tk.NW, pady=5, expand=1, fill=Tk.X)
         frm.spacer.pack(anchor=Tk.NW, pady=5)
 
 

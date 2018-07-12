@@ -133,7 +133,7 @@ class Chord(Frame):
         if not self._is_opened: self._open()
 
     def _open(self):
-        self.body.pack()
+        self.body.pack(fill=X, expand=1)
         self.body.pack_propagate(False)
         
         self._icon_label.configure(image=self._down_arrow_icon, background = self._selected_background)
@@ -224,9 +224,9 @@ class Accordion(Frame):
         self._list_of_chords.append(chord)
 
         if len(self._list_of_chords) == 1:
-            chord.pack(fill=X)
+            chord.pack(fill=X, expand=1)
         else:
-            chord.pack(fill=X, pady=(1,0))
+            chord.pack(fill=X, pady=(1,0), expand=1)
 
         return chord
             
