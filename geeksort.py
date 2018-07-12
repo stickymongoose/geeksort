@@ -65,7 +65,6 @@ class GameFilters:
         self.filtered = []
         self.inBoxes = []
         self.noBoxes = []
-        self.noVersions = []
         self.noData = []
         self.by_id = {}
         progressFunc( 0.0 )
@@ -87,11 +86,8 @@ class GameFilters:
         self.inBoxes   = [b for b in self.sorted if b.hasbox]
         self.noBoxes  = [b for b in self.sorted if not b.hasbox]
 
-        self.noVersions = [g for g in self.noBoxes if g.versionid == 0]
-        # assumption being, it has a version, but might not have a box
-        self.noData = [g for g in self.noBoxes if g.versionid != 0 and not g.hasbox]
+        self.noData = [g for g in self.noBoxes if not g.hasbox]
 
-        self.noVersions.sort(key=sorts.Name)
         self.noData.sort(key=sorts.Name)
 
     def get_sorted_boxes(self, sortfuncs, filterfuncs):
@@ -217,7 +213,6 @@ class App:
         # mf.columnconfigure(0,weight=1)
         # mf.rowconfigure(0,weight=1)
         self.stackUnplaced = shelf.GameStack("Overflow", 300, 1000)
-        self.scrollNoVers = None
         self.scrollNoDims = None
         self.scrollExclude = None
         self.scrollFilter = None
@@ -494,9 +489,9 @@ class App:
         # print(("versionless")
 
         # only add versionless shelf if we need it
-        if len(self.games.excluded) + len(self.games.noData) + len(self.games.noVersions) + len(self.games.filtered) > 0:
-            logger.info("We need a side panel, as we have %i excluded, %i no data, %i no versions, %i filtered"
-                , len(self.games.excluded), len(self.games.noData), len(self.games.noVersions), len(self.games.filtered))
+        if len(self.games.excluded) + len(self.games.noData) + len(self.games.filtered) > 0:
+            logger.info("We need a side panel, as we have %i excluded, %i no data, %i filtered"
+                , len(self.games.excluded), len(self.games.noData), len(self.games.filtered))
                
             if self.tkSideNotebook is None:
                 logger.info("Making side panel")
@@ -509,9 +504,6 @@ class App:
 
             self.scrollNoDims = self._make_scroller(self.scrollNoDims, "No Dimensions", highestshelf, self.games.noData,
                                                     self.open_size_editor)
-
-            self.scrollNoVers = self._make_scroller(self.scrollNoVers, "No Versions", highestshelf,
-                                                    self.games.noVersions, self.open_version_picker)
 
             self.scrollExclude = self._make_scroller(self.scrollExclude, "Excluded", highestshelf, self.games.excluded,
                                                      self.unexclude)
