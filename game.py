@@ -293,6 +293,9 @@ class Game:
         setlist.append(setlist.Artists, self.artists)
         setlist.append(setlist.Publishers, self.publishers)
 
+    def __str__(self):
+        return "{} id: {}, versionid: {}".format(self.longname, self.id, self.versionid)
+
     def set_image(self, url):
         self.hoverimgurl = url
         self.hoverimgraw = Image.open(self.hoverimgurl)
@@ -511,19 +514,25 @@ class Game:
 
 
     def make_image(self):
-        if self.hoverimgraw is not None:
-            imglogger.debug("Making image for %d %s", self.id, self.longname)
-            self.hoverimgTk = ImageTk.PhotoImage(self.hoverimgraw)
-        else:
-            imglogger.debug("No image for %d %s", self.id, self.longname)
-            self.hoverimgTk = None
+        try:
+            if self.hoverimgraw is not None:
+                imglogger.debug("Making image for %d %s", self.id, self.longname)
+                self.hoverimgTk = ImageTk.PhotoImage(image=self.hoverimgraw)
+            else:
+                imglogger.debug("No image for %d %s", self.id, self.longname)
+                self.hoverimgTk = None
+        except AttributeError as e:
+            logger.warning("Handled Attribute Error (sometimes is fine?) %s", e)
 
     def make_lite_hover(self):
-        self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs".format(self=self,
+        self.hovertext = "{self.longname}\n{version}{guesstimated}{x}\" x {y}\" x {z}\"\n{w} lbs".format(
+                                        self=self,
                                         x=makeFraction(self.x),
                                         y=makeFraction(self.y),
                                         z=makeFraction(self.z),
-                                        w=makeFraction(self.w)
+                                        w=makeFraction(self.w),
+                                        guesstimated= "Guesstimated*\n" if self.guesstimated else "",
+                                        version="{}{}".format(self.versionname, "\n") if len(self.versionname) > 0 else ""
                                         )
 
     def make_widget(self, shelf, center=False):
@@ -532,12 +541,14 @@ class Game:
             self._make_box_art()
         except: pass
 
-        self.hovertext = "{self.longname}\n{self.versionname}\n{x}\" x {y}\" x {z}\"\n{w} lbs\n{humdir} ({self.dir})".format(
+        self.hovertext = "{self.longname}\n{version}{guesstimated}{x}\" x {y}\" x {z}\"\n{w} lbs\n{humdir} ({self.dir})".format(
             self=self, humdir=self.get_human_dir(),
             x=makeFraction(self.x),
             y=makeFraction(self.y),
             z=makeFraction(self.z),
-            w=makeFraction(self.w))
+            w=makeFraction(self.w),
+            version="{}{}".format(self.versionname, "\n") if len(self.versionname)>0 else "",
+            guesstimated="Guesstimated*\n" if self.guesstimated else "")
 
         #color = "#{:06x}".format( self.color )
         border = GAME_BORDER

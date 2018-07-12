@@ -65,6 +65,8 @@ class Bookcase:
         return s
 
     def __setstate__(self, dict):
+        logger.info("Unpickling Bookcase state")
+        dict['tkCase'] = None
         self.__dict__.update(dict)
 
     def thaw(self, gamedb):
@@ -90,6 +92,11 @@ class Bookcase:
         return used, total
 
     def make_shelf_widgets(self, owner):
+        if self.tkCase is not None:
+            logger.info("%s told to make its widgets, but already had them.", self.name)
+            return
+        
+    
         border=BOOKCASE_BORDER
         self.tkCase = Tk.Frame(owner
                                #, width=(self.width*IN_TO_PX)+(border*2)
@@ -104,6 +111,7 @@ class Bookcase:
         for si in range(len(self.shelves)):
             s = self.shelves[si]
             s.make_widget(self.tkCase, si + 1)
+        logger.info("%s told to make its widgets: %r", self.name, self.tkCase)
 
     def make_game_widgets(self):
         for s in self.shelves:
@@ -111,12 +119,17 @@ class Bookcase:
 
 
     def clear_games(self):
+        # reversed for speed and if/when we thread the UI we don't see them disappear and reshuffle
         for s in reversed(self.shelves):
             s.clear_games()
 
     def clear_widgets(self):
+        logger.info("%s clearing its widgets", self.name)
         self.clear_games()
-        self.tkCase.destroy()
+        try:
+            self.tkCase.destroy()
+        except:
+            pass
         self.tkCase = None
 
     def search(self, text):
@@ -150,6 +163,9 @@ class GameStack:
         return s
 
     def __setstate__(self, dict):
+        logger.info("Unpickling GameStack state")
+        dict['tkFrame'] = None
+        dict['games'] = []
         self.__dict__.update(dict)
 
     def thaw(self, gamedb):
@@ -260,6 +276,12 @@ class Shelf:
         del s['games']
         s['thaw_list'] = thaw_list
         return s
+        
+    def __setstate__(self, dict):
+        logger.info("Unpickling Shelf state")
+        dict['tkShelf'] = None
+        dict['games'] = []
+        self.__dict__.update(dict)
 
     def thaw(self, gamedb):
         self.games = game.thaw_games(gamedb, self.thaw_list)
@@ -359,7 +381,7 @@ class Shelf:
 
         # if the box didn't fit on its side, we can reject if it won't fit by height
 
-        self.vprint(box,  "failed")
+        self.vprint("couldn't fit", box)
         return False
 
     def finish(self):

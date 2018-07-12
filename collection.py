@@ -16,14 +16,17 @@ logger = logging.getLogger(__name__)
 pumplogger = logging.getLogger("pumpthreads")
 #import concurrent.futures
 
-import sys
+MAX_URI_LENGTH = 7000 # absolutely a guess
+
+class UserError(Exception):
+    pass
+
 _q = queue.Queue()
 _q_continue = True
 _q_blocked = False
 _queued_cnt = 0
 _threads = []
 
-_blacklist = []
 _collection_xml = None
 _game_xml = None
 
@@ -54,10 +57,9 @@ def shutdown():
         t.join()
 
 
-def _fetch_collection(user, forcereload=False, workfunc=None) -> ET.ElementTree:
+def _fetch_collection(user, forcereload=False, workfuncs=None) -> ET.ElementTree:
     logger.info("Fetching collection data...")
-    if workfunc is not None:
-        workfunc("Fetching collection for {}...".format(user))
+    workfuncs["Start"]("Fetching collection for {}...".format(user), type=WorkTypes.COLLECTION_FETCH, progress=False)
 
     collection_filename = pathlib.Path(CACHE_DIR) / "collection_{}.xml".format(user)
 
@@ -67,24 +69,43 @@ def _fetch_collection(user, forcereload=False, workfunc=None) -> ET.ElementTree:
         except FileNotFoundError:
             pass
 
-    return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfunc=workfunc)
+    return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfuncs=workfuncs)
 
 
-def _filter_games(gameIds,workfunc):
-    gameidstrings = ",".join(gameIds)
-    getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
-    fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
-                               workfunc=workfunc)
-    # TODO: Implement error-checking from this
-    with open(pathlib.Path(CACHE_DIR) / "piecemeal.xml", "w") as f:
-        fetchedxml.write(f)
-    fetchedxml.getroot()
+def _filter_games(allgameIds, workfuncs):
 
-    #ET.dump(fetchedxml)
-    return gameIds, []
+    # due to the current API, if there's an invalid game ID, it ruins the whole batch
+    # since this is a rare occurrence, we'll special case it and use the old API
+
+    chunkcount = 1
+    found = []
+    remaining = set(allgameIds)
+    while True:
+        try:
+            for gameIds in chunks(list(remaining), chunkcount):
+                gameidstrings = ",".join(gameIds)
+                getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
+                if len(getrequest) >= MAX_URI_LENGTH:
+                    raise fetch.URITooLongError()
+                
+                fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
+                                           workfuncs=workfuncs)
+
+                for g in fetchedxml.getroot().findall("./boardgame"):
+                    id = g.get("objectid")
+                    found.append(id)
+                    remaining.remove(id)
+
+        except fetch.URITooLongError:
+            logger.warning("URI too long for the recovery filter (%d bytes). Ugh!", len(getrequest))
+            chunkcount <<= 1
+        else:
+            break
+
+    return found, list(remaining)
 
 
-def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcount=1):
+def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
     if len(collectionXml) == 0:
         logger.warning("%s has no games in their collection.", user)
         return []
@@ -95,65 +116,76 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
             os.remove(game_filename)
         except FileNotFoundError:
             pass
-    if workfunc is not None:
-        workfunc("Fetching game data for {} games...".format(len(collectionXml)))
+
     allgameids = sorted(set([el.get("objectid") for el in collectionXml]), key=int)
 
-
+    chunkcount = 1
     # URIs might get too long, attempt to batch it
     while True:
+        if chunkcount == 1:
+            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA)
+        else:
+            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA_PIECEMEAL, progress=True)
         try:
             temp_xml = None
+            chunkindex = 0
             for gameids in chunks(allgameids, chunkcount):
-                gameidstrings = ",".join(gameids)
-                getrequest = API_GAME_URL.format(ids=gameidstrings)
-                if chunkcount == 1:
-                    logger.info("Attempting cache fetch")
-                    logger.debug(getrequest)
-                    fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfunc=workfunc)
-                else:
-                    logger.info("Attempting piecemeal fetch, %d of %d", len(gameids), len(allgameids))
-                    logging.debug(getrequest)
-                    fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
-                                               workfunc=workfunc)
-                                               
-                if fetchedxml is None:
-                    logger.warning("Data fetch for chunk count %i returned no XML. Not sure what to do, so, bailing", chunkcount)
-                    return ET.ElementTree()
-                elif fetchedxml.getroot().tag == "div":
+                workfuncs["Progress"](chunkindex/chunkcount)
+                while True: # we need some way to re-enter after filtering
+                    gameidstrings = ",".join(gameids)
+                    getrequest = API_GAME_URL.format(ids=gameidstrings)
+                    if len(getrequest) >= MAX_URI_LENGTH:
+                        raise fetch.URITooLongError("Self-selected")
+                    
+                    if chunkcount == 1:
+                        logger.info("Attempting cache fetch")
+                        logger.debug(getrequest)
+                        fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfuncs=workfuncs)
+                    else:
 
-                    logger.warning("Data fetch went bad. Reason: %s. Pivoting to ID-filter.", fetchedxml.getroot().text.strip())
-                    ET.dump(fetchedxml)
-                    filteredcol, badids = _filter_games(gameids, workfunc)
-                    global _blacklist
-                    _blacklist += badids
-                    return _fetch_games(collectionXml, user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
-                else:
-                    returned_count = len(list(fetchedxml.getroot()))
-                    if True:  # len(gameids) == returned_count:
-                        logger.info("Requested and received %d games.", returned_count)
-                        # got the right stuff
-                        if temp_xml is None:
-                            # first fetch start it off
-                            temp_xml = fetchedxml
-                            logger.info("no temp, it's now %d", returned_count)
-                        else:
-                            # subsequent fetches get appended
-                            for kid in fetchedxml.getroot():
-                                temp_xml.getroot().append(kid)
-                            logger.info("had a temp, it's now %d", len(temp_xml.getroot()))
-                    # else:
-                    #     # wrong number of elements (rare?)
-                    #     if not forcereload:
-                    #         # this branch is bit smelly, but at this time I'm not sure why we'd get such results
-                    #         logger.warnig("Did not receive enough game ids! Expected %d, but got %d. Trying again forcefully", len(gameids), returned_count))
-                    #         return set_user(user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
-                    #     else:
-                    #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
+                        logger.info("Attempting piecemeal fetch, %d out of %d", len(gameids), len(allgameids))
+                        logging.debug(getrequest)
+                        fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
+                                                   workfuncs=workfuncs)
 
-        except fetch.URITooLongError:
+                    if fetchedxml is None:
+                        logger.warning("Data fetch for chunk count %i returned no XML. Not sure what to do, so, bailing", chunkcount)
+                        return ET.ElementTree()
+
+                    elif fetchedxml.getroot().tag == "div":
+                        logger.warning("Data fetch went bad. Reason: %s. Pivoting to ID-filter.", fetchedxml.getroot().text.strip())
+                        workfuncs["Start"]("Recovering from some bad IDs", WorkTypes.FILTER_FETCH)
+                        gameids, badids = _filter_games(gameids, workfuncs)
+                        workfuncs["Stop"](WorkTypes.FILTER_FETCH)
+                        logger.warning("Game ids %s removed from list, trying again", ", ".join(badids))
+
+                    else:
+                        returned_count = len(list(fetchedxml.getroot()))
+                        if True:  # len(gameids) == returned_count:
+                            logger.info("Requested and received %d games.", returned_count)
+                            # got the right stuff
+                            if temp_xml is None:
+                                # first fetch start it off
+                                temp_xml = fetchedxml
+                                logger.info("no temp, it's now %d", returned_count)
+                            else:
+                                # subsequent fetches get appended
+                                for kid in fetchedxml.getroot():
+                                    temp_xml.getroot().append(kid)
+                                logger.info("had a temp, it's now %d", len(temp_xml.getroot()))
+                            break # leave the inner while True
+                        # else:
+                        #     # wrong number of elements (rare?)
+                        #     if not forcereload:
+                        #         # this branch is bit smelly, but at this time I'm not sure why we'd get such results
+                        #         logger.warnig("Did not receive enough game ids! Expected %d, but got %d. Trying again forcefully", len(gameids), returned_count))
+                        #         return set_user(user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
+                        #     else:
+                        #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
+                chunkindex += 1
+        except fetch.URITooLongError as e:
             chunkcount <<= 1
-            logger.warning("URI was too long (%d bytes, %d games). Trying again in %d chunks", len(gameidstrings),
+            logger.warning("%s URI was too long (%d bytes, %d games). Trying again in %d chunks", e, len(gameidstrings),
                                                                                             len(gameids),
                                                                                             chunkcount)
         else:
@@ -165,19 +197,31 @@ def _fetch_games(collectionXml, user, forcereload=False, workfunc=None, chunkcou
     return temp_xml
 
 
-def set_user(user, forcereload=False, workfunc=None):
+def set_user(user, forcereload=False, workfuncs=None):
     logger.info("User set to %s", user)
     global _collection_xml, _game_xml
-    _collection_xml = _fetch_collection(user, forcereload, workfunc)
+    _collection_xml = _fetch_collection(user, forcereload, workfuncs)
+    workfuncs["Stop"](WorkTypes.COLLECTION_FETCH)
+
     if _collection_xml is not None:
+        errorMessage = _collection_xml.getroot().find("./error/message")
+        if errorMessage is not None:
+            _collection_xml = ET.fromstring("<items totalitems='0'></items>")
+            raise UserError(errorMessage)
+
         logger.info("Received %s games", _collection_xml.getroot().get("totalitems").strip())
     else:
         logger.warning("Received no games. Possibly an invalid user, or something went wrong. ")
-    logger.info("Fetching game data...")
-    _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfunc)
+
+    logger.info("+++Fetching game data...")
+    _game_xml = _fetch_games(_collection_xml.findall("./item"), user, forcereload, workfuncs=workfuncs)
+    logger.info("---Fetched game data...")
+    workfuncs["Stop"](WorkTypes.GAME_DATA)
+    workfuncs["Stop"](WorkTypes.GAME_DATA_PIECEMEAL)
+
 
 def pump_queue():
-    while True:
+    while _q_continue:
         if _q_blocked:
             time.sleep(0.02)
             continue
@@ -208,14 +252,18 @@ def done_adding(func, progressfunc):
     def _done_adding(func_, progressfunc_):
         #_q.join()
         logging.info("Done Adding.. %d %d %s", _queued_cnt, _q.qsize(), threading.current_thread().getName())
-        while not _q.empty():
-            progressfunc_(get_progress())
+        lastprogress = 0.0
+        while not _q.empty() and _q_continue:
+            lastprogress = max(get_progress(), lastprogress)
+            progressfunc_(lastprogress)
             time.sleep(0.05)
         logger.info("Finished it up")
 
         func_()
 
-    threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder").start()
+    t = threading.Thread(target=_done_adding, args=(func,progressfunc), name="DoneAdder")
+    t.start()
+    _threads.append(t)
 
 def block_pumping():
     global _q_blocked
@@ -278,7 +326,8 @@ def get_img(user, id):
 
 if __name__ == "__main__":
 
-    _filter_games([35,36,37])
+    print( _filter_games(["1","2","3","5","7","12","13","18","22","35"], None) )
+
 
 #    print(get_img("jadthegerbil", 114903))
 #
