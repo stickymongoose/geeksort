@@ -17,6 +17,7 @@ pumplogger = logging.getLogger("pumpthreads")
 #import concurrent.futures
 
 MAX_URI_LENGTH = 7000 # absolutely a guess
+MAX_OLD_API_GAME_COUNT = 300 # seems to work well without returning a nebulous 504
 
 class UserError(Exception):
     pass
@@ -77,28 +78,30 @@ def _filter_games(allgameIds, workfuncs):
     # due to the current API, if there's an invalid game ID, it ruins the whole batch
     # since this is a rare occurrence, we'll special case it and use the old API
 
-    chunkcount = 1
+    chunkcount = MAX_OLD_API_GAME_COUNT
     found = []
     remaining = set(allgameIds)
     while True:
         try:
-            for gameIds in chunks(list(remaining), chunkcount):
+            chunkedListGen = (allgameIds[i:i+chunkcount] for i in range(0, len(allgameIds),chunkcount))
+            for gameIds in chunkedListGen:
+                logger.info("Attempting piecemeal filter, %d out of %d", len(gameIds), len(allgameIds))
                 gameidstrings = ",".join(gameIds)
                 getrequest = OLD_API_GAME_URL.format(ids=gameidstrings)
                 if len(getrequest) >= MAX_URI_LENGTH:
                     raise fetch.URITooLongError()
                 
                 fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
-                                           workfuncs=workfuncs)
+                                           workfuncs=workfuncs, throw504=True)
 
                 for g in fetchedxml.getroot().findall("./boardgame"):
                     id = g.get("objectid")
                     found.append(id)
                     remaining.remove(id)
 
-        except fetch.URITooLongError:
+        except (fetch.URITooLongError, TimeoutError):
             logger.warning("URI too long for the recovery filter (%d bytes). Ugh!", len(getrequest))
-            chunkcount <<= 1
+            chunkcount >>= 1
         else:
             break
 

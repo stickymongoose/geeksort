@@ -652,8 +652,11 @@ class App:
 threading.current_thread().setName("mainThread")
 
 logger.info("Starting App")
-a = App()
-a.mainloop()
+try:
+    a = App()
+    a.mainloop()
+except Exception as e:
+    logger.fatal("Exception: {}".format(e), exc_info=True)
 logger.info("Left Mainloop")
 
 

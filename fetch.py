@@ -14,13 +14,16 @@ class URITooLongError(Exception):
     pass
 
 # return a request, but wait some seconds and retry if error
-def _fetch(request, workfuncs):
+def _fetch(request, workfuncs, throw504):
     timeout = 5
     while True: #timeout <= 45.0: # unclear if an arbitrary timeout is good or not...
         r = requests.get( request )
         if r.status_code == 200:  # value returned
             return r.content
         logger.info( "Response: %d", r.status_code )
+        
+        if r.status_code == 504 and throw504:
+            raise TimeoutError("504'd")
         if r.status_code == 414 or r.status_code == 500:  # request URI too long (or "busy" with XMLAPI1)
             logger.warning("URI was too long (%d)", len(request))
             raise URITooLongError("BGG-specified")
@@ -45,9 +48,9 @@ def _fetch(request, workfuncs):
     raise Exception("Timeout exceeded")
 
 
-def _one_attempt(func, request, delay=0, workfuncs=None):
+def _one_attempt(func, request, delay=0, workfuncs=None, throw504=False):
     try:
-        f = _fetch(request, workfuncs)
+        f = _fetch(request, workfuncs,throw504)
         time.sleep(delay)
         return func(f)
     except URITooLongError as e:
@@ -57,12 +60,12 @@ def _one_attempt(func, request, delay=0, workfuncs=None):
         logger.exception("one attempt: {}".format(e))
 
 
-def get_raw(func, request, delay=0, workfuncs=None) -> ET.ElementTree:
+def get_raw(func, request, delay=0, workfuncs=None, throw504=False) -> ET.ElementTree:
     """attempts to get raw data from the internet, without caching it like get_cached does"""
     for i in range(3):
         if i > 0:
             logger.info("Contacting bgg, attempt: %d", i)
-        return _one_attempt(func, request, delay, workfuncs)
+        return _one_attempt(func, request, delay, workfuncs, throw504)
     else:
         logger.warning( "Too many errors")
         raise IOError
