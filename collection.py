@@ -70,7 +70,9 @@ def _fetch_collection(user, forcereload=False, workfuncs=None) -> ET.ElementTree
         except FileNotFoundError:
             pass
 
-    return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfuncs=workfuncs)
+    return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfuncs=workfuncs
+                            , promptsIfOld={"title" : "Collection Out of Date"
+            , "msg" : "Collection data for {user} is over {{age:2.1f}} day(s) old. Do you want to update it from BGG?".format(user=user)})
 
 
 def _filter_games(allgameIds, workfuncs):
@@ -143,7 +145,8 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
                     if chunkcount == 1:
                         logger.info("Attempting cache fetch")
                         logger.debug(getrequest)
-                        fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfuncs=workfuncs)
+                        fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfuncs=workfuncs, promptsIfOld=
+                        {"title":"Game Data", "msg":"Game Data is over {age:2.1f} days old. Do you want to fetch new data from BGG?"})
                     else:
 
                         logger.info("Attempting piecemeal fetch, %d out of %d", len(gameids), len(allgameids))

@@ -6,6 +6,7 @@ import os
 from constants import *
 import xml.etree.ElementTree as ET
 from http.client import responses
+from tkinter import messagebox
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def _fetch(request, workfuncs, throw504):
 
 def _one_attempt(func, request, delay=0, workfuncs=None, throw504=False):
     try:
-        f = _fetch(request, workfuncs,throw504)
+        f = _fetch(request, workfuncs, throw504)
         time.sleep(delay)
         return func(f)
     except URITooLongError as e:
@@ -58,6 +59,7 @@ def _one_attempt(func, request, delay=0, workfuncs=None, throw504=False):
         raise e  # toss this on on up
     except Exception as e:
         logger.exception("one attempt: {}".format(e))
+        raise e # toss all?
 
 
 def get_raw(func, request, delay=0, workfuncs=None, throw504=False) -> ET.ElementTree:
@@ -71,7 +73,7 @@ def get_raw(func, request, delay=0, workfuncs=None, throw504=False) -> ET.Elemen
         raise IOError
 
 
-def get_cached(filename, func, request, delay=0, canexpire=True, workfuncs=None):
+def get_cached(filename, func, request, delay=0, promptsIfOld=None, workfuncs=None):
     """attempts to read a filename from disk, and if not present (or expired)
     Pulls it from the net via request"""
     for i in range(3):
@@ -79,8 +81,11 @@ def get_cached(filename, func, request, delay=0, canexpire=True, workfuncs=None)
             filetime = os.path.getmtime(filename)
             now = time.time()
             # if file is too old
-            if canexpire and (now - filetime) >= MAX_CACHE_AGE:
-                raise TimeoutError("File {} too old ({} >= {})".format(filename, now-filetime, MAX_CACHE_AGE))
+            if (now - filetime) >= MAX_CACHE_AGE:
+                if promptsIfOld is None or messagebox.askyesno(promptsIfOld["title"]
+                        , promptsIfOld["msg"].format(age=(now-filetime)/86400)
+                        , default=messagebox.NO):
+                    raise TimeoutError("File {} too old ({} >= {})".format(filename, now-filetime, MAX_CACHE_AGE))
 
             #logger.info("Loaded %s from cache", filename)
             return func(filename)
