@@ -72,7 +72,7 @@ def _fetch_collection(user, forcereload=False, workfuncs=None) -> ET.ElementTree
 
     return fetch.get_cached(collection_filename, ET.parse, API_COLL_URL.format(id=user), workfuncs=workfuncs
                             , promptsIfOld={"title" : "Collection Out of Date"
-            , "msg" : "Collection data for {user} is over {{age:2.1f}} day(s) old. Do you want to update it from BGG?".format(user=user)})
+            , "msg" : "Collection data for {user} is over {{age:2.1f}} day(s) old.\n\nDo you want to update it from BGG?".format(user=user)})
 
 
 def _filter_games(allgameIds, workfuncs):

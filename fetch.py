@@ -73,30 +73,41 @@ def get_raw(func, request, delay=0, workfuncs=None, throw504=False) -> ET.Elemen
         raise IOError
 
 
+def try_cache(filename, func, promptsIfOld=None):
+    try:
+        filetime = os.path.getmtime(filename)
+        now = time.time()
+        age = (now - filetime) / (24 * 60 * 60)  # age in days
+        # if file is too old
+        if age >= MAX_CACHE_AGE:
+            if promptsIfOld is None or messagebox.askyesno(promptsIfOld["title"]
+                    , promptsIfOld["msg"].format(age=age)
+                    , default=messagebox.NO):
+                raise TimeoutError("File {} too old ({} >= {})".format(filename, age, MAX_CACHE_AGE))
+
+        # logger.info("Loaded %s from cache", filename)
+        return func(filename)
+
+    except (FileNotFoundError, ET.ParseError, TimeoutError) as e:
+        logger.info("Handled: %s", e)
+        return None
+
+
 def get_cached(filename, func, request, delay=0, promptsIfOld=None, workfuncs=None):
     """attempts to read a filename from disk, and if not present (or expired)
     Pulls it from the net via request"""
     for i in range(3):
-        try:
-            filetime = os.path.getmtime(filename)
-            now = time.time()
-            # if file is too old
-            if (now - filetime) >= MAX_CACHE_AGE:
-                if promptsIfOld is None or messagebox.askyesno(promptsIfOld["title"]
-                        , promptsIfOld["msg"].format(age=(now-filetime)/86400)
-                        , default=messagebox.NO):
-                    raise TimeoutError("File {} too old ({} >= {})".format(filename, now-filetime, MAX_CACHE_AGE))
+        result = try_cache(filename, func, promptsIfOld)
+        if result is not None:
+            logger.info("%s filename loaded from cache", filename)
+            return result
 
-            #logger.info("Loaded %s from cache", filename)
-            return func(filename)
-        except (FileNotFoundError, ET.ParseError, TimeoutError) as e:
-            logger.info("Handled: %s", e)
-            def cache_file(data, filen, fnc):
-                with open(filen, "wb") as fh:
-                    fh.write(data)
-                return fnc(filen)
+        def cache_file(data, filen, fnc):
+            with open(filen, "wb") as fh:
+                fh.write(data)
+            return fnc(filen)
 
-            return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, workfuncs)
+        return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, workfuncs)
     else:
         logger.warning("Too many errors")
         raise IOError
