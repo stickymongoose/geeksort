@@ -374,7 +374,8 @@ class App:
             self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
 
             # collection game in, so load the shelf collection
-            savedcases, savedstack = shelf.load(username, self.games)
+            ##savedcases, savedstack = shelf.load(username, self.games)
+            savedcases, savedstack = None, None # suspend loading for now--the wrong stuff pickles
             if savedcases is not None or savedstack is not None:
                 self.clear_shelves() # TODO: load in place, rather than have to nuke the old ones
                 self.cases = savedcases
