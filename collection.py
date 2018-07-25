@@ -18,6 +18,7 @@ pumplogger = logging.getLogger("pumpthreads")
 
 MAX_URI_LENGTH = 7000 # absolutely a guess
 MAX_OLD_API_GAME_COUNT = 300 # seems to work well without returning a nebulous 504
+MAX_NEW_API_GAME_COUNT = 500
 
 class UserError(Exception):
     pass
@@ -37,6 +38,8 @@ THREAD_COUNT = 3
 def chunks(ls, n):
     return numpy.array_split(ls, n)
 
+def splitlist(ls, n):
+    return (ls[i:i + n] for i in range(0, len(ls), n))
 
 def init():
     try:
@@ -85,7 +88,7 @@ def _filter_games(allgameIds, workfuncs):
     remaining = set(allgameIds)
     while True:
         try:
-            chunkedListGen = (allgameIds[i:i+chunkcount] for i in range(0, len(allgameIds),chunkcount))
+            chunkedListGen = splitlist(allgameIds,chunkcount)
             for gameIds in chunkedListGen:
                 logger.info("Attempting piecemeal filter, %d out of %d", len(gameIds), len(allgameIds))
                 gameidstrings = ",".join(gameIds)
@@ -119,43 +122,44 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
     if forcereload:
         try:
             os.remove(game_filename)
+            logger.info("%s forcefully removed", game_filename)
         except FileNotFoundError:
             pass
 
+    promptObj = {"title": "Game Data", "msg": "Game Data is over {age:2.1f} days old.\n\nDo you want to fetch new data from BGG?"}
+    fetchedxml = fetch.try_cache(game_filename, ET.parse, promptsIfOld=promptObj)
+    if fetchedxml is not None:
+        logger.info("%s loaded from cache", game_filename)
+        return fetchedxml
+    logger.info("Unable to load %s from cache, beginning a query", game_filename)
+
     allgameids = sorted(set([el.get("objectid") for el in collectionXml]), key=int)
 
-    chunkcount = 1
+    workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA)
+    workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA_PIECEMEAL, progress=True)
+
+    chunksize = MAX_NEW_API_GAME_COUNT
     # URIs might get too long, attempt to batch it
     while True:
-        if chunkcount == 1:
-            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA)
-        else:
-            workfuncs["Start"]("Fetching game data for {} games...".format(len(collectionXml)), WorkTypes.GAME_DATA_PIECEMEAL, progress=True)
         try:
             temp_xml = None
             chunkindex = 0
-            for gameids in chunks(allgameids, chunkcount):
-                workfuncs["Progress"](chunkindex/chunkcount)
+            listgen = splitlist(allgameids, chunksize)
+            for gameids in listgen:
+                workfuncs["Progress"](chunksize*chunkindex/len(allgameids))
                 while True: # we need some way to re-enter after filtering
                     gameidstrings = ",".join(gameids)
                     getrequest = API_GAME_URL.format(ids=gameidstrings)
                     if len(getrequest) >= MAX_URI_LENGTH:
                         raise fetch.URITooLongError("Self-selected")
-                    
-                    if chunkcount == 1:
-                        logger.info("Attempting cache fetch")
-                        logger.debug(getrequest)
-                        fetchedxml = fetch.get_cached(game_filename, ET.parse, getrequest, workfuncs=workfuncs, promptsIfOld=
-                        {"title":"Game Data", "msg":"Game Data is over {age:2.1f} days old. Do you want to fetch new data from BGG?"})
-                    else:
 
-                        logger.info("Attempting piecemeal fetch, %d out of %d", len(gameids), len(allgameids))
-                        logging.debug(getrequest)
-                        fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
-                                                   workfuncs=workfuncs)
+                    logger.info("Attempting piecemeal fetch, %d out of %d", len(gameids), len(allgameids))
+                    logging.debug(getrequest)
+                    fetchedxml = fetch.get_raw(lambda data: ET.ElementTree(ET.fromstring(data)), getrequest,
+                                               workfuncs=workfuncs)
 
                     if fetchedxml is None:
-                        logger.warning("Data fetch for chunk count %i returned no XML. Not sure what to do, so, bailing", chunkcount)
+                        logger.warning("Data fetch for chunk count %i returned no XML. Not sure what to do, so, bailing", chunksize)
                         return ET.ElementTree()
 
                     elif fetchedxml.getroot().tag == "div":
@@ -185,15 +189,15 @@ def _fetch_games(collectionXml, user, forcereload=False, workfuncs=None):
                         #     if not forcereload:
                         #         # this branch is bit smelly, but at this time I'm not sure why we'd get such results
                         #         logger.warnig("Did not receive enough game ids! Expected %d, but got %d. Trying again forcefully", len(gameids), returned_count))
-                        #         return set_user(user, forcereload=True, workfunc=workfunc, chunkcount=chunkcount)
+                        #         return set_user(user, forcereload=True, workfunc=workfunc, chunksize=chunksize)
                         #     else:
                         #         raise SortException("Did not receive enough game ids! Expected {}, but got {}".format(len(gameids), returned_count))
                 chunkindex += 1
         except fetch.URITooLongError as e:
-            chunkcount <<= 1
+            chunksize >>= 1
             logger.warning("%s URI was too long (%d bytes, %d games). Trying again in %d chunks", e, len(gameidstrings),
                                                                                             len(gameids),
-                                                                                            chunkcount)
+                                                                                            chunksize)
         else:
             break  # out of the while True
 
@@ -239,6 +243,10 @@ def pump_queue():
             game.set_image(get_img(user, game.id))
             _q.task_done()
             #time.sleep(0.01)
+        except OSError as e:
+            logger.info("Re-queuing ({}, {}) because {}".format(game.name, game.id, e))
+            queue_img(user, game)
+            _q.task_done()
         except queue.Empty:
             if _q_continue:
                 pumplogger.debug("%s idled", threading.current_thread().name)
