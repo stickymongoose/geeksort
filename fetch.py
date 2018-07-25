@@ -45,7 +45,7 @@ def _fetch(request, progbar, throw504):
 
                 with progbar.work(line, WorkTypes.QUEUED_UP, progress=True):
                     for t in range(0, int(timeout), 1):
-                        progbar.set_percent(t/timeout)
+                        progbar.set_percent(t/timeout, WorkTypes.QUEUED_UP)
                         time.sleep(1)
 
             timeout *= 1.5

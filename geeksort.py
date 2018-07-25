@@ -373,7 +373,7 @@ class App:
             collectionNodes = root.findall("./item") # get all items
 
             self.progressbar.start("Fetching images for games...", type=WorkTypes.IMAGE_FETCH, progress=True)
-            self.games = GameFilters(collectionNodes, self.progressbar.set_percent, self.game_fetch_complete)
+            self.games = GameFilters(collectionNodes, lambda pct:self.progressbar.set_percent(pct, type=WorkTypes.IMAGE_FETCH), self.game_fetch_complete)
 
             # collection game in, so load the shelf collection
             ##savedcases, savedstack = shelf.load(username, self.games)

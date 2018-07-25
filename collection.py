@@ -145,7 +145,7 @@ def _fetch_games(collectionXml, user, forcereload=False, progbar=None):
                     chunkindex = 0
                     listgen = splitlist(allgameids, chunksize)
                     for gameids in listgen:
-                        progbar.set_percent(chunksize*chunkindex/len(allgameids))
+                        progbar.set_percent(chunksize*chunkindex/len(allgameids), WorkTypes.GAME_DATA_PIECEMEAL)
                         while True: # we need some way to re-enter after filtering
                             gameidstrings = ",".join(gameids)
                             getrequest = API_GAME_URL.format(ids=gameidstrings)

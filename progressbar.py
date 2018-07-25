@@ -34,21 +34,29 @@ class ProgressBar:
 
 
     def _update_work(self):
-        try:
-            most_important = max(self.tkProgressActives, key=int)
-            label, ignored = self.tkProgressActives[most_important]
+        if len(self.tkProgressActives) > 0:
 
-            progresslogger.info("Top choice is %s, %i", label, most_important)
+            maxlabel = ""
+            maxpct = -1
+            maxtype = -1
             needProgress = False
             needSpinner = False
-            for type, (msg, progress) in self.tkProgressActives.items():
-                progresslogger.info("Has: %i \"%s\"", type, msg)
+            for type, (msg, progress, pct) in self.tkProgressActives.items():
+                progresslogger.debug('Has: %i "%s" %f', type, msg, pct)
                 if progress:
                     needProgress = True
                 else:
                     needSpinner = True
 
+                if type > maxtype:
+                    maxtype = type
+                    maxlabel = msg
+                    maxpct = pct
+
+            progresslogger.debug('Top choice is %i "%s" %f', maxtype, maxlabel, maxpct)
+
             if needProgress:
+                self.progressPct.set(maxpct)
                 self.tkProgressBarPct.grid(row=1, column=0)
             else:
                 self.tkProgressBarPct.grid_forget()
@@ -58,10 +66,10 @@ class ProgressBar:
             else:
                 self.tkProgressBarSpinner.grid_forget()
 
-            self.tkProgressLabel.configure(text=label)
+            self.tkProgressLabel.configure(text=maxlabel)
             self.tkProgressFrm.pack(anchor=Tk.CENTER, expand=True)
         # progressActives is empty, so turn off the progress bar
-        except ValueError:
+        else:
             self.tkProgressFrm.pack_forget()
 
 
@@ -72,15 +80,19 @@ class ProgressBar:
         if type == WorkTypes.MESSAGE:
             self.tkProgressMsg.configure(text=label)
         else:
-            self.tkProgressActives[type] = (label, progress)
+            self.tkProgressActives[type] = [label, progress, 0]
             self.tkProgressFrm.after(0, self._update_work)
         # self._update_work()
 
 
-    def set_percent(self, pct):
+    def set_percent(self, pct, type):
         # print("Progress", pct, threading.current_thread().getName())
-        progresslogger.debug("Percent: %0.4f", pct)
-        self.progressPct.set(pct * 100.0)
+        if type in self.tkProgressActives:
+            progresslogger.debug("Percent: %i %0.4f", type, pct)
+            self.tkProgressActives[type][2] = pct * 100.0
+            self.tkProgressFrm.after(0, self._update_work)
+        else:
+            progresslogger.error("Can't Percent %0.4f for %i--not started", pct, type)
 
 
     def stop(self, type):
@@ -112,10 +124,16 @@ if __name__ == "__main__":
     import threading
     def delayed():
         def _sub():
-            p.start("Yes?", WorkTypes.GAME_DATA)
-            time.sleep(5)
-            with p.work("No!", WorkTypes.QUEUED_UP):
+            p.start("Yes?", WorkTypes.GAME_DATA, progress=True)
+            time.sleep(1)
+            p.set_percent(0.5, WorkTypes.GAME_DATA)
+            time.sleep(1)
+            with p.work("No!", WorkTypes.QUEUED_UP, progress=True):
                 time.sleep(2)
+                p.set_percent(0.75, WorkTypes.QUEUED_UP)
+                time.sleep(2)
+            # should see the progress bar pop back down to 50%
+            time.sleep(2)
             p.stop(WorkTypes.GAME_DATA)
 
         threading.Thread(target=_sub).start()
