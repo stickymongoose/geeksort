@@ -25,9 +25,10 @@ def setup_logging( path='logging.json', default_level=logging.INFO ):
         logging.basicConfig(level=default_level)
         print("Logging configured by default, as no file", path)
 
-setup_logging()
+if __name__ == "__main__":
+    setup_logging()
+
 logger = logging.getLogger(__name__)
-progresslogger = logging.getLogger("progressBar")
 
 import tkinter as Tk
 from tkinter import ttk
@@ -45,6 +46,7 @@ import preferences
 import sizewindow
 import scrollable
 import namebox
+import progressbar
 
 from constants import *
 
@@ -266,7 +268,9 @@ class App:
         spaceholder.bind("<Motion>", self.hover.onClear)
         topframe.bind("<Motion>", self.hover.onClear)
 
-        self.make_progressbar(spaceholder)
+        self.progressbar = progressbar.ProgressBar()
+
+        self.progressbar.make(spaceholder)
 
         self.workerThread = None
         self.pref_window = None
@@ -357,10 +361,9 @@ class App:
             #self.start_work("Fetching collection for {}...".format(username), type=WorkTypes.IMAGE_FETCH)
             self.preferences.user = username
             game.Game._user = username
-            workBlob = {"Start":self.start_work, "Progress":self.set_progress
-                , "Stop":self.stop_work }
+
             try:
-                collection.set_user(username, forcereload, workfuncs = workBlob )
+                collection.set_user(username, forcereload, progbar = self.progressbar )
             except collection.UserError as e:
                 logger.warning("Invalid user: %s", username)
                 self.tkWindow.after(0, lambda: self.prompt_name("Invalid User"))
@@ -369,8 +372,8 @@ class App:
 
             collectionNodes = root.findall("./item") # get all items
 
-            self.start_work("Fetching images for games...", type=WorkTypes.IMAGE_FETCH, progress=True)
-            self.games = GameFilters(collectionNodes, self.set_progress, self.game_fetch_complete)
+            self.progressbar.start("Fetching images for games...", type=WorkTypes.IMAGE_FETCH, progress=True)
+            self.games = GameFilters(collectionNodes, self.progressbar.set_percent, self.game_fetch_complete)
 
             # collection game in, so load the shelf collection
             ##savedcases, savedstack = shelf.load(username, self.games)
@@ -398,7 +401,7 @@ class App:
         self.start_worker("fetch collection", _realfetch, (self, username, forcereload), "Fetcher")
 
     def game_fetch_complete(self):
-        self.stop_work(WorkTypes.IMAGE_FETCH)
+        self.progressbar.stop(WorkTypes.IMAGE_FETCH)
 
     def reload_games(self):
         self.collection_fetch(self.preferences.user, True)
@@ -448,7 +451,7 @@ class App:
 
         # do all the sorting/placing
         self.games.unplaced = []
-        self.start_work("Organizing shelves...", type=WorkTypes.SORT_GAMES)
+        self.progressbar.start("Organizing shelves...", type=WorkTypes.SORT_GAMES)
         for g in sgames:
             try:
                 #shelf._verbose = True
@@ -540,7 +543,7 @@ class App:
             logger.info("Don't need a notebook, but it doesn't exist.")
 
         # print(("stop work")
-        self.stop_work(WorkTypes.SORT_GAMES)
+        self.progressbar.stop(WorkTypes.SORT_GAMES)
 
 
     def _make_scroller(self, scroller, name, height, list, func):
@@ -567,97 +570,17 @@ class App:
     def open_version_picker(self, game):
         webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
 
-    ####################### Progress bar functions
-    
-    def make_progressbar(self, parent):
-        self.progressPct = Tk.DoubleVar(0.0)
-        self.tkProgressActives = {}
-    
-        self.tkProgressFrm = ttk.Frame(parent)
-        self.tkProgressLabel = ttk.Label(self.tkProgressFrm)
-        self.tkProgressLabel.grid(row=0, column=0)
-        self.tkProgressBarSpinner = ttk.Progressbar(self.tkProgressFrm, mode="indeterminate", length=200)
-        self.tkProgressBarSpinner.start() # will never stop
-        self.tkProgressBarPct = ttk.Progressbar(self.tkProgressFrm, mode="determinate", length=200
-                                            , variable=self.progressPct)
-        self.tkProgressBarSpinner.start() # will never stop
-        self.tkProgressBarPct.grid(row=1, column=0)
-        self.tkProgressBarSpinner.grid(row=2, column=0)
-        self.tkProgressMsg = ttk.Label(self.tkProgressFrm)
-        self.tkProgressMsg.grid(row=3, column=0)
-        
-    def _update_work(self):
-        try:
-            key = max(self.tkProgressActives, key=lambda key: self.tkProgressActives[key])
-            label, ignored = self.tkProgressActives[key]
-            
-            needProgress = False
-            needSpinner = False
-            for ignored, (ignored, progress) in self.tkProgressActives.items():
-                if progress:
-                    needProgress = True
-                else:
-                    needSpinner = True
-            
-            if needProgress:
-                self.tkProgressBarPct.grid(row=1, column=0)
-            else:
-                self.tkProgressBarPct.grid_forget()
-            
-            if needSpinner:
-                self.tkProgressBarSpinner.grid(row=2, column=0)
-            else:
-                self.tkProgressBarSpinner.grid_forget()
 
-            self.tkProgressLabel.configure(text=label)
-            self.tkProgressFrm.pack(anchor=Tk.CENTER, expand=True)
-        # progressActives is empty, so turn off the progress bar
-        except ValueError:
-            self.tkProgressFrm.pack_forget()
-        
-    def start_work(self, label, type, progress=False):
-        """Queues up a progress bar, with priority given to higher-numbered types"""
-        # print((threading.current_thread().name, "starts", type, label)
-        progresslogger.info("Start type: %i %s, %s", type, label, progress)
-        if type == WorkTypes.MESSAGE:
-            self.tkProgressMsg.configure(text=label)
-        else:
-            self.tkProgressActives[type] = (label,progress)
-            self.tkProgressFrm.after(0, self._update_work)
-        #self._update_work()
+if __name__ == "__main__":
+    threading.current_thread().setName("mainThread")
 
-    def set_progress(self, pct):
-        #print("Progress", pct, threading.current_thread().getName())
-        progresslogger.debug("Percent: %0.4f", pct)
-        self.progressPct.set( pct * 100.0 )
-
-    def stop_work(self, type):
-        # print((threading.current_thread().name, "stops", type)
-        progresslogger.info("Stop %i", type)
-        if type == WorkTypes.MESSAGE:
-            self.tkProgressMsg.configure(text="")
-        try:
-            self.tkProgressActives.pop(type)
-        except KeyError:
-            pass
-
-        self.tkProgressFrm.after(0, self._update_work)
-        #self._update_work()
-
-    
-            
-    ###################### End of progress bar section
-
-
-threading.current_thread().setName("mainThread")
-
-logger.info("Starting App")
-try:
-    a = App()
-    a.mainloop()
-except Exception as e:
-    logger.fatal("Exception: {}".format(e), exc_info=True)
-logger.info("Left Mainloop")
+    logger.info("Starting App")
+    try:
+        a = App()
+        a.mainloop()
+    except Exception as e:
+        logger.fatal("Exception: {}".format(e), exc_info=True)
+    logger.info("Left Mainloop")
 
 
 

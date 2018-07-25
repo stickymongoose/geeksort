@@ -15,7 +15,7 @@ class URITooLongError(Exception):
     pass
 
 # return a request, but wait some seconds and retry if error
-def _fetch(request, workfuncs, throw504):
+def _fetch(request, progbar, throw504):
     timeout = 5
     while True: #timeout <= 45.0: # unclear if an arbitrary timeout is good or not...
         r = requests.get( request )
@@ -30,44 +30,51 @@ def _fetch(request, workfuncs, throw504):
             raise URITooLongError("BGG-specified")
         else:
             if r.status_code == 429:
-                timeout = timeout + 5
+                timeout += 5
             else:
                 logger.info( "Busy. Code: %d Trying again in %d", r.status_code, timeout)
 
-            if workfuncs is not None:
-                if r.status_code == 202:
-                    workfuncs["Start"]("BGG has queued the request.\nChecking again in {:.0f} seconds...".format(timeout), WorkTypes.MESSAGE)
-                else:
-                    workfuncs["Start"]("BGG says '{}'.\nWaiting {:.0f} seconds...".format(responses[r.status_code], timeout), WorkTypes.MESSAGE)
+            if progbar is None:
+                time.sleep(timeout)
+            else:
 
-            time.sleep(timeout)
-            if workfuncs is not None:
-                workfuncs["Stop"](WorkTypes.MESSAGE)
-            timeout = timeout * 1.5
+                if r.status_code == 202:
+                    line = "BGG has queued the request.\nChecking again in {:.0f} seconds...".format(timeout)
+                else:
+                    line = "BGG says '{}'.\nWaiting {:.0f} seconds...".format(responses[r.status_code], timeout)
+
+                with progbar.work(line, WorkTypes.QUEUED_UP, progress=True):
+                    for t in range(0, int(timeout), 1):
+                        progbar.set_percent(t/timeout)
+                        time.sleep(1)
+
+            timeout *= 1.5
 
     logger.info("Timeout exceeded")
     raise Exception("Timeout exceeded")
 
 
-def _one_attempt(func, request, delay=0, workfuncs=None, throw504=False):
+def _one_attempt(func, request, delay=0, progbar=None, throw504=False):
     try:
-        f = _fetch(request, workfuncs, throw504)
+        f = _fetch(request, progbar, throw504)
         time.sleep(delay)
         return func(f)
+
     except URITooLongError as e:
         logger.info("URI was too long")
         raise e  # toss this on on up
+
     except Exception as e:
         logger.exception("one attempt: {}".format(e))
         raise e # toss all?
 
 
-def get_raw(func, request, delay=0, workfuncs=None, throw504=False) -> ET.ElementTree:
+def get_raw(func, request, delay=0, progbar=None, throw504=False) -> ET.ElementTree:
     """attempts to get raw data from the internet, without caching it like get_cached does"""
     for i in range(3):
         if i > 0:
             logger.info("Contacting bgg, attempt: %d", i)
-        return _one_attempt(func, request, delay, workfuncs, throw504)
+        return _one_attempt(func, request, delay, progbar, throw504)
     else:
         logger.warning( "Too many errors")
         raise IOError
@@ -93,7 +100,7 @@ def try_cache(filename, func, promptsIfOld=None):
         return None
 
 
-def get_cached(filename, func, request, delay=0, promptsIfOld=None, workfuncs=None):
+def get_cached(filename, func, request, delay=0, promptsIfOld=None, progbar=None):
     """attempts to read a filename from disk, and if not present (or expired)
     Pulls it from the net via request"""
     for i in range(3):
@@ -107,7 +114,7 @@ def get_cached(filename, func, request, delay=0, promptsIfOld=None, workfuncs=No
                 fh.write(data)
             return fnc(filen)
 
-        return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, workfuncs)
+        return _one_attempt(lambda data: cache_file(data, filename, func), request, delay, progbar)
     else:
         logger.warning("Too many errors")
         raise IOError

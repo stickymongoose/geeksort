@@ -75,6 +75,7 @@ class WorkTypes(IntEnum):
     GAME_DATA = 20
     GAME_DATA_PIECEMEAL = 21
     FILTER_FETCH = 25
+    QUEUED_UP = 30
     MESSAGE = 100
 
 
