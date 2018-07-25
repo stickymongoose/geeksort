@@ -64,6 +64,9 @@ API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi2/thing?id={ids}&stats=1&
 OLD_API_GAME_URL    = 'https://www.boardgamegeek.com/xmlapi/boardgame/{ids}'
 
 
+UNPLACED_WIDTH = 300 # set it exceptionally wide so anything will fit
+UNPLACED_HEIGHT = 6*12 # 6 ft shelves seems rather reasonable for most people...
+
 # A priority list of actions being taken
 class WorkTypes(IntEnum):
     SORT_GAMES = 5

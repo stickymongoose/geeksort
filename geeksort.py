@@ -128,15 +128,15 @@ class InfiniteStacks():
         self.stacks = []
 
     def _add_stack(self, searchbox):
-        self.stacks.append( shelf.GameStack("Overflow_{}".format(len(self.stacks)+1), 300, 120))
-        self.searchbox.register( top(self.stacks) )
+        self.stacks.append( shelf.GameStack("Overflow_{}".format(len(self.stacks)+1), UNPLACED_WIDTH, UNPLACED_HEIGHT))
+        searchbox.register( top(self.stacks) )
 
     def add_boxes(self, parent, boxlist, searchbox):
         self._add_stack(searchbox)
 
         for box in boxlist:
             while not top(self.stacks).try_box_lite(box):
-                self.add_stack(searchbox)
+                self._add_stack(searchbox)
 
         for s in self.stacks:
             s.finish()
@@ -145,7 +145,6 @@ class InfiniteStacks():
     def clear_games(self):
         for f in self.stacks:
             f.clear_games()
-            f.destroy()
 
         self.stacks = []
 
@@ -505,7 +504,7 @@ class App:
         # only add an overflow shelf if we need it
         if checkUnplaced:
             if len(self.games.unplaced) > 0:
-                self.stackUnplaced.add_boxes(self.games.unplaced, self.tkFrame, self.searchBox)
+                self.stackUnplaced.add_boxes(self.tkFrame, self.games.unplaced, self.searchBox)
             else:
                 self.stackUnplaced.hide()
 
