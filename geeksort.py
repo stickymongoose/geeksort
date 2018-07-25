@@ -618,7 +618,7 @@ class App:
     def start_work(self, label, type, progress=False):
         """Queues up a progress bar, with priority given to higher-numbered types"""
         # print((threading.current_thread().name, "starts", type, label)
-        progresslogger.info("Start %i %s, %s", type, label, progress)
+        progresslogger.info("Start type: %i %s, %s", type, label, progress)
         if type == WorkTypes.MESSAGE:
             self.tkProgressMsg.configure(text=label)
         else:
