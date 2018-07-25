@@ -128,6 +128,7 @@ class GameFilters:
 class InfiniteStacks():
     def __init__(self):
         self.stacks = []
+        self.tkFrame = None
 
     def _add_stack(self, searchbox):
         self.stacks.append( shelf.GameStack("Overflow_{}".format(len(self.stacks)+1), UNPLACED_WIDTH, UNPLACED_HEIGHT))
@@ -140,19 +141,31 @@ class InfiniteStacks():
             while not top(self.stacks).try_box_lite(box):
                 self._add_stack(searchbox)
 
+        if self.tkFrame is None:
+            self.tkFrame = Tk.Frame(parent)
+            self.tkFrame.pack(side=Tk.LEFT, anchor=Tk.SW, padx=SHELF_SPACING)
+            self.tkFrame.bind("<Motion>", hover.Hover.inst.onClear)
+
         for s in self.stacks:
             s.finish()
-            s.make_widgets(parent)
+            s.make_widgets(self.tkFrame)
 
     def clear_games(self):
         for f in self.stacks:
             f.clear_games()
 
         self.stacks = []
+        try:
+            self.tkFrame.destroy()
+        except AttributeError:
+            pass
+        
+        self.tkFrame = None
 
     def hide(self):
-        for s in self.stacks:
-            s.hide()
+        #for s in self.stacks:
+        #    s.hide()
+        self.tkFrame.pack_forget()
 
 
 class App:

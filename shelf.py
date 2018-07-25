@@ -226,6 +226,7 @@ class GameStack:
             self.tkFrame.bind("<Button-1>", shelf.onClick)
         else:
             self.tkFrame.pack(side=Tk.LEFT, anchor=Tk.SW, padx=SHELF_SPACING)
+            self.tkFrame.bind("<Motion>", hover.Hover.inst.onClear)
 
         for g in self.games:
             g.make_widget(self.tkFrame, center=True)
