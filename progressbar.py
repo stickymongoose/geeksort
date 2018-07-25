@@ -35,28 +35,28 @@ class ProgressBar:
 
     def _update_work(self):
         if len(self.tkProgressActives) > 0:
+            maxpct = (-1, -1)
+            maxmsg = (-1, "")
 
-            maxlabel = ""
-            maxpct = -1
-            maxtype = -1
+            # check if we need a progress bar and/or a spinner
             needProgress = False
             needSpinner = False
             for type, (msg, progress, pct) in self.tkProgressActives.items():
                 progresslogger.debug('Has: %i "%s" %f', type, msg, pct)
                 if progress:
                     needProgress = True
+                    if type > maxpct[0]:
+                        maxpct = [type, pct]
                 else:
                     needSpinner = True
 
-                if type > maxtype:
-                    maxtype = type
-                    maxlabel = msg
-                    maxpct = pct
+                if type > maxmsg[0]:
+                    maxmsg = [type,msg]
 
-            progresslogger.debug('Top choice is %i "%s" %f', maxtype, maxlabel, maxpct)
+            progresslogger.debug('Top choice is %i "%s", %i %f', maxmsg[0], maxmsg[1], maxpct[0], maxpct[1])
 
             if needProgress:
-                self.progressPct.set(maxpct)
+                self.progressPct.set(maxpct[1])
                 self.tkProgressBarPct.grid(row=1, column=0)
             else:
                 self.tkProgressBarPct.grid_forget()
@@ -66,7 +66,7 @@ class ProgressBar:
             else:
                 self.tkProgressBarSpinner.grid_forget()
 
-            self.tkProgressLabel.configure(text=maxlabel)
+            self.tkProgressLabel.configure(text=maxmsg[1])
             self.tkProgressFrm.pack(anchor=Tk.CENTER, expand=True)
         # progressActives is empty, so turn off the progress bar
         else:
