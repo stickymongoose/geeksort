@@ -69,9 +69,9 @@ UNPLACED_HEIGHT = 6*12 # 6 ft shelves seems rather reasonable for most people...
 
 # A priority list of actions being taken
 class WorkTypes(IntEnum):
-    SORT_GAMES = 5
-    COLLECTION_FETCH = 10
-    IMAGE_FETCH = 15
+    COLLECTION_FETCH = 5
+    IMAGE_FETCH = 10
+    SORT_GAMES = 15
     GAME_DATA = 20
     GAME_DATA_PIECEMEAL = 21
     FILTER_FETCH = 25
