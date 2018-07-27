@@ -1,6 +1,7 @@
 import sys
 import os
 import shutil
+import subprocess
 from cx_Freeze import setup, Executable
 from constants import GS_VERSION
 
@@ -13,8 +14,11 @@ include_files = [
     hacky_path + r"/DLLs/tcl86t.dll",
     hacky_path + r"/DLLs/tk86t.dll",
     "README.md",
-    "shelves.txt"
+    "shelves.txt",
+    "logging.json"
 ]
+
+excludes = ['PyQt5',  'scipy', 'tcl']
 
 subdirs = ["pics"]
 
@@ -30,7 +34,9 @@ build_exe_options = {
     "packages" : packages,
     'path' : path,
     'includes' : includes,
-    'include_files' : include_files
+    'include_files' : include_files,
+    'excludes' : excludes,
+    'optimize' : 2
 }
 
 # GUI applications require a different base on Windows (the default is for a
@@ -48,6 +54,8 @@ shutil.rmtree("build", ignore_errors=True )
 setup(  name = "geeksort",
         version = GS_VERSION,
         author= 'Jtudisco',
-        description = "My GUI application!",
+        description = "GeekSort",
         options = {"build_exe": build_exe_options},
         executables = executables)
+
+subprocess.run("7z a -r build\geeksort-win-v{}.7z build\exe.win32-3.6".format(GS_VERSION.replace(".","")))
