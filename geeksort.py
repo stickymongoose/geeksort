@@ -165,7 +165,10 @@ class InfiniteStacks():
     def hide(self):
         #for s in self.stacks:
         #    s.hide()
-        self.tkFrame.pack_forget()
+        try:
+            self.tkFrame.pack_forget()
+        except AttributeError:
+            pass
 
 
 class App:
