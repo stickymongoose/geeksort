@@ -73,7 +73,7 @@ class GameFilters:
         for index in range(len(gameNodes)):
             newgame = game.Game(gameNodes[index])
             self.all.append( newgame )
-            self.by_id[newgame.id] = newgame
+            self.by_id[newgame.collid] = newgame
             #progressFunc( index / len(gameNodes) )
         collection.done_adding(doneFunc, progressFunc)
         self.make_lists()
@@ -159,7 +159,7 @@ class InfiniteStacks():
             self.tkFrame.destroy()
         except AttributeError:
             pass
-        
+
         self.tkFrame = None
 
     def hide(self):
@@ -584,7 +584,7 @@ class App:
         sizewindow.Popup(self.tkWindow, game, self)
 
     def open_version_picker(self, game):
-        webbrowser.open( GAME_VERSIONS_URL.format(id=game.id) )
+        webbrowser.open( GAME_VERSIONS_URL.format(id=game.gameid) )
 
 
 if __name__ == "__main__":

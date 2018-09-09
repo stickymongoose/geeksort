@@ -236,11 +236,11 @@ def pump_queue():
             pumplogger.debug("%s tried", threading.current_thread().name)
             user, game = _q.get(timeout=1)
             pumplogger.debug("%s got %s", threading.current_thread().name, game.name)
-            game.set_image(get_img(user, game.id))
+            game.set_image(get_img(user, game.gameid, game.collid))
             _q.task_done()
             #time.sleep(0.01)
         except OSError as e:
-            logger.info("Re-queuing ({}, {}) because {}".format(game.name, game.id, e))
+            logger.info("Re-queuing ({}, {}) because {}".format(game.name, game.gameid, e))
             queue_img(user, game)
             _q.task_done()
         except queue.Empty:
@@ -311,12 +311,12 @@ def get_img_specific(imgurl):
     return localimg
 
 
-def get_img(user, id):
+def get_img(user, gameid, collid):
     try:
         root = get_collection(user)
-        thumb = root.find("./item[@objectid='{}']/version/item/thumbnail".format(id))
+        thumb = root.find("./item[@collid='{}']/version/item/thumbnail".format(collid))
         if thumb is None:
-            root = get_game(user, id)
+            root = get_game(user, gameid)
             thumb = root.find("./thumbnail")
             if thumb is None:
                 raise ModuleNotFoundError()

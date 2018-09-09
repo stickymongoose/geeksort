@@ -121,10 +121,10 @@ class ActionMenu(Tk.Menu):
         sizewindow.Popup(self, self.game, Game._app)
 
     def to_bgg(self):
-        webbrowser.open(GAME_URL.format(id=self.game.id))
+        webbrowser.open(GAME_URL.format(id=self.game.gameid))
 
     def to_version_selector(self):
-        webbrowser.open(GAME_VERSIONS_URL.format(id=self.game.id))
+        webbrowser.open(GAME_VERSIONS_URL.format(id=self.game.gameid))
 
     def to_version(self):
         webbrowser.open(VERSION_URL.format(id=self.game.versionid))
@@ -168,7 +168,8 @@ class Game:
         self.name = self.name.replace(u"–", "-")
         self.name = self.name.replace("&amp;","&")
         self.name = self.name.replace("&#039;","'")
-        self.id = int(xmlfromcollection.get("objectid"))
+        self.gameid = int(xmlfromcollection.get("objectid"))
+        self.collid = int(xmlfromcollection.get("collid"))
 
         self.longname = self.name
         self.searchname = to_search(self.longname)
@@ -226,7 +227,7 @@ class Game:
 
         self.categories = self.mechanics = self.families = []
         self.designers = self.artists = self.publishers = self.types = []
-        gd = collection.get_game(Game._user, self.id)
+        gd = collection.get_game(Game._user, self.gameid)
         try:
             self.year_published = get_value(gd, "yearpublished", 0)
             self.min_age    = get_value(gd, "minage", 0)
@@ -273,7 +274,7 @@ class Game:
             self.designers  = get_node_values(versionitem, "boardgamedesigner", self.designers)
             self.artists    = get_node_values(versionitem, "boardgameartist", self.artists)
             self.publishers = get_node_values(versionitem, "boardgamepublisher", self.publishers)
-            sizelogger.debug("Version found for %s %s", self.name, GAME_URL.format(id=self.id))
+            sizelogger.debug("Version found for %s %s", self.name, GAME_URL.format(id=self.gameid))
             if self.x == self.y == self.z == 0:
                 self.set_size_by_guess(gd.findall("versions/item"))
 
@@ -281,7 +282,7 @@ class Game:
             # no version data, best guess it.
             self.set_size_by_guess(gd.findall("versions/item"))
 
-            sizelogger.debug("No version for %s %s", self.name, GAME_URL.format(id=self.id))
+            sizelogger.debug("No version for %s %s", self.name, GAME_URL.format(id=self.gameid))
             pass
 
         # now that we're done with all the possible adding, add each to the set list
@@ -294,7 +295,7 @@ class Game:
         setlist.append(setlist.Publishers, self.publishers)
 
     def __str__(self):
-        return "{} id: {}, versionid: {}".format(self.longname, self.id, self.versionid)
+        return "{} gameid: {}, versionid: {}, collid: {}".format(self.longname, self.gameid, self.versionid, self.collid)
 
     def set_image(self, url):
         self.hoverimgurl = url
@@ -386,7 +387,7 @@ class Game:
 
 
                 choice = filter_sizes[0][1] # Top item, sortobj ([0] is the sort key)
-                if self.id == DEBUG_ID:
+                if self.gameid == DEBUG_ID:
                     print("stddev: ", stddev, "mean ", mean)
                     for fs in filter_sizes:
                         print("{}: {}".format(fs[0], fs[1]))
@@ -402,7 +403,7 @@ class Game:
                 pass
 
     def set_size(self, x, y, z, w):
-        x,y,z = Game.sanitizesize(x,y,z, self.id, self.name)
+        x,y,z = Game.sanitizesize(x, y, z, self.gameid, self.name)
         self.x = x
         self.y = y
         self.z = z
@@ -516,10 +517,10 @@ class Game:
     def make_image(self):
         try:
             if self.hoverimgraw is not None:
-                imglogger.debug("Making image for %d %s", self.id, self.longname)
+                imglogger.debug("Making image for %d %s", self.gameid, self.longname)
                 self.hoverimgTk = ImageTk.PhotoImage(image=self.hoverimgraw)
             else:
-                imglogger.debug("No image for %d %s", self.id, self.longname)
+                imglogger.debug("No image for %d %s", self.gameid, self.longname)
                 self.hoverimgTk = None
         except AttributeError as e:
             logger.warning("Handled Attribute Error (sometimes is fine?) %s", e)
@@ -733,7 +734,7 @@ class Game:
 
 
 def freeze_games(gamelist):
-    return [(g.id, g.dir) for g in gamelist]
+    return [(g.collid, g.dir) for g in gamelist]
 
 def thaw_games(gamedb, gamelist):
     out = []
