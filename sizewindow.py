@@ -82,7 +82,7 @@ class Popup:
             val = fields[i]
             var = Tk.StringVar()
             setattr(self, val+"var", var)
-            var.set(getattr(game, val+"raw")) # pull the raw data off the game
+            var.set(getattr(game, val)) # pull the size data off the game
 
             widget = Tk.Entry(midframe,  textvariable=var, width=18, justify=Tk.RIGHT
                     , validate="focusout", highlightthickness=1, highlightbackground="white", background="white")
