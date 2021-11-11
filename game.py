@@ -401,6 +401,10 @@ class Game:
             elif Game._sizepreference == SizePreference.MostCommon or Game._sizepreference == SizePreference.Average:
                 # TODO: Figure out how to do this... Is volume truly the best way?
                 pass
+        else:  # found no sizes, make a TERRIBLE choice and if there's one, that's our version (for editing later)
+            if len(nodes) == 1:
+                self.versionid = int(nodes[0].get("id"))
+                self.guesstimated = True
 
     def set_size(self, x, y, z, w):
         x,y,z = Game.sanitizesize(x, y, z, self.gameid, self.name)
