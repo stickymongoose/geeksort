@@ -20,6 +20,7 @@ class Preferences:
         self.storeStyle = shelf.StoreStyle.PreferStack
         self.sideStyle = game.SidePreference.Left
         self.stackSort = shelf.StackSort.Size
+        self.shelfOrder = shelf.ShelfOrder.VerticalFirst
         self.user = ""
         self.app = None
 
@@ -212,6 +213,8 @@ class PreferencesUI(Tk.Toplevel):
         PrefBundleRadio(subfrm, "Vertical Rotation", game.SidePreference_names, game.SidePreference_pics, pref, "sideStyle",  pref.set_prefs)\
             .pack(padx=10, side=Tk.LEFT)
         PrefBundleRadio(subfrm, "Stack Sort", shelf.StackSort_names, shelf.StackSort_pics, pref, "stackSort", pref.set_prefs)\
+            .pack(padx=10, side=Tk.LEFT)
+        PrefBundleRadio(subfrm, "Shelf Order", shelf.ShelfOrder_names, shelf.ShelfOrder_pics, pref, "shelfOrder", pref.set_prefs) \
             .pack(padx=10, side=Tk.RIGHT)
 
         Tk.Frame(frm, border=2, relief=Tk.RIDGE, bg="lightgray").pack(pady=8, fill=Tk.X, padx=2)

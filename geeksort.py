@@ -6,6 +6,7 @@ if sys.version_info[0] < 3:
     raise Exception("Python 3+ is required. Try re-running with python3 instead of python.")
 
 import logging
+import itertools
 import logging.config
 import os
 import json
@@ -458,7 +459,6 @@ class App:
             
     #### end of threading
     
-    
     def sort_games(self):
         # print(("sort_games", threading.current_thread().name)
         sgames = self.games.get_sorted_boxes(self.preferences.sortFuncs, self.preferences.filterFuncs)
@@ -468,21 +468,34 @@ class App:
         # do all the sorting/placing
         self.games.unplaced = []
         self.progressbar.start("Organizing shelves...", type=WorkTypes.SORT_GAMES)
+
+        # unfurl all shelves into one big sort pile
+
+        # placeholder, fill vertically vs horizontally
+        if self.preferences.shelfOrder == shelf.ShelfOrder.VerticalFirst:
+            shelvessorted = list(itertools.chain( *[c.shelves for c in self.cases] ))
+        else:
+            # given that shelves (currently) start at the bottom, and not all cases have the same number of shelves
+            # as a first pass, we'll build a list of shelves starting at the bottom of the last one, then finally reverse it
+            shelfpairs = itertools.zip_longest(*[c.shelves[-1::-1] for c in self.cases[-1::-1]])
+            shelvessorted = [item for sublist in shelfpairs for item in sublist if item]  # for every item in every tuple
+            shelvessorted = shelvessorted[-1::-1]  # re-reverse the order
+
         for g in sgames:
             try:
-                #shelf._verbose = True
-                for bc in self.cases:
-                    if bc.try_box(g):
-                        #print(b.name, "on",  s.name,  "-", bc.index(s))
+                # shelf._verbose = True
+                for s in shelvessorted:
+                    if s.try_box(g):
+                        # print(b.name, "on",  s.name,  "-", bc.index(s))
                         raise GamePlaced()
 
-                #shelf._verbose = False
+                # shelf._verbose = False
                 self.games.unplaced.append(g)
             except GamePlaced:
                 continue
 
-        #self.start_work("Fixing up...", type=WorkTypes.SORT_GAMES)
-        #do post-sort fixing
+        # self.start_work("Fixing up...", type=WorkTypes.SORT_GAMES)
+        # do post-sort fixing
         for bc in self.cases:
             bc.finish()
 

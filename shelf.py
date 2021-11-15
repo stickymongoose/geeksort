@@ -33,6 +33,16 @@ class StackSort(IntEnum):
 StackSort_names = ["Weight", "Size"]
 StackSort_pics = ["pics/weight.png", "pics/size.png"]
 
+
+# how are shelves filled out
+class ShelfOrder(IntEnum):
+    VerticalFirst = 0
+    HorizontalFirst = 1
+
+ShelfOrder_names = ["Down", "Across"]
+ShelfOrder_pics = ["pics/shelfv.png", "pics/shelfh.png"]
+
+
 class Bookcase:
     def __init__(self, line, ismetric):
         bits = line.split()
@@ -269,12 +279,14 @@ class Shelf:
         self.games = []
         self.stacks = []
         self.totalarea = self.maxwidth * self.height
+        self.volume = self.totalarea * self.depth
         self.usedarea = 0.0
         self.weight = 0.0
         self.wreported = 0
         self.tkShelf = None
         self.frmwidth = 0.0
         self.hovertext = ""
+        self.row = "??"
 
     def __getstate__(self):
         s = self.__dict__.copy()
@@ -394,6 +406,7 @@ class Shelf:
     def finish(self):
         for s in self.stacks:
             s.finish()
+        self.fix_hovertext()
 
     def search(self, text):
         count = 0
@@ -442,19 +455,23 @@ class Shelf:
         self.tkShelf.pack_propagate(False)
         self.tkShelf.bind("<Motion>", self.onMove)
         self.tkShelf.bind("<Button-1>", self.onClick)
+        self.row = row
+        self.fix_hovertext()
 
+    def fix_hovertext(self):
         self.hovertext="""{name}-{row}
 {w}" x {h}" x {d}"
 {usedwidth}" / {w}" used by {total} games
 {used:3.0f}% of space utilized
 {weight}{plus} lbs, ({wcnt}/{total})""".format(
-            name=self.name, row=row
+            name=self.name, row=self.row
             , w=makeFraction(self.maxwidth), h=makeFraction(self.height), d=makeFraction(self.depth)
             , usedwidth=makeFraction(self.maxwidth - self.widthleft)
             , plus="+" if self.wreported < len(self.games) else ""
             , weight=makeFraction(self.weight), wcnt=self.wreported
             , total=len(self.games)
-            , used=(self.usedarea / self.totalarea)*100.0)
+            , used=(self.usedarea / self.totalarea)*100.0
+            )
 
     def clear_widgets(self):
         self.clear_games()
@@ -505,6 +522,9 @@ class Shelf:
 
         print(total_width, self.frmwidth, total_realwidth, self.maxwidth)
         print("###", self.name)
+
+####################
+## Static functions
 
 def read(filename):
     cases = []
