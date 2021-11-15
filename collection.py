@@ -328,9 +328,9 @@ def get_img(user, gameid, collid):
 
         return get_img_specific(thumb.text)
     except ModuleNotFoundError:
-        logger.warning("No Thumbnail or version for %d", id)
+        logger.warning("No Thumbnail or version for %d", gameid)
     except Exception as e:
-        logger.warning("Root failed id {}: {}".format(id, e), exc_info=True)
+        logger.warning("Root failed id {}: {}".format(gameid, e), exc_info=True)
     return "pics/noimage.jpg"
 
 
