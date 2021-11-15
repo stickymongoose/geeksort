@@ -5,7 +5,7 @@ import subprocess
 from cx_Freeze import setup, Executable
 from constants import GS_VERSION
 
-hacky_path = r'C:/Users/jtudisco/AppData/Local/Programs/Python/Python36-32'
+hacky_path = r'C:/Users/jadth/AppData/Local/Programs/Python/Python37'
 os.environ['TCL_LIBRARY'] = hacky_path + r'/tcl/tcl8.6'
 os.environ['TK_LIBRARY'] = hacky_path + r'/tcl/tk8.6'
 
@@ -36,7 +36,7 @@ build_exe_options = {
     'includes' : includes,
     'include_files' : include_files,
     'excludes' : excludes,
-    'optimize' : 2
+    'optimize' : 0
 }
 
 # GUI applications require a different base on Windows (the default is for a
@@ -48,8 +48,8 @@ if sys.platform == "win32":
 executables = [
     Executable('geeksort.py', base=base)
 ]
-
-shutil.rmtree("build", ignore_errors=True )
+if "build" in sys.argv:
+    shutil.rmtree("build", ignore_errors=True )
 
 setup(  name = "geeksort",
         version = GS_VERSION,
@@ -58,4 +58,14 @@ setup(  name = "geeksort",
         options = {"build_exe": build_exe_options},
         executables = executables)
 
-subprocess.run("7z a -r build\geeksort-win-v{}.7z build\exe.win32-3.6".format(GS_VERSION.replace(".","")))
+# if building, make a zip. Should be better handled, but I don't how to add extra steps to setup()
+if "build" in sys.argv:
+    zipname = "geeksort-win-v{}.7z".format(GS_VERSION.replace(".",""))
+    try:
+        os.remove(os.path.join("build", zipname))
+    except FileNotFoundError:
+        pass
+
+    buildpath = os.listdir("build")[0]
+    # not sure why, but 7z makes everything relative to the cwd, even if I qualify the target. So...
+    subprocess.run("7z a -r ..\{}".format(zipname), cwd=os.path.join("build", buildpath))
