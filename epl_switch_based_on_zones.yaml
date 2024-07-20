@@ -1,0 +1,1494 @@
+##########
+# This Blueprint is created by Smart Home Junkie
+# (c) copyright 2023 by Smart Home Junkie. You may not copy, reproduce, distribute, transmit, modify, create derivative works,
+# or in any other way exploit any part of copyrighted material without the prior written permission from Smart Home Junkie
+##########
+
+blueprint:
+  name: EPL Switch Based On Zones
+  description: Switch a light or light group based on presence in a zone. You need the Everything Presence Lite sensor for this.
+  domain: automation
+  author: Smart Home Junkie
+  input:
+    delay_time:
+      name: Turn Off Delay
+      description: Enter the delay time in seconds before a light should turn of after presence is no longer detected in a zone
+      selector:
+        number:
+          min: 0
+          max: 3600
+          mode: box
+    target1_x:
+      name: Target 1 X
+      description: Select the Target 1 X entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    target1_y:
+      name: Target 1 Y
+      description: Select the Target 1 Y entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    target2_x:
+      name: Target 2 X
+      description: Select the Target 2 X entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    target2_y:
+      name: Target 2 Y
+      description: Select the Target 2 Y entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    target3_x:
+      name: Target 3 X
+      description: Select the Target 3 X entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    target3_y:
+      name: Target 3 Y
+      description: Select the Target 3 Y entity
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: distance
+    zone1_light:
+      name: Zone 1 Light
+      description: Select the light that should switch in Zone 1
+      selector:
+        entity:
+          filter:
+            - domain: light
+    zone1_x1:
+      name: Zone 1 Position X Top Left
+      description: Enter the Top Left X position for Zone 1
+      default: "0"
+    zone1_y1:
+      name: Zone 1 Position Y Top Left
+      description: Enter the Top Left Y position for Zone 1
+      default: "0"
+    zone1_x2:
+      name: Zone 1 Position X Bottom Right
+      description: Enter the Bottom Right X position for Zone 1
+      default: "0"
+    zone1_y2:
+      name: Zone 1 Position Y Bottom Right
+      description: Enter the Bottom Right Y position for Zone 1
+      default: "0"
+    zone2_light:
+      name: Zone 2 Light
+      description: Select the light that should switch in Zone 2
+      selector:
+        entity:
+          filter:
+            - domain: light
+    zone2_x1:
+      name: Zone 2 Position X Top Left
+      description: Enter the Top Left X position for Zone 2
+      default: "0"
+    zone2_y1:
+      name: Zone 2 Position Y Top Left
+      description: Enter the Top Left Y position for Zone 2
+      default: "0"
+    zone2_x2:
+      name: Zone 2 Position X Bottom Right
+      description: Enter the Bottom Right X position for Zone 2
+      default: "0"
+    zone2_y2:
+      name: Zone 2 Position Y Bottom Right
+      description: Enter the Bottom Right Y position for Zone 2
+      default: "0"
+    zone3_light:
+      name: Zone 3 Light
+      description: Select the light that should switch in Zone 3
+      selector:
+        entity:
+          filter:
+            - domain: light
+    zone3_x1:
+      name: Zone 3 Position X Top Left
+      description: Enter the Top Left X position for Zone 3
+      default: "0"
+    zone3_y1:
+      name: Zone 3 Position Y Top Left
+      description: Enter the Top Left Y position for Zone 3
+      default: "0"
+    zone3_x2:
+      name: Zone 3 Position X Bottom Right
+      description: Enter the Bottom Right X position for Zone 3
+      default: "0"
+    zone3_y2:
+      name: Zone 3 Position Y Bottom Right
+      description: Enter the Bottom Right Y position for Zone 3
+      default: "0"
+    zone4_light:
+      name: Zone 4 Light
+      description: Select the light that should switch in Zone 4
+      selector:
+        entity:
+          filter:
+            - domain: light
+    zone4_x1:
+      name: Zone 4 Position X Top Left
+      description: Enter the Top Left X position for Zone 4
+      default: "0"
+    zone4_y1:
+      name: Zone 4 Position Y Top Left
+      description: Enter the Top Left Y position for Zone 4
+      default: "0"
+    zone4_x2:
+      name: Zone 4 Position X Bottom Right
+      description: Enter the Bottom Right X position for Zone 4
+      default: "0"
+    zone4_y2:
+      name: Zone 4 Position Y Bottom Right
+      description: Enter the Bottom Right Y position for Zone 4
+      default: "0"
+
+mode: queued
+max: 10
+
+trigger_variables:
+  target1_x_entity: !input target1_x
+  target1_y_entity: !input target1_y
+  target2_x_entity: !input target2_x
+  target2_y_entity: !input target2_y
+  target3_x_entity: !input target3_x
+  target3_y_entity: !input target3_y
+  zone1_x1: !input zone1_x1
+  zone1_x2: !input zone1_x2
+  zone1_y1: !input zone1_y1
+  zone1_y2: !input zone1_y2
+  zone2_x1: !input zone2_x1
+  zone2_x2: !input zone2_x2
+  zone2_y1: !input zone2_y1
+  zone2_y2: !input zone2_y2
+  zone3_x1: !input zone3_x1
+  zone3_x2: !input zone3_x2
+  zone3_y1: !input zone3_y1
+  zone3_y2: !input zone3_y2
+  zone4_x1: !input zone4_x1
+  zone4_x2: !input zone4_x2
+  zone4_y1: !input zone4_y1
+  zone4_y2: !input zone4_y2
+
+trigger:
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x1 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if ( states(target1_x_entity) | int  <= x1 and states(target1_x_entity) | int  >= x2 and states(target1_x_entity) | int  <= y1 and states(target1_x_entity) | int  >= zone1_y2 | int) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int  >= x1 and states(target1_x_entity) | int  <= x2 and states(target1_x_entity) | int  >= y1 and states(target1_x_entity) | int  <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int  <= x1 and states(target1_x_entity) | int  >= x2 and states(target1_x_entity) | int  >= y1 and states(target1_x_entity) | int  <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int  >= x1 and states(target1_x_entity) | int  <= x2 and states(target1_x_entity) | int  <= y1 and states(target1_x_entity) | int  >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 1 detected in Zone 1
+    id: Target 1 detected in Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x2 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 1 left Zone 1
+    id: Target 1 left Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 1 detected in Zone 2
+    id: Target 1 detected in Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 1 left Zone 2
+    id: Target 1 left Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 1 detected in Zone 3
+    id: Target 1 detected in Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 1 left Zone 3
+    id: Target 1 left Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int <= x1 and states(target1_x_entity) | int >= x2 and states(target1_y_entity) | int >= y1 and states(target1_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int >= x1 and states(target1_x_entity) | int <= x2 and states(target1_y_entity) | int <= y1 and states(target1_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 1 detected in Zone 4
+    id: Target 1 detected in Zone 4
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target1_x_entity) | int > x1 or states(target1_x_entity) | int < x2 or states(target1_y_entity) | int < y1 or states(target1_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target1_x_entity) | int < x1 or states(target1_x_entity) | int > x2 or states(target1_y_entity) | int > y1 or states(target1_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 1 left Zone 4
+    id: Target 1 left Zone 4
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x2 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 2 detected in Zone 1
+    id: Target 2 detected in Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x2 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 2 left Zone 1
+    id: Target 2 left Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 2 detected in Zone 2
+    id: Target 2 detected in Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 2 left Zone 2
+    id: Target 2 left Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 2 detected in Zone 3
+    id: Target 2 detected in Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 2 left Zone 3
+    id: Target 2 left Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int <= x1 and states(target2_x_entity) | int >= x2 and states(target2_x_entity) | int >= y1 and states(target2_x_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int >= x1 and states(target2_x_entity) | int <= x2 and states(target2_x_entity) | int <= y1 and states(target2_x_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 2 detected in Zone 4
+    id: Target 2 detected in Zone 4
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target2_x_entity) | int > x1 or states(target2_x_entity) | int < x2 or states(target2_x_entity) | int < y1 or states(target2_x_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target2_x_entity) | int < x1 or states(target2_x_entity) | int > x2 or states(target2_x_entity) | int > y1 or states(target2_x_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 2 left Zone 4
+    id: Target 2 left Zone 4
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x2 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 3 detected in Zone 1
+    id: Target 3 detected in Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone1_x2 | int %}
+      {% set y1 = zone1_y1 | int %}
+      {% set x2 = zone1_x2 | int %}
+      {% set y2 = zone1_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 3 left Zone 1
+    id: Target 3 left Zone 1
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 3 detected in Zone 2
+    id: Target 3 detected in Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone2_x1 | int %}
+      {% set y1 = zone2_y1 | int %}
+      {% set x2 = zone2_x2 | int %}
+      {% set y2 = zone2_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 3 left Zone 2
+    id: Target 3 left Zone 2
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 3 detected in Zone 3
+    id: Target 3 detected in Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone3_x1 | int %}
+      {% set y1 = zone3_y1 | int %}
+      {% set x2 = zone3_x2 | int | int %}
+      {% set y2 = zone3_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 3 left Zone 3
+    id: Target 3 left Zone 3
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int <= x1 and states(target3_x_entity) | int >= x2 and states(target3_y_entity) | int >= y1 and states(target3_y_entity) | int <= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int >= x1 and states(target3_x_entity) | int <= x2 and states(target3_y_entity) | int <= y1 and states(target3_y_entity) | int >= y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    alias: Target 3 detected in Zone 4
+    id: Target 3 detected in Zone 4
+  - platform: template
+    value_template: |-
+      {% set lefttoprightbottom = false %}
+      {% set leftbottomrighttop = false %}
+      {% set rightbottomlefttop = false %}
+      {% set righttopleftbottom = false %}
+      {% set x1 = zone4_x1 | int %}
+      {% set y1 = zone4_y1 | int %}
+      {% set x2 = zone4_x2 | int %}
+      {% set y2 = zone4_y2 | int %}
+
+      {% set state = false %}
+
+      {% if (x1 > x2 and y1 > y2) %}
+        {% set lefttoprightbottom = true %}
+      {% elif (x2 > x1 and y2 > y1) %}
+        {% set rightbottomlefttop = true %}
+      {% elif (x1 > x2 and y1 < y2) %}
+        {% set leftbottomrighttop = true %}
+      {% else %}
+        {% set righttopleftbottom = true %}
+      {% endif %}
+
+      {% if lefttoprightbottom %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif rightbottomlefttop %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% elif leftbottomrighttop %}
+        {% if (states(target3_x_entity) | int > x1 or states(target3_x_entity) | int < x2 or states(target3_y_entity) | int < y1 or states(target3_y_entity) | int > y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% else %}
+        {% if (states(target3_x_entity) | int < x1 or states(target3_x_entity) | int > x2 or states(target3_y_entity) | int > y1 or states(target3_y_entity) | int < y2) %}
+          {% set state = true %}
+        {% endif %}
+      {% endif %}
+      {{ state }}
+    for:
+      seconds: !input delay_time
+    alias: Target 3 left Zone 4
+    id: Target 3 left Zone 4
+
+variables:
+  zone1_light: !input zone1_light
+  zone2_light: !input zone2_light
+  zone3_light: !input zone3_light
+  zone4_light: !input zone4_light
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 detected in Zone 1
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 left Zone 1
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 detected in Zone 2
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 left Zone 2
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 detected in Zone 3
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 left Zone 3
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 detected in Zone 4
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 1 left Zone 4
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 detected in Zone 1
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 left Zone 1
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 detected in Zone 2
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 left Zone 2
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 detected in Zone 3
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 left Zone 3
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 detected in Zone 4
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 2 left Zone 4
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 detected in Zone 1
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 left Zone 1
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone1_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 detected in Zone 2
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 left Zone 2
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone2_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 detected in Zone 3
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 left Zone 3
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone3_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 detected in Zone 4
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Target 3 left Zone 4
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id:
+                - "{{ zone4_light }}"
